@@ -13,4 +13,9 @@ class Bus extends Model
         'numero_bus',
         'numero_chasis',
         ];
+
+        public function asignaciones()
+        {
+            return $this->hasMany(Asignacion::class);
+        }
 }
