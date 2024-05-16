@@ -9,6 +9,7 @@ use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Card;
 use App\Models\Bus;
 
+
 class PatientTypeOverview extends BaseWidget
 {
     protected function getStats(): array
