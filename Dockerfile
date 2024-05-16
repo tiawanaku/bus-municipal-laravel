@@ -1,24 +1,43 @@
-# CARGAMOS IMAGEN DE PHP MODO ALPINE SUPER REDUCIDA
-FROM elrincondeisma/octane:latest
+# Utiliza la imagen oficial de PHP
+FROM php:8.0-fpm
 
-RUN curl -sS https://getcomposer.org/installer​ | php -- \
-     --install-dir=/usr/local/bin --filename=composer
+# Instala las dependencias necesarias
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    npm
 
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-COPY --from=spiralscout/roadrunner:2.4.2 /usr/bin/rr /usr/bin/rr
+# Instala las extensiones PHP necesarias
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
-WORKDIR /app
+# Instala Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Establece el directorio de trabajo
+WORKDIR /var/www
+
+# Copia los archivos de la aplicación
 COPY . .
-RUN rm -rf /app/vendor
-RUN rm -rf /app/composer.lock
-RUN composer install
-RUN composer require laravel/octane spiral/roadrunner
-COPY .env.example .env
-RUN mkdir -p /app/storage/logs
-RUN php artisan cache:clear
-RUN php artisan view:clear
-RUN php artisan config:clear
-RUN php artisan octane:install --server="swoole"
-CMD php artisan octane:start --server="swoole" --host="0.0.0.0"
 
-EXPOSE 8000
+# Actualiza Composer a la última versión
+RUN composer self-update --2
+
+# Instala las dependencias PHP
+RUN composer install --no-dev --optimize-autoloader
+
+# Instala las dependencias de JavaScript
+RUN npm install && npm run prod
+
+# Establece los permisos adecuados
+RUN chown -R www-data:www-data /var/www
+RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+
+# Expone el puerto 9000
+EXPOSE 9000
+
+# Comando por defecto para iniciar PHP-FPM
+CMD ["php-fpm"]
