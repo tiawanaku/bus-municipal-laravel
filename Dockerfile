@@ -1,46 +1,41 @@
-# CARGAMOS IMAGEN DE PHP MODO ALPINE SUPER REDUCIDA
-FROM elrincondeisma/octane:latest
+# Utiliza la imagen oficial de PHP
+FROM php:8.0-fpm
 
-# Instalamos Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+# Instala las dependencias necesarias
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    npm
 
-# Copiamos Composer desde la imagen oficial de Composer
+# Instala las extensiones PHP necesarias
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+
+# Instala Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copiamos RoadRunner desde la imagen oficial de Spiral Scout
-COPY --from=spiralscout/roadrunner:2.4.2 /usr/bin/rr /usr/bin/rr
+# Establece el directorio de trabajo
+WORKDIR /var/www
 
-# Establecemos el directorio de trabajo
-WORKDIR /app
-
-# Copiamos el código fuente
+# Copia los archivos de la aplicación
 COPY . .
 
-# Eliminamos directorios innecesarios
-RUN rm -rf /app/vendor
-RUN rm -rf /app/composer.lock
+# Instala las dependencias PHP
+RUN composer install --no-dev --optimize-autoloader
 
-# Instalamos dependencias
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+# Instala las dependencias de JavaScript
+RUN npm install && npm run prod
 
-# Requerimos paquetes adicionales
-RUN composer require laravel/octane spiral/roadrunner
+# Establece los permisos adecuados
+RUN chown -R www-data:www-data /var/www
+RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
-# Copiamos el archivo de entorno de ejemplo
-COPY .env.example .env
+# Expone el puerto 9000
+EXPOSE 9000
 
-# Creamos directorios necesarios
-RUN mkdir -p /app/storage/logs
+# Comando por defecto para iniciar PHP-FPM
+CMD ["php-fpm"]
 
-# Limpiamos la caché de Laravel
-RUN php artisan cache:clear
-RUN php artisan view:clear
-RUN php artisan config:clear
-
-# Instalamos y configuramos Octane para Swoole
-RUN php artisan octane:install --server="swoole"
-
-# Comando de inicio
-CMD php artisan octane:start --server="swoole" --host="0.0.0.0"
-
-EXPOSE 8000
