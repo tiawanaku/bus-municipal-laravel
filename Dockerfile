@@ -1,10 +1,11 @@
 # Usa la imagen oficial de PHP con el módulo de Apache
 FROM php:8.2-apache
 
-# Instala las dependencias necesarias
+# Instala las dependencias necesarias para las extensiones intl y zip
 RUN apt-get update && \
-    apt-get install -y libzip-dev && \
-    docker-php-ext-install zip intl
+    apt-get install -y libzip-dev zlib1g-dev libicu-dev && \
+    docker-php-ext-configure intl && \
+    docker-php-ext-install intl zip
 
 # Instala Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
