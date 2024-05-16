@@ -1,4 +1,4 @@
-name: Laravel CI
+name: Docker Image CI
 
 on:
   push:
@@ -7,48 +7,30 @@ on:
     branches: [ main ]
 
 jobs:
-  laravel-tests:
+
+  build:
+
     runs-on: ubuntu-latest
 
-    services:
-      mysql:
-        image: mysql:5.7
-        env:
-          MYSQL_ROOT_PASSWORD: root_password
-          MYSQL_DATABASE: laravel
-          MYSQL_USER: laravel_user
-          MYSQL_PASSWORD: laravel_password
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+      - name: Checkout 
+        uses: actions/checkout@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
         with:
-          php-version: '8.0'
-          extensions: mbstring, pdo_mysql, exif, pcntl, bcmath, gd, zip
-          coverage: none
-
-      - name: Install Composer dependencies
-        run: composer install --no-dev --optimize-autoloader
-
-      - name: Generate Laravel key
-        run: php artisan key:generate
-
-      - name: Create database
-        run: |
-          php artisan config:clear
-          php artisan migrate --seed
-
-      - name: Run tests
-        env:
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: laravel
-          DB_USERNAME: laravel_user
-          DB_PASSWORD: laravel_password
-        run: php artisan test
+          platforms: all
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/bus-municipal-gamea:latest
