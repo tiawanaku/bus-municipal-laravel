@@ -2,7 +2,7 @@
 FROM php:8.2-apache
 
 # Instala las extensiones necesarias
-RUN docker-php-ext-install pdo_mysql
+RUN docker-php-ext-install pdo_mysql intl zip
 
 # Instala Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
