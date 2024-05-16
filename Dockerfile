@@ -23,9 +23,6 @@ COPY .env.example .env
 # Genera la clave de la aplicación
 RUN php artisan key:generate
 
-# Ejecuta las migraciones de la base de datos
-RUN php artisan migrate
-
 # Inicia el servidor de desarrollo
 CMD php artisan serve --host=0.0.0.0 --port=8000
 
