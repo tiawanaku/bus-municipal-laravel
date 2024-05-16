@@ -1,8 +1,10 @@
 # Usa la imagen oficial de PHP con el módulo de Apache
 FROM php:8.2-apache
 
-# Instala las extensiones necesarias
-RUN docker-php-ext-install pdo_mysql intl zip
+# Instala las dependencias necesarias
+RUN apt-get update && \
+    apt-get install -y libzip-dev && \
+    docker-php-ext-install zip intl
 
 # Instala Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
