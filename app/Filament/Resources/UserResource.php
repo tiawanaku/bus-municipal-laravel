@@ -15,6 +15,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
 
 class UserResource extends Resource
 {
@@ -59,12 +60,22 @@ class UserResource extends Resource
                 ->action(function (User $user){
                     $user->email_verified_at = Date('Y-m-d H:i:s');
                     $user->save();
+                    Notification::make()
+                    ->title('Acción realizada')
+                    ->body('El correo del usuario ha sido marcado como válido.')
+                    ->success() // Puedes usar ->success(), ->warning(), etc., según el tipo de mensaje
+                    ->send();
                 }),
                 Tables\Actions\Action::make('Rechazar')
                 ->icon('heroicon-m-x-circle')
                 ->action(function (User $user){
                     $user->email_verified_at = null;
                     $user->save();
+                    Notification::make()
+                    ->title('Acción realizada')
+                    ->body('El correo del usuario ha sido marcado como inválido.')
+                    ->danger() // Puedes usar ->success(), ->warning(), etc., según el tipo de mensaje
+                    ->send();
                 })
             ])
             ->bulkActions([
