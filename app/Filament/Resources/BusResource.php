@@ -26,16 +26,19 @@ class BusResource extends Resource
                 //
                 Forms\Components\TextInput::make('numero_placa')
                 ->label('Numero de Placa')
+                ->prefixIcon('heroicon-o-truck')
                 ->required()
                 ->maxLength(255),
 
                 Forms\Components\TextInput::make('numero_bus')
                 ->label('Numero de Bus')
+                ->prefixIcon('heroicon-o-truck')
                 ->required()
                 ->maxLength(255),
     
                 Forms\Components\TextInput::make('numero_chasis')
                 ->label('Numero de Chasis')
+                ->prefixIcon('heroicon-o-truck')
                 ->required()
                 ->maxLength(255),
         ]);
