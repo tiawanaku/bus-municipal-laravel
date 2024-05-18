@@ -17,7 +17,11 @@ class AnfitrionResource extends Resource
 {
     protected static ?string $model = Anfitrion::class;
 
+    protected static ?string $navigationGroup = 'Administrador del Sistema';
+
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
+
+    protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
     {

@@ -17,6 +17,8 @@ class CajeroResource extends Resource
 {
     protected static ?string $model = Cajero::class;
 
+    protected static ?string $navigationGroup = 'Administrador del Sistema';
+
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
 
     public static function form(Form $form): Form

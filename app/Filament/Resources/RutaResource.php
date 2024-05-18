@@ -17,6 +17,8 @@ class RutaResource extends Resource
 {
     protected static ?string $model = Ruta::class;
 
+    protected static ?string $navigationGroup = 'Administrador del Sistema';
+
     protected static ?string $navigationIcon = 'heroicon-o-arrow-path';
 
     public static function form(Form $form): Form

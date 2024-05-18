@@ -17,6 +17,8 @@ class ConductorResource extends Resource
 {
     protected static ?string $model = Conductor::class;
 
+    protected static ?string $navigationGroup = 'Administrador del Sistema';
+
     protected static ?string $navigationIcon = 'heroicon-o-user-circle';
 
     public static function form(Form $form): Form

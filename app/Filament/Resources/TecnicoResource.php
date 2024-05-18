@@ -17,6 +17,8 @@ class TecnicoResource extends Resource
 {
     protected static ?string $model = Tecnico::class;
 
+    protected static ?string $navigationGroup = 'Administrador del Sistema';
+
     protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
 
     public static function form(Form $form): Form

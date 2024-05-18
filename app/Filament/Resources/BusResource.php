@@ -17,6 +17,8 @@ class BusResource extends Resource
 {
     protected static ?string $model = Bus::class;
 
+    protected static ?string $navigationGroup = 'Administrador del Sistema';
+
     protected static ?string $navigationIcon = 'heroicon-o-truck';
 
     public static function form(Form $form): Form
