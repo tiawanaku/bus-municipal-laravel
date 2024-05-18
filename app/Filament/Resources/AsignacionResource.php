@@ -17,7 +17,7 @@ class AsignacionResource extends Resource
 {
     protected static ?string $model = Asignacion::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-document-check';
 
     public static function form(Form $form): Form
     {
