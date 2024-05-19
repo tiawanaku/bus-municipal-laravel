@@ -30,7 +30,8 @@ class ConductorPolicy
      */
     public function create(User $user): bool
     {
-        return $user->checkPermissionTo('create Conductor');
+        //return $user->checkPermissionTo('create Conductor');
+        return $user->hasRole('Administrador') || $user->checkPermissionTo('create Conductor');
     }
 
     /**
@@ -38,7 +39,8 @@ class ConductorPolicy
      */
     public function update(User $user, Conductor $conductor): bool
     {
-        return $user->checkPermissionTo('update Conductor');
+        //return $user->checkPermissionTo('update Conductor');
+        return $user->hasRole('Administrador') || $user->checkPermissionTo('update Conductor');
     }
 
     /**
@@ -46,7 +48,8 @@ class ConductorPolicy
      */
     public function delete(User $user, Conductor $conductor): bool
     {
-        return $user->checkPermissionTo('delete Conductor');
+        //return $user->checkPermissionTo('delete Conductor');
+        return $user->hasRole('Administrador') || $user->checkPermissionTo('delete Conductor');
     }
 
     /**

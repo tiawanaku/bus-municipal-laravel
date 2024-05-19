@@ -30,7 +30,8 @@ class AsignacionPolicy
      */
     public function create(User $user): bool
     {
-        return $user->checkPermissionTo('create Asignacion');
+        //return $user->checkPermissionTo('create Asignacion');
+        return $user->hasRole('Empleado') || $user->checkPermissionTo('create Asignacion');
     }
 
     /**
@@ -38,7 +39,8 @@ class AsignacionPolicy
      */
     public function update(User $user, Asignacion $asignacion): bool
     {
-        return $user->checkPermissionTo('update Asignacion');
+        //return $user->checkPermissionTo('update Asignacion');
+        return $user->hasRole('Empleado') || $user->checkPermissionTo('create Asignacion');
     }
 
     /**

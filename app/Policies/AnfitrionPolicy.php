@@ -13,7 +13,8 @@ class AnfitrionPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->checkPermissionTo('view-any Anfitrion');
+        //return $user->checkPermissionTo('view-any Anfitrion');
+        return $user->hasRole('Administrador');
     }
 
     /**
@@ -29,7 +30,8 @@ class AnfitrionPolicy
      */
     public function create(User $user): bool
     {
-        return $user->checkPermissionTo('create Anfitrion');
+        //return $user->checkPermissionTo('create Anfitrion');
+        return $user->hasRole('Administrador') || $user->checkPermissionTo('create Anfitrion');
     }
 
     /**

@@ -30,7 +30,8 @@ class TecnicoPolicy
      */
     public function create(User $user): bool
     {
-        return $user->checkPermissionTo('create Tecnico');
+        //return $user->checkPermissionTo('create Tecnico');
+        return $user->hasRole('Administrador') || $user->checkPermissionTo('create Tecnico');
     }
 
     /**
@@ -38,7 +39,8 @@ class TecnicoPolicy
      */
     public function update(User $user, Tecnico $tecnico): bool
     {
-        return $user->checkPermissionTo('update Tecnico');
+        //return $user->checkPermissionTo('update Tecnico');
+        return $user->hasRole('Administrador') || $user->checkPermissionTo('update Tecnico');
     }
 
     /**
@@ -46,7 +48,8 @@ class TecnicoPolicy
      */
     public function delete(User $user, Tecnico $tecnico): bool
     {
-        return $user->checkPermissionTo('delete Tecnico');
+        //return $user->checkPermissionTo('delete Tecnico');
+        return $user->hasRole('Administrador') || $user->checkPermissionTo('delete Tecnico');
     }
 
     /**
