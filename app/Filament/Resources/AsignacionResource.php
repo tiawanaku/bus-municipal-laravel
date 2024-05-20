@@ -29,7 +29,7 @@ class AsignacionResource extends Resource
                 ->schema([
                     Forms\Components\BelongsToSelect::make('bus_id')
                         ->label('Bus')
-                        ->relationship('bus', 'numero_placa')
+                        ->relationship('bus', 'numero_bus')
                         ->required(),
     
                     Forms\Components\BelongsToSelect::make('conductor_id')
@@ -47,9 +47,13 @@ class AsignacionResource extends Resource
                         ->relationship('ruta', 'nombre')
                         ->required(),
     
-                    Forms\Components\DateTimePicker::make('horario')
-                        ->label('Horario')
+                    Forms\Components\DateTimePicker::make('horario_s_p')
+                        ->label('Horario Salida en Parada')
                         ->required(),
+
+                    Forms\Components\DateTimePicker::make('horario_ll_p')
+                    ->label('Horario llegada en Parada')
+                    ->required(),
             ]);
     }
 
@@ -63,7 +67,8 @@ class AsignacionResource extends Resource
                 Tables\Columns\TextColumn::make('conductor.nombre'),
                 Tables\Columns\TextColumn::make('anfitrion.nombre'),
                 Tables\Columns\TextColumn::make('ruta.nombre'),
-                Tables\Columns\TextColumn::make('horario'),
+                Tables\Columns\TextColumn::make('horario_s_p'),
+                Tables\Columns\TextColumn::make('horario_ll_p'),
             ])
             ->filters([
                 //

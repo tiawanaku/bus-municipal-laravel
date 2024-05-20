@@ -14,7 +14,8 @@ class Asignacion extends Model
         'conductor_id',
         'anfitrion_id',
         'ruta_id',
-        'horario',
+        'horario_s_p',
+        'horario_ll_p',
     ];
 
     public function bus()
