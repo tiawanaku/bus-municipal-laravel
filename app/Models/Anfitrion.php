@@ -8,13 +8,20 @@ use Illuminate\Database\Eloquent\Model;
 class Anfitrion extends Model
 {
     use HasFactory;
+
     protected $fillable = [
-    'nombre',
-    'apellido_paterno',
-    'apellido_materno',
-    'fecha_nacimiento',
-    'numero_contrato',
-    'numero_contacto',
-    'numero_referencia',
+        'nombre',
+        'apellido_paterno',
+        'apellido_materno',
+        'fecha_nacimiento',
+        'numero_contrato',
+        'numero_contacto',
+        'numero_referencia',
     ];
+
+    // Método para obtener el nombre completo del anfitrión
+    public function getFullNameAttribute()
+    {
+        return trim("{$this->nombre} {$this->apellido_paterno} {$this->apellido_materno}");
+    }
 }
