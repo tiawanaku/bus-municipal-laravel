@@ -12,9 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('rutas', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre');
-            $table->timestamps();
+            $table->bigIncrements('id_paradas');  
+            $table->string('nombre_parada', 100);  
+            $table->string('sentido', 100);        
+            $table->point('lat_long');             
+            $table->unsignedBigInteger('id_ruta'); 
+
+           //relacion con ruta
+            $table->foreign('id_ruta')
+                  ->references('id')   
+                  ->on('rutas')        
+                  ->onDelete('cascade'); 
+
+            $table->timestamps();  
         });
     }
 
