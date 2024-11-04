@@ -41,6 +41,13 @@ class AsignacionDeBusResource extends Resource
                 }))
                 ->required(),
 
+            FilamentSelect::make('id_anfitrion') // Usamos el alias aquí
+                ->label('anfitrion')
+                ->options(Conductor::all()->mapWithKeys(function ($conductor) {
+                    return [$conductor->id => $conductor->nombre_completo];
+                }))
+                ->required(),
+
             Select::make('id_buses')
                 ->label('Bus')
                 ->relationship('bus', 'numero_bus')
