@@ -58,11 +58,17 @@ class InventarioTalonariosResource extends Resource
                             ->required()
                             ->columnSpan(1), // Una columna
 
-                        Forms\Components\TextInput::make('numero_bloques')
-                            ->label('Número de Bloques')
+                        Forms\Components\TextInput::make('numero_paquete')
+                            ->label('Número de Paquete')
                             ->numeric()
                             ->required()
                             ->columnSpan(1), // Una columna
+
+                        Forms\Components\TextInput::make('talonarios_por_paquete')
+                            ->label('Cantidad de Talonarios en el Paquetes')
+                            ->numeric()
+                            ->required()
+                            ->columnSpan(2), // Ocupa más espacio por ser importante
                     ])
                     ->columns(2), // Ajustar a dos columnas para mayor claridad
 
@@ -104,8 +110,10 @@ class InventarioTalonariosResource extends Resource
                     ->label('Rango Inicial'),
                 Tables\Columns\TextColumn::make('rango_final')
                     ->label('Rango Final'),
-                Tables\Columns\TextColumn::make('numero_bloques')
+                Tables\Columns\TextColumn::make('numero_paquete')
                     ->label('N° Bloques'),
+                Tables\Columns\TextColumn::make('talonarios_por_paquete')
+                    ->label('N°de Talonarios por Paquete'),
                 Tables\Columns\TextColumn::make('valor_ticket_bs')
                     ->label('Valor Ticket (Bs)'),
             ])

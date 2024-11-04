@@ -16,8 +16,9 @@ class InventarioTalonarios extends Model
         'cantidad_tickets',
         'rango_inicial',
         'rango_final',
-        'numero_bloques',
+        'numero_paquete',
         'valor_ticket_bs',
+        'talonarios_por_paquete',
     ];
 
     // Relación con el modelo Cajero
