@@ -18,9 +18,9 @@ return new class extends Migration {
             $table->string('n_ficha');
             $table->text('observaciones')->nullable();
             $table->date('fecha_designacion');
+            $table->time('hora_salida'); // Para solo la hora
             $table->timestamps();
         });
-
     }
 
     /**

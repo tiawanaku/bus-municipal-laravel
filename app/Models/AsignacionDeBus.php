@@ -19,9 +19,12 @@ class AsignacionDeBus extends Model
     protected $fillable = [
         'id_conductor',
         'id_buses',
+        'id_anfitrion',
         'n_bus',
         'observaciones',
-        'fecha_designacion'
+        'fecha_designacion',
+        'n_ficha',
+        'hora_salida'
     ];
 
     /**
@@ -38,5 +41,12 @@ class AsignacionDeBus extends Model
     public function bus()
     {
         return $this->belongsTo(Bus::class, 'id_buses');
+    }
+    /**
+     * Relación con el modelo de anfitrion.
+     */
+    public function anfitrion()
+    {
+        return $this->belongsTo(Anfitrion::class, 'id_anfitrion');
     }
 }
