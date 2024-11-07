@@ -21,6 +21,9 @@ class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
+     //para cambiar el nombre de la etiqueta
+     protected static ?string $navigationLabel = 'Usuarios';
+
     protected static ?string $navigationGroup = 'Administrador del Sistema';
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';

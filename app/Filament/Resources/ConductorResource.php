@@ -17,6 +17,9 @@ class ConductorResource extends Resource
 {
     protected static ?string $model = Conductor::class;
 
+     //para cambiar el nombre de la etiqueta
+     protected static ?string $navigationLabel = 'Conductores';
+
     protected static ?string $navigationGroup = 'Administrador del Sistema';
 
     protected static ?string $navigationIcon = 'heroicon-o-user-circle';
