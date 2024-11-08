@@ -23,8 +23,6 @@
 
     <h1>Datos de Seguimiento de Buses</h1>
 
- 
-
     <!-- Mapa -->
     <h2 class="mt-5">Mapa de Ubicaciones</h2>
 
@@ -37,38 +35,59 @@
     <!-- Contenedor del mapa -->
     <div id="mapId" style="height: 500px;"></div>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // Inicializar el mapa
-        var map = L.map('mapId').setView([-16.5, -68.2], 13);
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Inicializar el mapa
+            var map = L.map('mapId').setView([-16.5, -68.2], 13);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-        }).addTo(map);
-        let testMarker = L.marker([-16.500000, -68.119000]) // Coordenadas válidas
-    .addTo(map)
-    .bindPopup('Marcador de prueba');
-        
+            // Asegurarse de que el mapa esté listo antes de agregar capas
+            map.whenReady(function () {
+                // Añadir capa base
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                }).addTo(map);
 
-        @if(count($trackingData) > 0)
-        console.log("Datos de seguimiento:", {!! json_encode($trackingData) !!});
-            @foreach($trackingData as $registro)
-                let lat = parseFloat("{{ $registro['latitude'] }}");
-                let lng = parseFloat("{{ $registro['longitude'] }}");
+                // Marcador de prueba
+                let testMarker = L.marker([-16.500000, -68.119000]) // Coordenadas válidas
+                    .addTo(map)
+                    .bindPopup('Marcador de prueba');
 
-                if (!isNaN(lat) && !isNaN(lng)) {
-                    let marcador = L.marker([lat, lng])
-                        .addTo(map)
-                        .bindPopup('<b>ID: {{ $registro["id"] }}</b><br>{{ $registro["recorded_at_bolivia"] }}');
-                } else {
-                    console.error("Latitud o longitud no válidas para el registro con ID: {{ $registro['id'] }}");
-                }
-            @endforeach
-        @else
-            console.error("No hay datos de seguimiento disponibles.");
-        @endif
-    });
-</script>
+                // Revisar si hay datos de seguimiento
+                @if (count($trackingData) > 0)
+                    console.log("Datos de seguimiento:", {!! json_encode($trackingData) !!});
 
+                    let routeCoordinates = []; // Array para almacenar las coordenadas de la ruta
 
+                    @foreach ($trackingData as $registro)
+                        let lat = parseFloat("{{ $registro['latitude'] }}");
+                        let lng = parseFloat("{{ $registro['longitude'] }}");
+
+                        if (!isNaN(lat) && !isNaN(lng)) {
+                            let marcador = L.marker([lat, lng])
+                                .addTo(map)
+                                .bindPopup('<b>ID: {{ $registro["id"] }}</b><br>{{ $registro["recorded_at_bolivia"] }}');
+
+                            // Añadir las coordenadas a la ruta
+                            routeCoordinates.push([lat, lng]);
+                        } else {
+                            console.error("Latitud o longitud no válidas para el registro con ID: {{ $registro['id'] }}");
+                        }
+                    @endforeach
+
+                    // Si hay al menos dos puntos, dibujar la polilínea
+                    if (routeCoordinates.length > 1) {
+                        let polyline = L.polyline(routeCoordinates, { color: 'blue' }).addTo(map);
+
+                        // Ajustar el mapa para que muestre toda la ruta
+                        map.fitBounds(polyline.getBounds());
+                    } else {
+                        console.error("No hay suficientes puntos para trazar la ruta.");
+                    }
+
+                @else
+                    console.error("No hay datos de seguimiento disponibles.");
+                @endif
+            });
+        });
+    </script>
 </div>

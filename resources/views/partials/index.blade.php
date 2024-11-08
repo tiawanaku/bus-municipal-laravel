@@ -1,5 +1,5 @@
-<div class="flex flex-col h-full">
-    <div class="bg-cover bg-center h-24">
+<div class="flex flex-col h-full mb-16">
+    <div class="bg-cover bg-center h-24 flex items-center justify-between px-4">
         <form class="max-w-md ml-0 mt-4">
             <label for="search"
                 class="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white">Search</label>
@@ -20,11 +20,19 @@
 
             </div>
         </form>
+        <a href="/admin"> <button type="button" 
+            class=" hidden md:block text-blue-700 hover:text-white border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-xl px-5 py-2.5 ml-4 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800">
+            Iniciar Sesión
+        </button>
+        </a>
+
     </div>
+    
 
     <section class="flex flex-row flex-1">
-        <div class="flex-grow mr-4 z-0">
-            <div id="mapa_bus" class="h-5/6 sm:h-[30vh] md:h-96 w-11/12 sm:w-full md:h-96  w-full relative"></div>
+        <div class="flex-grow mr-4  z-0">
+        <div id="mapa_bus" class="h-full sm:h-full md:h-full sm:w-full md:w-9/12 lg:w-9/12 relative"></div>
+
         </div>
 
         <!-- Script para Leaflet -->
@@ -34,6 +42,6 @@
             var locations = @json($locations);
         </script>
 
-
-
+</section>
+</div>
 

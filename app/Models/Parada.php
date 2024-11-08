@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use App\Models\Ruta;
 
+
 class Parada extends Model
 {
     use HasFactory;
@@ -23,13 +24,14 @@ class Parada extends Model
         'lat_long',
         'id_ruta',
     ];
-
+   
     
     public function ruta()
     {
-        /* return $this->belongsTo(Ruta::class, 'id_ruta'); */
+        
         return $this->belongsTo(Ruta::class, 'id_ruta');
     }
-
-  
+    
+   
+   
 }

@@ -116,47 +116,47 @@
 
                 <div>
                     <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasSur/paradaCALLE3.png" alt=""
-                        data-id="12">
+                        data-id="21">
                 </div>
                 <div>
                     <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasSur/paradaCALLE7.png" alt=""
-                        data-id="13">
+                        data-id="22">
                 </div>
                 <div>
                     <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasSur/paradaCRUCEVIACHA.png"
-                        alt="" data-id="14">
+                        alt="" data-id="24">
                 </div>
                 <div>
                     <img class="h-auto max-w-full rounded-lg parada-image"
-                        src="/img/paradasSur/paradaTELEFERICOMORADO.png" alt="" data-id="15">
+                        src="/img/paradasSur/paradaTELEFERICOMORADO.png" alt="" data-id="26">
                 </div>
                 <div>
                     <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasSur/paradaPUENTEBOLIVIA.png"
-                        alt="" data-id="16">
+                        alt="" data-id="28">
                 </div>
                 <div>
                     <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasSur/paradaMOLINOANDINO.png"
-                        alt="" data-id="17">
+                        alt="" data-id="30">
                 </div>
                 <div>
                     <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasSur/paradaRIELESSENKATA.png"
-                        alt="" data-id="18">
+                        alt="" data-id="32">
                 </div>
                 <div>
                     <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasSur/paradaCRUCESENKATA.png"
-                        alt="" data-id="19">
+                        alt="" data-id="34">
                 </div>
                 <div>
                     <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasSur/paradaPUENTEVELA.png"
-                        alt="" data-id="20">
+                        alt="" data-id="36">
                 </div>
                 <div>
                     <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasSur/paradaCRUCEVENTILLA.png"
-                        alt="" data-id="21">
+                        alt="" data-id="38">
                 </div>
                 <div>
                     <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasSur/paradaCRUCELAYURI.png"
-                        alt="" data-id="22">
+                        alt="" data-id="40">
                 </div>
             </div>
         </div>
@@ -261,7 +261,7 @@
 
 
 
-<!-- Main modal -->
+<!-- Main modal Avisos -->
 <div id="modal-avisos" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
     <div class="relative p-4 w-full max-w-md max-h-full">
         <!-- Modal content -->
@@ -291,8 +291,8 @@
 
 
 <!-- Contenedor lateral para pantallas grandes -->
-<div id="card-avisos" class="hidden md:flex flex-col space-y-4 p-4 bg-gray-700 fixed  right-0 w-80 h-96 overflow-y-auto">
-    
+<div id="card-avisos" class="hidden md:flex flex-col space-y-4 p-4  top-44 absolute right-0 w-80 h-3/5 sm:w-5/6   overflow-y-auto">
+
 </div>
 
 

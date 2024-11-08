@@ -12,7 +12,12 @@ class GPSController extends Controller
     public function obtenerVista()
     {
         
-        $paradas = Parada::select('nombre_parada', DB::raw('ST_X(lat_long) AS longitud'), DB::raw('ST_Y(lat_long) AS latitud'))->get();
+        $paradas = Parada::select(
+            'nombre_parada',
+            DB::raw("JSON_EXTRACT(lat_long, '$.lng') as longitud"),
+            DB::raw("JSON_EXTRACT(lat_long, '$.lat') as latitud"), 
+            'sentido'
+        )->get();
 
        
         error_log(print_r($paradas, true));
@@ -20,7 +25,7 @@ class GPSController extends Controller
         
         
         return view('layouts.app', ['locations' => $paradas]);
-        /* return view ('layouts.app'); */
+        
     }
 
     /* Obtener la ubicación del bus a traves del Bus */
@@ -65,7 +70,7 @@ class GPSController extends Controller
          $query = $request->input('query');
          
          $paradas = Parada::where('nombre_parada', 'like', '%' . $query . '%')
-         ->get(['id_paradas', 'nombre_parada']); 
+         ->get(['id_paradas', 'nombre_parada', 'sentido']); 
  
          return response()->json($paradas); 
      }
@@ -75,8 +80,9 @@ class GPSController extends Controller
          $id = $request->input('id_paradas'); 
  
          $parada = Parada::select(
-                             DB::raw('ST_X(lat_long) AS longitud'), 
-                             DB::raw('ST_Y(lat_long) AS latitud'))
+            DB::raw("JSON_EXTRACT(lat_long, '$.lng') as longitud"),
+            DB::raw("JSON_EXTRACT(lat_long, '$.lat') as latitud")
+         )
                          ->where('id_paradas', $id)
                          ->first();
  

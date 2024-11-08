@@ -16,7 +16,7 @@ return new class extends Migration
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 nombre VARCHAR(255) NOT NULL,
                 direccion VARCHAR(255) NOT NULL,
-                ubicacion POINT NOT NULL,
+                lat_long POINT NOT NULL,
                 id_ruta BIGINT UNSIGNED,
                 created_at TIMESTAMP NULL,
                 updated_at TIMESTAMP NULL,

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ebe0c3197b9c8b48801aa0fdf97fa854",
+    "content-hash": "b26abb26750aaa0ad50852ea197d459a",
     "packages": [
         {
             "name": "althinect/filament-spatie-roles-permissions",
@@ -134,6 +134,72 @@
                 "source": "https://github.com/AnourValar/eloquent-serialize/tree/1.2.25"
             },
             "time": "2024-09-16T12:59:37+00:00"
+        },
+        {
+            "name": "arbermustafa/filament-locationpickr-field",
+            "version": "2.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/arbermustafa/filament-locationpickr-field.git",
+                "reference": "e3638991b6251dd407de348bb9af8615c20618ad"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/arbermustafa/filament-locationpickr-field/zipball/e3638991b6251dd407de348bb9af8615c20618ad",
+                "reference": "e3638991b6251dd407de348bb9af8615c20618ad",
+                "shasum": ""
+            },
+            "require": {
+                "filament/forms": "^3.0",
+                "php": "^8.1",
+                "spatie/laravel-package-tools": "^1.13.5"
+            },
+            "require-dev": {
+                "pestphp/pest": "^2.10"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "ArberMustafa\\FilamentLocationPickrField\\LocationPickrFieldServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "ArberMustafa\\FilamentLocationPickrField\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Arber Mustafa",
+                    "email": "info@arbermustafa.com",
+                    "homepage": "https://arbermustafa.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Location picker field for Filament Php using Google Maps",
+            "homepage": "https://github.com/arbermustafa/filament-locationpickr-field",
+            "keywords": [
+                "arbermustafa",
+                "field",
+                "filament-locationpickr-field",
+                "filament-plugin",
+                "form",
+                "google-maps",
+                "laravel",
+                "maps",
+                "php"
+            ],
+            "support": {
+                "issues": "https://github.com/arbermustafa/filament-locationpickr-field/issues",
+                "source": "https://github.com/arbermustafa/filament-locationpickr-field/tree/2.0.0"
+            },
+            "time": "2023-09-14T12:15:06+00:00"
         },
         {
             "name": "blade-ui-kit/blade-heroicons",
@@ -916,6 +982,83 @@
                 }
             ],
             "time": "2024-02-05T11:56:58+00:00"
+        },
+        {
+            "name": "dotswan/filament-map-picker",
+            "version": "v1.4.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/dotswan/filament-map-picker.git",
+                "reference": "34a2c8b4b7b6cdd046d78712478575aced4ecd15"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/dotswan/filament-map-picker/zipball/34a2c8b4b7b6cdd046d78712478575aced4ecd15",
+                "reference": "34a2c8b4b7b6cdd046d78712478575aced4ecd15",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^3.0",
+                "illuminate/contracts": "^10.0 || ^11.0",
+                "php": "^8.1",
+                "spatie/laravel-package-tools": "^1.15.0"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.0",
+                "nunomaduro/collision": "^7.9",
+                "nunomaduro/larastan": "^2.0.1",
+                "orchestra/testbench": "^8.0",
+                "pestphp/pest": "^2.0",
+                "pestphp/pest-plugin-arch": "^2.0",
+                "pestphp/pest-plugin-laravel": "^2.0",
+                "phpstan/extension-installer": "^1.1",
+                "phpstan/phpstan-deprecation-rules": "^1.0",
+                "phpstan/phpstan-phpunit": "^1.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Dotswan\\MapPicker\\MapPickerServiceProvider"
+                    ],
+                    "aliases": {
+                        "MapPicker": "Dotswan\\MapPicker\\Facades\\MapPicker"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Dotswan\\MapPicker\\": "src/",
+                    "Dotswan\\MapPicker\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Dotswan",
+                    "email": "tech@dotswan.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Easily pick and retrieve geo-coordinates using a map-based interface in your Filament applications.",
+            "homepage": "https://github.com/dotswan/filament-map-picker",
+            "keywords": [
+                "dotswan",
+                "filament",
+                "filament-map-picker",
+                "filament-v3",
+                "filamentphp",
+                "laravel",
+                "map-picker"
+            ],
+            "support": {
+                "issues": "https://github.com/dotswan/filament-map-picker/issues",
+                "source": "https://github.com/dotswan/filament-map-picker"
+            },
+            "time": "2024-10-07T06:53:32+00:00"
         },
         {
             "name": "dragonmantank/cron-expression",
@@ -8042,6 +8185,83 @@
                 "source": "https://github.com/Jean85/pretty-package-versions/tree/2.0.6"
             },
             "time": "2024-03-08T09:58:59+00:00"
+        },
+        {
+            "name": "kitloong/laravel-migrations-generator",
+            "version": "v7.0.6",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/kitloong/laravel-migrations-generator.git",
+                "reference": "3d036e3030928f904c833a8e004fd4914f301236"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/kitloong/laravel-migrations-generator/zipball/3d036e3030928f904c833a8e004fd4914f301236",
+                "reference": "3d036e3030928f904c833a8e004fd4914f301236",
+                "shasum": ""
+            },
+            "require": {
+                "ext-pdo": "*",
+                "illuminate/support": "^10.43|^11.0",
+                "php": "^8.1"
+            },
+            "require-dev": {
+                "barryvdh/laravel-ide-helper": "^2.0|^3.0",
+                "friendsofphp/php-cs-fixer": "^3.1",
+                "larastan/larastan": "^1.0|^2.0",
+                "mockery/mockery": "^1.0",
+                "orchestra/testbench": "^8.0|^9.0",
+                "phpmd/phpmd": "^2.10",
+                "slevomat/coding-standard": "^8.0",
+                "squizlabs/php_codesniffer": "^3.5"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "KitLoong\\MigrationsGenerator\\MigrationsGeneratorServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "KitLoong\\MigrationsGenerator\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Kit Loong",
+                    "email": "kitloong1008@gmail.com"
+                }
+            ],
+            "description": "Generates Laravel Migrations from an existing database",
+            "keywords": [
+                "artisan",
+                "generator",
+                "laravel",
+                "lumen",
+                "migration",
+                "migrations"
+            ],
+            "support": {
+                "issues": "https://github.com/kitloong/laravel-migrations-generator/issues",
+                "source": "https://github.com/kitloong/laravel-migrations-generator/tree/v7.0.6"
+            },
+            "funding": [
+                {
+                    "url": "https://www.buymeacoffee.com/kitloong",
+                    "type": "buy_me_a_coffee"
+                },
+                {
+                    "url": "https://github.com/kitloong",
+                    "type": "github"
+                }
+            ],
+            "time": "2024-11-03T12:05:10+00:00"
         },
         {
             "name": "laravel/pint",

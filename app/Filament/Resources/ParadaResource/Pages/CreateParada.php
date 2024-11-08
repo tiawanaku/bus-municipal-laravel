@@ -12,7 +12,8 @@ class CreateParada extends CreateRecord
 {
     protected static string $resource = ParadaResource::class;
 
+    
 
-
+  
 
 }

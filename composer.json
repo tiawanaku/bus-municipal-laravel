@@ -7,6 +7,8 @@
     "require": {
         "php": "^8.2",
         "althinect/filament-spatie-roles-permissions": "^2.2",
+        "arbermustafa/filament-locationpickr-field": "2.0.0",
+        "dotswan/filament-map-picker": "^1.4",
         "filament/filament": "^3.2",
         "fortawesome/font-awesome": "^6.5",
         "laravel/framework": "^11.0",
@@ -16,6 +18,7 @@
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "kitloong/laravel-migrations-generator": "^7.0",
         "laravel/pint": "^1.13",
         "laravel/sail": "^1.26",
         "mockery/mockery": "^1.6",

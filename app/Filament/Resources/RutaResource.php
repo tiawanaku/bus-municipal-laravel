@@ -6,6 +6,7 @@ use App\Filament\Resources\RutaResource\Pages;
 use App\Filament\Resources\RutaResource\RelationManagers;
 use App\Models\Ruta;
 use App\Models\Parada;
+use Illuminate\Database\Eloquent\Model;
 
 use Filament\Forms;
 use Filament\Forms\Components\Repeater;
@@ -17,6 +18,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\MultiSelect;
+use Filament\Forms\Components\Select;
+use App\Filament\Resources\RutaResource\RelationManagers\ParadasRelationManager;
 
 
 class RutaResource extends Resource
@@ -31,8 +35,7 @@ class RutaResource extends Resource
 
     public static function form(Form $form): Form
     {
-        return $form
-        ->schema([
+        return $form->schema([
             Forms\Components\Select::make('nombre')
                 ->label('Nombre Ruta')
                 ->options([
@@ -41,15 +44,14 @@ class RutaResource extends Resource
                 ])
                 ->required(),
 
-            // Lista de selección de paradas
-            Forms\Components\CheckboxList::make('selected_paradas')
-                ->options(Parada::pluck('nombre_parada', 'id_paradas'))
-                ->label('Selecciona las paradas que pertenecen a esta ruta')
-                ->default(static fn(?Ruta $record): array => $record ? $record->paradas->pluck('id_paradas')->toArray() : [])
-        ]);
+           
+         
+    
+    ]);
+        
 
     }
-
+    
     public static function table(Table $table): Table
     {
         return $table
@@ -75,6 +77,7 @@ class RutaResource extends Resource
     {
         return [
             //
+            ParadasRelationManager::class,
         ];
     }
 
@@ -87,5 +90,5 @@ class RutaResource extends Resource
         ];
     }
 
-   
+
 }

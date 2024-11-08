@@ -30,7 +30,16 @@ searchInput.addEventListener("input", function () {
                     data.forEach(item => {
                         const suggestionItem = document.createElement("div");
                         suggestionItem.classList.add("suggestion-item", "p-2", "hover:bg-gray-200");
-                        suggestionItem.textContent = item.nombre_parada; // Nombre de la parada
+                        suggestionItem.innerHTML = `<strong>${item.nombre_parada}</strong> - <span class="text-gray-500">${item.sentido}</span>`;
+
+                        
+                        suggestionItem.addEventListener("click", function () {
+                            if (item.id_paradas) {
+                                centrarEnParada(item.id_paradas);
+                            } else {
+                                console.error("ID de parada no encontrado:", item);
+                            }
+                        });
 
                         
                         suggestionItem.addEventListener("click", function () {
@@ -161,7 +170,7 @@ function mostrarTiempoEstimadoDeLlegada(busLat, busLng) {
                     <tr class="bg-gray-100 border">
                         <td class="p-2">${location.nombre_parada}</td>
                         <td class="p-2">${tiempoEstimado} min</td>
-                        <td class="p-2">Vuelta</td> 
+                        <td class="p-2">${location.sentido}</td> 
                 </tbody>
             </table>
         `;
@@ -177,7 +186,7 @@ function mostrarTiempoEstimadoDeLlegada(busLat, busLng) {
         });
         console.log(locations);
         
-        const marker = L.marker([location.latitud, location.longitud], { icon: paradaIcon }).addTo(map);
+        const marker = L.marker([location.latitud, location.longitud, location.sentido], { icon: paradaIcon }).addTo(map);
         marker.bindPopup(popupContent);
         marker.on('click', function () {
             marker.openPopup();

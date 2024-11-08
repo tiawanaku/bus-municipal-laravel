@@ -19,7 +19,12 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Forms\Components\LeafletMap;
 use Filament\Forms\Components\TextInput;
 
+
 use Filament\Forms\Components\Hidden;
+use Illuminate\Support\Facades\DB;
+use ArberMustafa\FilamentLocationPickrField\Forms\Components\LocationPickr;
+use Dotswan\MapPicker\Fields\Map;
+use Filament\Forms\Set;
 
 class ParadaResource extends Resource
 {
@@ -33,22 +38,70 @@ class ParadaResource extends Resource
     public static function form(Form $form): Form
     {
         return $form
-        
-        ->schema([
-            LeafletMap::make('lat_long')
-                ->extraAttributes(['data-point-field' => 'lat_long']),
+
+            ->schema([
+
 
                 Forms\Components\TextInput::make('nombre_parada')
-                ->label('Nombre(s)')
-                ->required()
-                ->maxLength(255),
+                    ->label('Nombre(s)')
+                    ->required()
+                    ->maxLength(255),
 
-                Forms\Components\TextInput::make('sentido')
-                ->label('Sentido(s)')
-                ->required()
-                ->maxLength(255),
-        ]);
-       
+                    Forms\Components\Select::make('sentido')
+                    ->label('Sentido')
+                    ->options([
+                        'Ida' => 'Sentido Ida',
+                        'Vuelta' => 'Sentido Vuelta',
+                    ])
+                    ->required(),
+
+
+
+                // Componente LOcation Picker
+                LocationPickr::make('lat_long_v1')
+                    ->label('Seleccionar ubicación')
+
+                    ->mapControls([
+                        'mapTypeControl' => true,
+                        'scaleControl' => true,
+                        'streetViewControl' => true,
+                        'rotateControl' => true,
+                        'fullscreenControl' => true,
+                        'zoomControl' => false,
+                    ])
+                    ->defaultZoom(15)
+                    ->draggable()
+                    ->clickable()
+                    ->height('40vh')
+                    // Ubicación por defecto 
+                    ->defaultLocation(function ($record) {
+                        if ($record && $record->lat_long) {
+                            $location = json_decode($record->lat_long, true);
+                            return [$location['lat'], $location['lng']];
+                        }
+                        return [-16.52546755669295, -68.1826633779974];
+                    })
+                    ->myLocationButtonLabel('My location')
+
+                    //Obtener los datos del marker y convertirlo en Json
+                    ->afterStateUpdated(function ($state, callable $set) {
+
+                        if ($state && is_array($state)) {
+                            $lat = $state['lat'];
+                            $lng = $state['lng'];
+
+                            $set('lat_long', json_encode(['lat' => $lat, 'lng' => $lng]));
+                        }
+                    }),
+
+                // Campo de texto para mostrar las coordenadas
+                Forms\Components\TextInput::make('lat_long')
+                    ->label('Ubicación (Lat/Lng)'),
+
+
+            ]);
+
+
     }
 
     public static function table(Table $table): Table
@@ -56,17 +109,17 @@ class ParadaResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('nombre_parada')
-                ->label('Nombre de la Parada')
-                ->sortable()
-                ->searchable(),
+                    ->label('Nombre de la Parada')
+                    ->sortable()
+                    ->searchable(),
 
-            TextColumn::make('ruta.nombre')->label('Ruta')->sortable(), 
+                TextColumn::make('ruta.nombre')->label('Ruta')->sortable(),
 
 
-            TextColumn::make('sentido')
-                ->label('Sentido')
-                ->sortable()
-                ->searchable(),
+                TextColumn::make('sentido')
+                    ->label('Sentido')
+                    ->sortable()
+                    ->searchable(),
             ])
             ->filters([
                 //
@@ -96,4 +149,5 @@ class ParadaResource extends Resource
             'edit' => Pages\EditParada::route('/{record}/edit'),
         ];
     }
+
 }
