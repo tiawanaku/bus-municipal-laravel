@@ -1,6 +1,6 @@
 <!-- drawer (OffCanvaRUTAS) -->
 <div id="drawer-right-rutas"
-    class="fixed top-0 right-0 z-40 h-screen p-4 overflow-y-auto transition-transform translate-x-full bg-gray-700 w-80 dark:bg-gray-800"
+    class="fixed top-0 right-0 z-50 h-screen p-4 overflow-y-auto transition-transform translate-x-full bg-gray-700 w-80 dark:bg-gray-800"
     tabindex="-1" aria-labelledby="drawer-right-label">
     <h5 id="drawer-right-label"
         class="inline-flex items-center mb-4 text-base font-semibold text-gray-500 dark:text-gray-400"><svg
@@ -78,11 +78,7 @@
         </li>
     </ul>
 
-
-
     <div id="default-tab-content">
-
-
 
         <div class="hidden p-4 rounded-lg bg-gray-700 dark:bg-gray-800" id="profile" role="tabpanel"
             aria-labelledby="profile-tab">
@@ -90,17 +86,39 @@
 
             <!-- Grid Paradas Norte -->
             <div id="ruta-norte" class="grid grid-cols-1 gap-2">
+            <div>
+                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaCEIBO.png" alt="">
+                </div>
+            <div>
+                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaEXTRANSITO.png" alt="">
+                </div>
                 <div>
-                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaUPEA.png" alt="">
+                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaCRUZPAPAL.png" alt="">
                 </div>
                 <div>
                     <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaLAPAZ.png" alt="">
                 </div>
                 <div>
-                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaEXTRANSITO.png" alt="">
+                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaUPEA.png" alt="">
                 </div>
-
-
+                <div>
+                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaRIOSECO.png" alt="">
+                </div>
+                <div>
+                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaEXPARADA8.png" alt="">
+                </div>
+                <div>
+                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaCRUCELAGUNAS.png" alt="">
+                </div>
+                <div>
+                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaBELLAVISTA.png" alt="">
+                </div>
+                <div>
+                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaSANROQUE.png" alt="">
+                </div>
+                <div>
+                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaPLAYAVERDE.png" alt="">
+                </div>
             </div>
 
         </div>
@@ -156,6 +174,10 @@
                 </div>
                 <div>
                     <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasSur/paradaCRUCELAYURI.png"
+                        alt="" data-id="40">
+                </div>
+                <div>
+                    <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasSur/paradaSAMO.png"
                         alt="" data-id="40">
                 </div>
             </div>
@@ -258,9 +280,6 @@
 
 <!-- Modal para pantallas pequeñas -->
 
-
-
-
 <!-- Main modal Avisos -->
 <div id="modal-avisos" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
     <div class="relative p-4 w-full max-w-md max-h-full">
@@ -281,7 +300,15 @@
                 <!-- Modal body -->
                 <div class="p-4 md:p-5">
                 <div id="modal-content" class="overflow-y-auto max-h-60vh">
-                  
+                @foreach($avisos as $aviso)
+                            <div class="card border-2 border-red-800 rounded-lg shadow-md bg-gray-700 mb-4">
+                                <div class="p-4">
+                                    <h5 class="font-semibold text-lg text-gray-200">{{ $aviso->title }}</h5>
+                                    <p class="font-sans tracking-tight text-gray-200">{{ $aviso->description }}</p>
+                                    <small class="text-gray-400">{{ $aviso->updated_at->diffForHumans() }}</small>
+                                </div>
+                            </div>
+                        @endforeach
                   </div>
                   
                 </div>
@@ -290,29 +317,13 @@
 </div> 
 
 
-<!-- Contenedor lateral para pantallas grandes -->
-<div id="card-avisos" class="hidden md:flex flex-col space-y-4 p-4  top-44 absolute right-0 w-80 h-3/5 sm:w-5/6   overflow-y-auto">
 
-</div>
 
 
 
 <script>
     
-    const avisos = [
-        {
-            title: 'Atención Usuarios Ruta Norte',
-            description: 'Paradas Bloqueadas por marchas en paradas UPEA, AV.La Paz, paradas momentáneas en Parque Jaried Uriel y Plaza La Paz',
-            updated: 'Last updated 3 mins ago',
-            imgSrc: ''
-        },
-        {
-            title: 'Atención Usuarios Ruta Sur',
-            description: 'Problemas en las paradas cercanas a la estación central. Paradas alternativas en calles aledañas.',
-            updated: 'Last updated 5 mins ago',
-            imgSrc: ''
-        }
-    ];
+   
 
     // Función para generar las cards
     function generarCardsAvisos(contenedor) {
@@ -324,9 +335,12 @@
             card.innerHTML = `
                 <img src="${aviso.imgSrc}" class="rounded-t-lg" alt="...">
                 <div class="p-4">
-                    <h5 class="font-semibold text-lg text-gray-200">${aviso.title}</h5>
-                    <p class="font-sans tracking-tight text-gray-200">${aviso.description}</p>
-                    <small class="text-gray-400">${aviso.updated}</small>
+                    <h5 class="font-semibold text-lg text-gray-200">Noticia: ${aviso.noticia}</h5>
+                    <p class="font-sans tracking-tight text-gray-200">Duración: ${aviso.inicio_periodo} ~ ${aviso.fin_periodo}</p>
+                    <p class="font-sans tracking-tight text-gray-200">Razón: ${aviso.razon}</p>
+                    <p class="font-sans tracking-tight text-gray-200">Paradas afectadas: ${aviso.paradas_afectadas}</p>
+                    <p class="font-sans tracking-tight text-gray-200">Detalle: ${aviso.detalle}</p>
+                    <small class="text-gray-400">Actualizado hace ${aviso.created_at_humano}</small>
                 </div>
             `;
             contenedor.appendChild(card);

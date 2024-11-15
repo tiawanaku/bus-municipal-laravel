@@ -29,9 +29,9 @@
     </div>
     
 
-    <section class="flex flex-row flex-1">
+    <section class="flex flex-row flex-1 ">
         <div class="flex-grow mr-4  z-0">
-        <div id="mapa_bus" class="h-full sm:h-full md:h-full sm:w-full md:w-9/12 lg:w-9/12 relative"></div>
+        <div id="mapa_bus" class="h-full rounded sm:h-full md:h-full sm:w-full md:w-9/12 lg:w-9/12 relative"></div>
 
         </div>
 
@@ -42,6 +42,19 @@
             var locations = @json($locations);
         </script>
 
+        <!-- Contenedor lateral para pantallas grandes -->
+<div id="card-avisos" class="hidden md:flex flex-col space-y-4 p-4  top-44 absolute right-0 w-80 h-3/5 sm:w-5/6   overflow-y-auto">
+<script>
+            var avisos = @json($avisos);
+        </script>
+@foreach($avisos as $aviso)
+            <div class="p-2 mb-2 bg-gray-100 rounded-lg">
+                <p>{{ $aviso->contenido }}</p>
+            </div>
+        @endforeach
+</div>
+
 </section>
+
 </div>
 

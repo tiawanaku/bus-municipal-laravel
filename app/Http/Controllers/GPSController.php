@@ -5,26 +5,32 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Parada;
+use App\Models\Aviso;
+
 
 class GPSController extends Controller
 {
     /* Función para obtener latitud y longitus de las paradas */
     public function obtenerVista()
     {
-        
-        $paradas = Parada::select(
-            'nombre_parada',
-            DB::raw("JSON_EXTRACT(lat_long, '$.lng') as longitud"),
-            DB::raw("JSON_EXTRACT(lat_long, '$.lat') as latitud"), 
-            'sentido'
-        )->get();
+   
+    $paradas = Parada::select(
+        'nombre_parada',
+        DB::raw("JSON_EXTRACT(lat_long, '$.lng') as longitud"),
+        DB::raw("JSON_EXTRACT(lat_long, '$.lat') as latitud"), 
+        'sentido'
+    )->get();
 
-       
-        error_log(print_r($paradas, true));
+    
+    $avisos = Aviso::all();
+    foreach ($avisos as $aviso) {
+        $aviso->created_at_humano = $aviso->created_at->diffForHumans();
+    }
 
-        
-        
-        return view('layouts.app', ['locations' => $paradas]);
+    return view('layouts.app', [
+        'avisos' => $avisos,  
+        'locations' => $paradas  
+    ]);
         
     }
 

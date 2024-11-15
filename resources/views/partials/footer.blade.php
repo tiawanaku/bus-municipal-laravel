@@ -1,4 +1,4 @@
-<footer class="sm:text-xs fixed bottom-0 left-0 w-full sm:text-center bg-gray-800 text-white p-0 h-16 z-50">
+<footer class="sm:text-xs fixed bottom-0 left-0 w-full sm:text-center bg-gray-800 text-white p-0 h-16 z-40">
     <div class="w-full mx-auto max-w-screen-xl flex flex-col md:flex-row md:items-center md:justify-between">
         <a href="https://www.elalto.gob.bo/gamea/"
             class="flex items-center mb-3 md:mb-0 space-x-3 rtl:space-x-reverse">

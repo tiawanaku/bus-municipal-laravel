@@ -1,5 +1,5 @@
-<nav class="header h-30 bg-blue-800 bg-opacity-70 relative">
-        <div class="overlay absolute inset-0 bg-blue-800 bg-opacity-70 z-10"></div>
+<nav class="header h-30 bg-gradient-to-r from-cyan-800 to-blue-950 relative">
+        <div class="overlay absolute inset-0 bg-blue-900 bg-opacity-70 z-10"></div>
         <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4 relative z-20">
             <a href="#" class="flex items-center space-x-3 rtl:space-x-reverse">
                 <img src="img/logo.png" class="h-12" alt="Logo" />

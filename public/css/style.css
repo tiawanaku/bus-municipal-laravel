@@ -5,18 +5,31 @@ html, body {
     flex-direction: column;
 }
 
-
+body {
+    font-family: 'Montserrat', serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}
+h1, h2, h3 {
+    font-family: 'Montserrat', serif;
+    font-weight: 700;
+}
+p, span, a {
+    font-family: 'Montserrat', serif;
+    font-weight: 400;
+}
 
 #sidebar {
     z-index: 10; 
 }
 
 .header {
-    background-image: url('../img/header.png'); /* Cambia por la ruta de tu imagen */
+    background-image: url('../img/header.png'); 
     position: relative;
-    height: 90px; /* Ajusta según sea necesario */
-    background-size: cover; /* Ajusta el tamaño de la imagen */
-    background-position: center; /* Centra la imagen */
+    height: 90px; 
+    background-size: cover; 
+    background-position: center; 
 }
 
 .overlay {

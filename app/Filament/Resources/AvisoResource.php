@@ -23,7 +23,46 @@ class AvisoResource extends Resource
     {
         return $form
             ->schema([
-                //
+                Forms\Components\Select::make('noticia')
+                ->label('Noticia')
+                ->options([
+                    'cambio_de_ruta' => 'Cambio de Ruta',
+                    'bloqueo_de_vias' => 'Bloqueo de Vías',
+                    'nueva_ruta' => 'Nueva Ruta',
+                    'otro' => 'Otro',
+                ])
+                ->placeholder('Selecciona una noticia')
+                ->required(),
+                
+            Forms\Components\DateTimePicker::make('inicio_periodo')
+                ->label('Inicio de Periodo')
+                ->default(now())
+                ->required(),
+                
+            Forms\Components\DateTimePicker::make('fin_periodo')
+                ->label('Fin de Periodo')
+                ->default(now())
+                ->nullable(),
+                
+            Forms\Components\Select::make('razon')
+            ->label('Razón')
+            ->required()
+            ->options([
+                'Cierre de vias' => 'Cierre de Vías',
+                'Accidente' => 'Accidente',
+                'Mantenimiento' => 'Mantenimiento',
+                'Otro' => 'Otro',
+            ])
+            ->placeholder('Selecciona la razón'),
+                
+            Forms\Components\Textarea::make('paradas_afectadas')
+                ->label('Paradas Afectadas')
+                ->required(),
+                
+            Forms\Components\Textarea::make('detalle')
+                ->label('Detalle')
+                ->required()
+                ->default("Estimados usuarios:\nDebido a ...\nAnte cualquier consulta comuníquese con nosotros a través de los siguientes números:"),
             ]);
     }
 
@@ -31,7 +70,13 @@ class AvisoResource extends Resource
     {
         return $table
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('noticia'),
+                Tables\Columns\TextColumn::make('inicio_periodo'),
+                Tables\Columns\TextColumn::make('fin_periodo'),
+                Tables\Columns\TextColumn::make('razon'),
+                Tables\Columns\TextColumn::make('user.name') 
+                ->label('Nombre del Usuario'),
+                
             ])
             ->filters([
                 //
