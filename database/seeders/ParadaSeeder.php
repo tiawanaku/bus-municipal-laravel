@@ -33,7 +33,7 @@ class ParadaSeeder extends Seeder
             ['id_paradas' => 12, 'nombre_parada' => 'Ex Parada 8', 'sentido' => 'Ida', 'lat_long' => ['lat' => -16.4857531636886, 'lng' => -68.2285557561655], 'id_ruta' => null],
             ['id_paradas' => 13, 'nombre_parada' => 'Cruce Lagunas', 'sentido' => 'Vuelta', 'lat_long' => ['lat' => -16.4808191864884, 'lng' => -68.248212470592], 'id_ruta' => null],
             ['id_paradas' => 14, 'nombre_parada' => 'Cruce Lagunas', 'sentido' => 'Ida', 'lat_long' => ['lat' => -16.4812902078119, 'lng' => -68.2482450917833], 'id_ruta' => null],
-            ['id_paradas' => 15, 'nombre_parada' => 'Cruce Bella Vista', 'sentido' => 'Vuelta', 'lat_long' => ['lat' => -16.4786220730462, 'lng' => -68.2586853678683], 'id_ruta' => null],
+            ['id_paradas' => 15, 'nombre_parada' => 'Cruce Bella Vista', 'sentido' => 'Vuelta', 'lat_long' => ['lat' => -16.4854475505789, 'lng' => -68.2586853678683], 'id_ruta' => null],
             ['id_paradas' => 16, 'nombre_parada' => 'Cruce Bella Vista', 'sentido' => 'Ida', 'lat_long' => ['lat' => -16.4788519784453, 'lng' => -68.2596744019985], 'id_ruta' => null],
             ['id_paradas' => 17, 'nombre_parada' => 'San Roque', 'sentido' => 'Vuelta', 'lat_long' => ['lat' => -16.4759784093592, 'lng' => -68.2719042715678], 'id_ruta' => null],
             ['id_paradas' => 18, 'nombre_parada' => 'San Roque', 'sentido' => 'Ida', 'lat_long' => ['lat' => -16.4763570344837, 'lng' => -68.2720747609313], 'id_ruta' => null],

@@ -87,37 +87,37 @@
             <!-- Grid Paradas Norte -->
             <div id="ruta-norte" class="grid grid-cols-1 gap-2">
             <div>
-                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaCEIBO.png" alt="">
+                    <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasNorte/paradaCEIBO.png" alt="" data-id="1">
                 </div>
             <div>
-                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaEXTRANSITO.png" alt="">
+                    <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasNorte/paradaEXTRANSITO.png" alt="" data-id="2">
                 </div>
                 <div>
-                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaCRUZPAPAL.png" alt="">
+                    <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasNorte/paradaCRUZPAPAL.png" alt="" data-id="3">
                 </div>
                 <div>
-                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaLAPAZ.png" alt="">
+                    <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasNorte/paradaLAPAZ.png" alt="" data-id="5">
                 </div>
                 <div>
-                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaUPEA.png" alt="">
+                    <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasNorte/paradaUPEA.png" alt="" data-id="7">
                 </div>
                 <div>
-                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaRIOSECO.png" alt="">
+                    <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasNorte/paradaRIOSECO.png" alt="" data-id="9">
                 </div>
                 <div>
-                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaEXPARADA8.png" alt="">
+                    <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasNorte/paradaEXPARADA8.png" alt="" data-id="11">
                 </div>
                 <div>
-                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaCRUCELAGUNAS.png" alt="">
+                    <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasNorte/paradaCRUCELAGUNAS.png" alt="" data-id="13">
                 </div>
                 <div>
-                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaBELLAVISTA.png" alt="">
+                    <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasNorte/paradaBELLAVISTA.png" alt="" data-id="15">
                 </div>
                 <div>
-                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaSANROQUE.png" alt="">
+                    <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasNorte/paradaSANROQUE.png" alt="" data-id="17">
                 </div>
                 <div>
-                    <img class="h-auto max-w-full rounded-lg" src="/img/paradasNorte/paradaPLAYAVERDE.png" alt="">
+                    <img class="h-auto max-w-full rounded-lg parada-image" src="/img/paradasNorte/paradaPLAYAVERDE.png" alt="" data-id="19">
                 </div>
             </div>
 
