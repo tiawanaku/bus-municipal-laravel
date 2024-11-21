@@ -52,7 +52,8 @@ class BusResource extends Resource
             ->columns([
                 //
                 Tables\Columns\TextColumn::make('numero_placa')
-                ->searchable(),
+                ->searchable()
+                ->size('lg'),
                 Tables\Columns\TextColumn::make('numero_bus'),
                 Tables\Columns\TextColumn::make('numero_chasis'),
             ])

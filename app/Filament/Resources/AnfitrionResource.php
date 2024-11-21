@@ -17,6 +17,9 @@ class AnfitrionResource extends Resource
 {
     protected static ?string $model = Anfitrion::class;
 
+    //para cambiar el nombre de la etiqueta
+    protected static ?string $navigationLabel = 'Anfitriones';
+
     protected static ?string $navigationGroup = 'Administrador del Sistema';
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';

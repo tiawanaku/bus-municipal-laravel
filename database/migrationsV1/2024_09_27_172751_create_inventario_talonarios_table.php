@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -19,11 +18,13 @@ return new class extends Migration
             $table->integer('cantidad_tickets'); // Cantidad de tickets
             $table->integer('rango_inicial'); // Rango inicial
             $table->integer('rango_final'); // Rango final
-            $table->integer('numero_bloques'); // Número de bloques de talonarios
+            $table->integer('numero_paquete'); // Número de bloques de talonarios
             $table->decimal('valor_ticket_bs', 8, 2); // Valor de tickets en Bs
+            $table->integer('talonarios_por_paquete'); // Nueva columna: Talonarios por paquete
             $table->timestamps(); // Campos created_at y updated_at
         });
     }
+
 
     /**
      * Reverse the migrations.
