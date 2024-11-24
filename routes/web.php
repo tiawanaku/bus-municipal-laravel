@@ -12,7 +12,7 @@ Route::get('/', function () {
 });
 
 Route::get('/', [GPSController::class, 'obtenerVista'],);
-Route::get('/ubicacion', [GpsController::class, 'obtenerUbicacion']);
+Route::get('/ubicacion', [GPSController::class, 'obtenerUbicacion']);
 
 Route::get('/buscar', [GPSController::class, 'buscar']);
 Route::get('/ubicacionparada', [GPSController::class, 'obtenerUbicacionParada']);
