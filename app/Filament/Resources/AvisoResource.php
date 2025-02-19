@@ -26,10 +26,10 @@ class AvisoResource extends Resource
                 Forms\Components\Select::make('noticia')
                 ->label('Noticia')
                 ->options([
-                    'cambio_de_ruta' => 'Cambio de Ruta',
-                    'bloqueo_de_vias' => 'Bloqueo de Vías',
-                    'nueva_ruta' => 'Nueva Ruta',
-                    'otro' => 'Otro',
+                    'Cambio de Ruta' => 'Cambio de Ruta',
+                    'Bloqueo de Vias' => 'Bloqueo de Vías',
+                    'Nueva Ruta' => 'Nueva Ruta',
+                    'Otro' => 'Otro',
                 ])
                 ->placeholder('Selecciona una noticia')
                 ->required(),

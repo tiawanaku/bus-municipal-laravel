@@ -1,11 +1,11 @@
 
 /* Menu hambuerguesa */
-const hamburger = document.getElementById('hamburger');
+/* const hamburger = document.getElementById('hamburger');
 const sidebar = document.getElementById('sidebar');
 
 hamburger.addEventListener('click', function () {
     sidebar.classList.toggle('-translate-x-full');
-});
+}); */
 /* Fin Menu Hamburguesa */
 
 
@@ -147,6 +147,9 @@ function mostrarUbicacionBus() {
         });
 }
 
+
+
+
 // Función para mostrar el tiempo estimado de llegada en cada parada
 function mostrarTiempoEstimadoDeLlegada(busLat, busLng) {
     locations.forEach(location => {
@@ -174,6 +177,8 @@ function mostrarTiempoEstimadoDeLlegada(busLat, busLng) {
                 </tbody>
             </table>
         `;
+
+        actualizarTiempoEnTabs(location.nombre_parada, location.sentido, tiempoEstimado);
         var paradaIcon = L.icon({
             iconUrl: 'img/ParadaIcon.png',
 
@@ -219,7 +224,7 @@ function centrarEnParada(id) {
 }
 
 /* Para las grids de paradas */
-const paradaImages = document.querySelectorAll('.parada-image');
+/* const paradaImages = document.querySelectorAll('.parada-image');
 
 
 paradaImages.forEach(image => {
@@ -227,11 +232,11 @@ paradaImages.forEach(image => {
         const idParada = this.getAttribute('data-id'); 
         centrarEnParada(idParada); 
     });
-});
+}); */
 /* Fin Grids */
 
 /* Radio Button SENTIDO IDA - VUELTA */
-document.addEventListener("DOMContentLoaded", function() {
+/* document.addEventListener("DOMContentLoaded", function() {
     
     var containerNorte = document.getElementById("ruta-norte");
     var containerSur = document.getElementById("ruta-sur");
@@ -275,6 +280,39 @@ document.addEventListener("DOMContentLoaded", function() {
         actualizarImagenes(containerNorte, imagenesNorte, 'vuelta');
         actualizarImagenes(containerSur, imagenesSur, 'vuelta');
     }
-});
+}); */
 
 /* Fin Radio Button */
+
+/* Js para Tabs Estado del servicio */
+document.addEventListener('DOMContentLoaded', function () {
+    const buttons = document.querySelectorAll('.tab-btn');
+    const contents = document.querySelectorAll('.tab-content');
+    
+    buttons.forEach(button => {
+        button.addEventListener('click', function () {
+            const tab = this.getAttribute('data-tab');
+      
+            buttons.forEach(btn => {
+                btn.classList.replace('bg-blue-600', 'bg-gray-200');
+                btn.classList.remove('text-white');  
+                btn.classList.add('text-blue-600');  
+            });
+
+            this.classList.replace('bg-gray-200', 'bg-blue-600');
+            this.classList.add('text-white');  
+            contents.forEach(content => content.classList.add('hidden'));
+            document.getElementById(tab).classList.remove('hidden');
+        });
+    });
+});
+  
+
+
+/* Función para actualizar el tiempo de los tabs */
+  function actualizarTiempoEnTabs(nombreParada, sentido, tiempo) {
+  /*   let elementos = document.querySelectorAll(`[data-parada="${nombreParada}"] .tiempo-llegada`); */
+  let elementos = document.querySelectorAll(`[data-parada="${nombreParada}"][data-sentido="${sentido}"] .tiempo-llegada`);
+    
+    elementos.forEach(el => el.textContent = `${tiempo} min`);
+}

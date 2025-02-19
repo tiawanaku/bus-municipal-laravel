@@ -31,11 +31,11 @@
 <body class="bg-gradient-to-r from-blue-900 to-black-800 min-h-screen flex flex-col ">
 
     <!-- HEADER -->
-    @include('partials.header') 
+    @include('pageInformation.partials.navbar') 
     <!-- FIN HEADER -->
 
 <!-- MENU -->
-@include('partials.menu') 
+<!-- @include('partials.menu')  -->
  <!-- FIN MENU -->
 
 
@@ -44,7 +44,7 @@
     <!-- fin Contenido -->
 
     <!-- FOOTER -->
-    @include('partials.footer') 
+   <!--  @include('partials.footer')  -->
     <!-- FIN FOOTER -->
 
 

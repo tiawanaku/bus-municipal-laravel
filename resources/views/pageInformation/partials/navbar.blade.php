@@ -16,7 +16,9 @@
       </button>
       <div class="hidden w-full md:block md:w-auto" id="navbar-default">
         <ul class="flex flex-col md:flex-row md:space-x-8 md:mt-0">
-          <li><a href="/bus-municipal#about" class="block py-2 px-3 rounded hover:bg-gray-800 hover:text-yellow-500 md:hover:bg-transparent md:hover:text-yellow-500">Sobre Nosotros</a></li>
+        <li><a href="/" class="block py-2 px-3 rounded hover:bg-gray-800 hover:text-blue-500 md:hover:bg-transparent md:hover:text-yellow-500">En Vivo</a></li>
+
+          <li><a href="/bus-municipal#about" class="block py-2 px-3 rounded hover:bg-gray-800 hover:text-blue-500 md:hover:bg-transparent md:hover:text-yellow-500">Sobre Nosotros</a></li>
           <li><a href="/bus-municipal#rutas" class="block py-2 px-3 rounded hover:bg-gray-800 hover:text-yellow-500 md:hover:bg-transparent md:hover:text-yellow-500">Rutas</a></li>
           <li><a href="/bus-municipal#contact" class="block py-2 px-3 rounded hover:bg-gray-800 hover:text-yellow-500 md:hover:bg-transparent md:hover:text-yellow-500">Contact</a></li>
         </ul>

@@ -326,7 +326,7 @@
    
 
     // Función para generar las cards
-    function generarCardsAvisos(contenedor) {
+ /*    function generarCardsAvisos(contenedor) {
         contenedor.innerHTML = ''; 
 
         avisos.forEach(aviso => {
@@ -345,10 +345,10 @@
             `;
             contenedor.appendChild(card);
         });
-    }
+    } */
 
     // Insertar cards en el modal y en el contenedor de pantallas grandes
-    window.addEventListener('DOMContentLoaded', function () {
+   /*  window.addEventListener('DOMContentLoaded', function () {
         const modalContent = document.getElementById('modal-content');
         const cardAvisosContent = document.getElementById('card-avisos');
 
@@ -358,7 +358,7 @@
 
    
    
-
+ */
     
     
 </script>
