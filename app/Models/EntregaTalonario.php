@@ -15,11 +15,16 @@ class EntregaTalonario extends Model
     protected $fillable = [
         'responsable_entrega',
         'cajero_id',
-        'numero_paquetes_entregados',
-        'cantidad_talonarios',
-        'cantidad_tickets',
+        'users_id',
+        'cantidad_preferenciales',
+        'rango_inicial_preferencial',
+        'rango_final_preferencial',
+        'cantidad_restante_preferencial',
+        'cantidad_regulares',
+        'rango_inicial_regular',
+        'rango_final_regular',
+        'cantidad_restante_regular',
         'fecha_entrega',
-        'tipo_talonarios',
     ];
 
     // Relación con el modelo Cajero
@@ -27,6 +32,16 @@ class EntregaTalonario extends Model
     {
         return $this->belongsTo(Cajero::class);
     }
+
+    // Relación con el modelo User
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'users_id');
+    }
+
+
+
+
 
     // Sobrescribir el boot del modelo para ejecutar la lógica después de crear una entrega
     protected static function boot()

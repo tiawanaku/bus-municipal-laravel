@@ -18,7 +18,7 @@ class EntregaTalonarioResource extends Resource
 {
     protected static ?string $model = EntregaTalonario::class;
 
-    protected static ?string $navigationGroup = 'Administrador del Sistema';
+    protected static ?string $navigationGroup = 'Gestión de Talonarios';
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
@@ -26,45 +26,39 @@ class EntregaTalonarioResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('responsable_entrega')
-                    ->required()
-                    ->label('Responsable de la Entrega'),
-
                 Forms\Components\Select::make('cajero_id')
-                    ->relationship('cajero', 'nombre') // Relación con cajero
-                    ->required()
-                    ->searchable() // Permite la búsqueda
-                    ->label('Cajero'),
+                    ->label('Cajero')
+                    ->options(function () {
+                        return \App\Models\Cajero::all()->pluck('nombre', 'id')->mapWithKeys(function ($item, $key) {
+                            $cajero = \App\Models\Cajero::find($key);
+                            $fullName = $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno;
+                            return [$key => $fullName];
+                        });
+                    })
+                    ->required(),
 
-                Forms\Components\TextInput::make('numero_paquetes_entregados')
-                    ->numeric()
-                    ->required()
-                    ->minValue(1)
-                    ->label('Número de Paquetes Entregados'),
 
-                Forms\Components\TextInput::make('cantidad_talonarios')
-                    ->numeric()
-                    ->required()
-                    ->minValue(1)
-                    ->label('Cantidad de Talonarios'),
+                Forms\Components\Select::make('users_id')
+                    ->label('Anfitrión')
+                    ->options(function () {
+                        return \App\Models\User::all()->pluck('name', 'id')->mapWithKeys(function ($item, $key) {
+                            $user = \App\Models\User::find($key);
+                            $fullName = $user->name . ' ' . $user->apellido_paterno . ' ' . $user->apellido_materno;
+                            return [$key => $fullName];
+                        });
+                    })
+                    ->nullable(),
 
-                Forms\Components\TextInput::make('cantidad_tickets')
-                    ->numeric()
-                    ->required()
-                    ->minValue(1)
-                    ->label('Cantidad de Tickets'),
 
-                Forms\Components\DatePicker::make('fecha_entrega')
-                    ->required()
-                    ->label('Fecha de Entrega'),
-
-                Forms\Components\Select::make('tipo_talonarios')
-                    ->options([
-                        'regular' => 'Regular',
-                        'preferencial' => 'Preferencial',
-                    ])
-                    ->required()
-                    ->label('Tipo de Talonarios'),
+                Forms\Components\TextInput::make('cantidad_preferenciales')->nullable(),
+                Forms\Components\TextInput::make('rango_inicial_preferencial')->nullable(),
+                Forms\Components\TextInput::make('rango_final_preferencial')->nullable(),
+                Forms\Components\TextInput::make('cantidad_restante_preferencial')->nullable(),
+                Forms\Components\TextInput::make('cantidad_regulares')->nullable(),
+                Forms\Components\TextInput::make('rango_inicial_regular')->nullable(),
+                Forms\Components\TextInput::make('rango_final_regular')->nullable(),
+                Forms\Components\TextInput::make('cantidad_restante_regular')->nullable(),
+                Forms\Components\DatePicker::make('fecha_entrega')->required(),
             ]);
     }
 
@@ -73,7 +67,16 @@ class EntregaTalonarioResource extends Resource
     {
         return $table
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('responsable_entrega'),
+                Tables\Columns\TextColumn::make('cantidad_preferenciales'),
+                Tables\Columns\TextColumn::make('rango_inicial_preferencial'),
+                Tables\Columns\TextColumn::make('rango_final_preferencial'),
+                Tables\Columns\TextColumn::make('cantidad_restante_preferencial'),
+                Tables\Columns\TextColumn::make('cantidad_regulares'),
+                Tables\Columns\TextColumn::make('rango_inicial_regular'),
+                Tables\Columns\TextColumn::make('rango_final_regular'),
+                Tables\Columns\TextColumn::make('cantidad_restante_regular'),
+                Tables\Columns\TextColumn::make('fecha_entrega'),
             ])
             ->filters([
                 //
@@ -104,4 +107,3 @@ class EntregaTalonarioResource extends Resource
         ];
     }
 }
-

@@ -17,105 +17,102 @@ class InventarioTalonariosResource extends Resource
 {
     protected static ?string $model = InventarioTalonarios::class;
 
+    protected static ?string $navigationLabel = 'Inventarios de Talonarios';
+    protected static ?string $navigationGroup = 'Gestión de Talonarios';
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Fieldset::make('Información del Responsable')
+                // Selección del cajero
+                Forms\Components\Card::make()
                     ->schema([
                         Forms\Components\Select::make('cajero_id')
-                            ->label('Cajera Responsable')
+                            ->label('Encargado de Recepción de Talonarios')
                             ->options(function () {
-                                return \App\Models\Cajero::all()
-                                    ->pluck('full_name', 'id');
+                                return \App\Models\Cajero::all()->pluck('nombre', 'id')->mapWithKeys(function ($item, $key) {
+                                    $cajero = \App\Models\Cajero::find($key);
+                                    $fullName = $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno;
+                                    return [$key => $fullName];
+                                });
                             })
-                            ->required()
-                            ->columnSpan(2), // Ocupa dos columnas para mayor espacio
+                            ->required(),
                     ])
-                    ->columns(2), // Ajustar a dos columnas para mayor espacio
+                    ->label('Datos del Cajero'),
 
-                Forms\Components\Fieldset::make('Detalles del Talonario')
+                // Tarjeta para Preferenciales
+                Forms\Components\Card::make()
                     ->schema([
-                        Forms\Components\TextInput::make('codigo_autorizacion')
-                            ->label('Código de Autorización')
-                            ->required()
-                            ->columnSpan(1), // Una columna
+                        Forms\Components\Grid::make(4)
+                            ->schema([
+                                Forms\Components\TextInput::make('cantidad_preferenciales')
+                                    ->label('Cantidad Paquetes Preferenciales')
+                                    ->required(),
 
-                        Forms\Components\Select::make('tipo_talonario')
-                            ->label('Tipo de Talonario')
-                            ->options([
-                                'preferencial' => 'Preferencial',
-                                'regular' => 'Regular',
-                            ])
-                            ->required()
-                            ->columnSpan(1), // Una columna
+                                Forms\Components\TextInput::make('rango_inicial_preferencial')
+                                    ->label('Rango Inicial Preferencial')
+                                    ->required(),
 
-                        Forms\Components\TextInput::make('cantidad_tickets')
-                            ->label('Cantidad de Tickets')
-                            ->numeric()
-                            ->required()
-                            ->columnSpan(1), // Una columna
+                                Forms\Components\TextInput::make('rango_final_preferencial')
+                                    ->label('Rango Final Preferencial')
+                                    ->required(),
 
-                        Forms\Components\TextInput::make('numero_paquete')
-                            ->label('Número de Paquete')
-                            ->numeric()
-                            ->required()
-                            ->columnSpan(1), // Una columna
-
-                        Forms\Components\TextInput::make('talonarios_por_paquete')
-                            ->label('Cantidad de Talonarios en el Paquetes')
-                            ->numeric()
-                            ->required()
-                            ->columnSpan(2), // Ocupa más espacio por ser importante
+                                Forms\Components\TextInput::make('cantidad_restante_preferencial')
+                                    ->label('Cantidad Restante Preferencial')
+                                    ->required(),
+                            ]),
                     ])
-                    ->columns(2), // Ajustar a dos columnas para mayor claridad
+                    ->label('Tarjetas Preferenciales'),
 
-                Forms\Components\Fieldset::make('Rango y Valor')
+                // Tarjeta para Regulares
+                Forms\Components\Card::make()
                     ->schema([
-                        Forms\Components\TextInput::make('rango_inicial')
-                            ->label('Rango Inicial')
-                            ->numeric()
-                            ->required()
-                            ->columnSpan(1), // Una columna
+                        Forms\Components\Grid::make(4)
+                            ->schema([
+                                Forms\Components\TextInput::make('cantidad_regulares')
+                                    ->label('Cantidad Paquetes Regulares')
+                                    ->required(),
 
-                        Forms\Components\TextInput::make('rango_final')
-                            ->label('Rango Final')
-                            ->numeric()
-                            ->required()
-                            ->columnSpan(1), // Una columna
+                                Forms\Components\TextInput::make('rango_inicial_regular')
+                                    ->label('Rango Inicial Regular')
+                                    ->required(),
 
-                        Forms\Components\TextInput::make('valor_ticket_bs')
-                            ->label('Valor de Ticket (Bs)')
-                            ->numeric()
-                            ->required()
-                            ->columnSpan(2), // Ocupa más espacio por ser importante
+                                Forms\Components\TextInput::make('rango_final_regular')
+                                    ->label('Rango Final Regular')
+                                    ->required(),
+
+                                Forms\Components\TextInput::make('cantidad_restante_regular')
+                                    ->label('Cantidad Restante Regular')
+                                    ->required(),
+                            ]),
                     ])
-                    ->columns(2), // Ajustar a dos columnas para mayor claridad
+                    ->label('Tarjetas Regulares'),
+
+                // Observaciones
+                Forms\Components\Card::make()
+                    ->schema([
+                        Forms\Components\Textarea::make('observaciones')
+                            ->label('Observaciones')
+                            ->nullable(),
+                    ]),
             ]);
     }
+
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('cajero.full_name')
-                    ->label('Cajera Responsable'),
-                Tables\Columns\TextColumn::make('codigo_autorizacion')
-                    ->label('N° Autorización'),
-                Tables\Columns\TextColumn::make('cantidad_tickets')
-                    ->label('Tickets Disponibles'),
-                Tables\Columns\TextColumn::make('rango_inicial')
-                    ->label('Rango Inicial'),
-                Tables\Columns\TextColumn::make('rango_final')
-                    ->label('Rango Final'),
-                Tables\Columns\TextColumn::make('numero_paquete')
-                    ->label('N° Bloques'),
-                Tables\Columns\TextColumn::make('talonarios_por_paquete')
-                    ->label('N°de Talonarios por Paquete'),
-                Tables\Columns\TextColumn::make('valor_ticket_bs')
-                    ->label('Valor Ticket (Bs)'),
+                Tables\Columns\TextColumn::make('cantidad_preferenciales'),
+                Tables\Columns\TextColumn::make('rango_inicial_preferencial'),
+                Tables\Columns\TextColumn::make('rango_final_preferencial'),
+                Tables\Columns\TextColumn::make('cantidad_restante_preferencial'),
+                Tables\Columns\TextColumn::make('cantidad_regulares'),
+                Tables\Columns\TextColumn::make('rango_inicial_regular'),
+                Tables\Columns\TextColumn::make('rango_final_regular'),
+                Tables\Columns\TextColumn::make('cantidad_restante_regular'),
+                Tables\Columns\TextColumn::make('observaciones'),
             ])
             ->filters([
                 // Agrega filtros aquí si es necesario
