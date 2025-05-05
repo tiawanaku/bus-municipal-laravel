@@ -52,9 +52,12 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
-            ->plugin(FilamentSpatieRolesPermissionsPlugin::make())
+            
             ->authMiddleware([
                 Authenticate::class,
+            ])
+            ->plugins([
+                \BezhanSalleh\FilamentShield\FilamentShieldPlugin::make(),
             ]);
     }
 }

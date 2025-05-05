@@ -18,6 +18,8 @@ class EntregaTalonarioResource extends Resource
 {
     protected static ?string $model = EntregaTalonario::class;
 
+    protected static ?string $navigationGroup = 'Administrador del Sistema';
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
