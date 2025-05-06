@@ -1,0 +1,23 @@
+DELIMITER //
+
+CREATE TRIGGER restar_cantidades_talonarios
+AFTER INSERT ON entrega_talonarios
+FOR EACH ROW
+BEGIN
+  -- Resta preferenciales solo si el valor es numérico
+  IF NEW.cantidad_preferenciales REGEXP '^[0-9]+$' THEN
+    UPDATE inventario_talonarios
+    SET cantidad_restante_preferencial = cantidad_restante_preferencial - CAST(NEW.cantidad_preferenciales AS UNSIGNED)
+    WHERE cajero_id = NEW.cajero_id;
+  END IF;
+
+  -- Resta regulares solo si el valor es numérico
+  IF NEW.cantidad_regulares REGEXP '^[0-9]+$' THEN
+    UPDATE inventario_talonarios
+    SET cantidad_restante_regular = cantidad_restante_regular - CAST(NEW.cantidad_regulares AS UNSIGNED)
+    WHERE cajero_id = NEW.cajero_id;
+  END IF;
+END;
+//
+
+DELIMITER ;

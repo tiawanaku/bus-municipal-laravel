@@ -1,0 +1,36 @@
+Trigger AFTER INSERT:
+
+DELIMITER $$
+
+CREATE TRIGGER tr_actualizar_talonarios_despues_insert
+AFTER INSERT ON entrega_talonarios_anfitrion
+FOR EACH ROW
+BEGIN
+    UPDATE entrega_talonarios
+    SET
+        cantidad_restante_preferencial = cantidad_restante_preferencial - NEW.cantidad_talonarios_preferenciales,
+        cantidad_restante_regular = cantidad_restante_regular - NEW.cantidad_talonarios_regulares
+    WHERE anfitrion_id = NEW.anfitrion_id
+      AND cajero_id = NEW.cajero_id;
+END$$
+
+DELIMITER ;
+
+
+Trigger AFTER UPDATE:
+
+DELIMITER $$
+
+CREATE TRIGGER tr_actualizar_talonarios
+AFTER UPDATE ON entrega_talonarios_anfitrion
+FOR EACH ROW
+BEGIN
+    UPDATE entrega_talonarios
+    SET
+        cantidad_restante_preferencial = cantidad_restante_preferencial + OLD.cantidad_talonarios_preferenciales - NEW.cantidad_talonarios_preferenciales,
+        cantidad_restante_regular = cantidad_restante_regular + OLD.cantidad_talonarios_regulares - NEW.cantidad_talonarios_regulares
+    WHERE anfitrion_id = NEW.anfitrion_id
+      AND cajero_id = NEW.cajero_id;
+END$$
+
+DELIMITER ;

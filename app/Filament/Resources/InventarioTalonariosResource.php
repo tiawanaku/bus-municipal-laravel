@@ -47,7 +47,7 @@ class InventarioTalonariosResource extends Resource
                         Forms\Components\Grid::make(4)
                             ->schema([
                                 Forms\Components\TextInput::make('cantidad_preferenciales')
-                                    ->label('Cantidad Paquetes Preferenciales')
+                                    ->label('Cantidad Talonarios Preferenciales')
                                     ->required(),
 
                                 Forms\Components\TextInput::make('rango_inicial_preferencial')
@@ -71,7 +71,7 @@ class InventarioTalonariosResource extends Resource
                         Forms\Components\Grid::make(4)
                             ->schema([
                                 Forms\Components\TextInput::make('cantidad_regulares')
-                                    ->label('Cantidad Paquetes Regulares')
+                                    ->label('Cantidad Talonarios Regulares')
                                     ->required(),
 
                                 Forms\Components\TextInput::make('rango_inicial_regular')
@@ -104,15 +104,80 @@ class InventarioTalonariosResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('cantidad_preferenciales'),
-                Tables\Columns\TextColumn::make('rango_inicial_preferencial'),
-                Tables\Columns\TextColumn::make('rango_final_preferencial'),
-                Tables\Columns\TextColumn::make('cantidad_restante_preferencial'),
-                Tables\Columns\TextColumn::make('cantidad_regulares'),
-                Tables\Columns\TextColumn::make('rango_inicial_regular'),
-                Tables\Columns\TextColumn::make('rango_final_regular'),
-                Tables\Columns\TextColumn::make('cantidad_restante_regular'),
-                Tables\Columns\TextColumn::make('observaciones'),
+                Tables\Columns\TextColumn::make('cajero_id')
+                    ->label('Cajero')
+                    ->getStateUsing(function ($record) {
+                        $cajero = \App\Models\Cajero::find($record->cajero_id);
+                        return $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
+                    }),
+                Tables\Columns\TextColumn::make('cantidad_preferenciales')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('rango_inicial_preferencial')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('rango_final_preferencial')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('cantidad_restante_preferencial')
+                    ->label('Preferenciales Restantes')
+                    ->badge() // opcional: muestra como etiqueta de color
+                    ->color(function ($state) {
+                        if ($state < 800) {
+                            return 'danger'; // rojo
+                        } elseif ($state < 1200) {
+                            return 'warning'; // amarillo
+                        } else {
+                            return 'success'; // verde
+                        }
+                    }),
+
+                Tables\Columns\TextColumn::make('total_boletos_preferenciales')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('total_aproximado_bolivianos')
+                    ->label('Total a Recaudar Pref. ')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->formatStateUsing(fn($state) => 'Bs. ' . number_format($state, 2, '.', ','))
+                    ->color('warning') // Color amaril
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('cantidad_regulares')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('rango_inicial_regular')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('rango_final_regular')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('cantidad_restante_regular')
+                    ->label('Regulares Restantes')
+                    ->badge()
+                    ->color(function ($state) {
+                        if ($state < 800) {
+                            return 'danger'; // rojo
+                        } elseif ($state < 1200) {
+                            return 'warning'; // amarillo
+                        } else {
+                            return 'success'; // verde
+                        }
+                    }),
+
+                Tables\Columns\TextColumn::make('total_boletos_regulares')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('total_aproximado_bolivianos_regular')
+                    ->label('Total a Recaudar Regular')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->formatStateUsing(fn($state) => 'Bs. ' . number_format($state, 2, '.', ','))
+                    ->color('warning') // Color amaril
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('observaciones')
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 // Agrega filtros aquí si es necesario

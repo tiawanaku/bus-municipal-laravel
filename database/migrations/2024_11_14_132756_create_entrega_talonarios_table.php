@@ -12,7 +12,7 @@ return new class extends Migration {
     {
         Schema::create('entrega_talonarios', function (Blueprint $table) {
             $table->id();
-            $table->string('responsable_entrega');
+
 
             // Relación opcional sin cascada
             $table->foreignId('cajero_id')->nullable()->constrained('cajeros');
@@ -22,13 +22,19 @@ return new class extends Migration {
             $table->integer('rango_inicial_preferencial')->nullable();
             $table->integer('rango_final_preferencial')->nullable();
             $table->integer('cantidad_restante_preferencial')->nullable();
+            $table->integer('total_boletos_preferenciales');
+            $table->decimal('total_aproximado_bolivianos', 10, 2);
+
 
             $table->string('cantidad_regulares')->nullable();
             $table->integer('rango_inicial_regular')->nullable();
             $table->integer('rango_final_regular')->nullable();
             $table->integer('cantidad_restante_regular')->nullable();
+            $table->integer('total_boletos_regulares');
+            $table->decimal('total_aproximado_bolivianos_regular', 10, 2);
 
             $table->date('fecha_entrega');
+
             $table->timestamps();
         });
     }

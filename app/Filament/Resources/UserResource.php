@@ -87,7 +87,6 @@ class UserResource extends Resource
                             ->label('Correo Electrónico')
                             ->required()
                             ->email()
-                            ->unique()
                             ->maxLength(255)
                             ->prefixIcon('heroicon-o-envelope'),
 

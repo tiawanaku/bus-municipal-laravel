@@ -1,0 +1,17 @@
+DELIMITER //
+
+CREATE TRIGGER calcular_totales_entrega_anfitrion
+BEFORE INSERT ON entrega_talonarios_anfitrion
+FOR EACH ROW
+BEGIN
+    -- Calcular total de tickets preferenciales
+    SET NEW.total_tickets_preferenciales = NEW.cantidad_talonarios_preferenciales * 50;
+    SET NEW.total_recaudar_preferenciales = NEW.total_tickets_preferenciales * 1;
+
+    -- Calcular total de tickets regulares
+    SET NEW.total_tickets_regulares = NEW.cantidad_talonarios_regulares * 50;
+    SET NEW.total_recaudar_regulares = NEW.total_tickets_regulares * 1.5;
+END;
+//
+
+DELIMITER ;

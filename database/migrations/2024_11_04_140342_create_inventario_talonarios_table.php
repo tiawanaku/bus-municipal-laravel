@@ -13,17 +13,24 @@ return new class extends Migration
     {
         Schema::create('inventario_talonarios', function (Blueprint $table) {
             $table->bigIncrements('id');
+
             $table->unsignedBigInteger('cajero_id')->index('inventario_talonarios_cajero_id_foreign');
 
             $table->string('cantidad_preferenciales');
             $table->integer('rango_inicial_preferencial');
             $table->integer('rango_final_preferencial');
             $table->integer('cantidad_restante_preferencial');
+            $table->integer('total_boletos_preferenciales');
+            $table->decimal('total_aproximado_bolivianos', 10, 2);
+
 
             $table->string('cantidad_regulares');
             $table->integer('rango_inicial_regular');
             $table->integer('rango_final_regular');
             $table->integer('cantidad_restante_regular');
+            $table->integer('total_boletos_regulares');
+            $table->decimal('total_aproximado_bolivianos_regular', 10, 2);
+
 
             $table->string('observaciones')->nullable();
 
