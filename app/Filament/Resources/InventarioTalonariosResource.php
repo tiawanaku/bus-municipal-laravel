@@ -25,71 +25,82 @@ class InventarioTalonariosResource extends Resource
     {
         return $form
             ->schema([
-                // Selección del cajero
                 Forms\Components\Card::make()
                     ->schema([
                         Forms\Components\Select::make('cajero_id')
                             ->label('Encargado de Recepción de Talonarios')
                             ->options(function () {
-                                return \App\Models\Cajero::all()->pluck('nombre', 'id')->mapWithKeys(function ($item, $key) {
-                                    $cajero = \App\Models\Cajero::find($key);
+                                return \App\Models\Cajero::all()->mapWithKeys(function ($cajero) {
                                     $fullName = $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno;
-                                    return [$key => $fullName];
+                                    return [$cajero->id => $fullName];
                                 });
                             })
                             ->required(),
                     ])
                     ->label('Datos del Cajero'),
 
-                // Tarjeta para Preferenciales
                 Forms\Components\Card::make()
                     ->schema([
                         Forms\Components\Grid::make(4)
                             ->schema([
                                 Forms\Components\TextInput::make('cantidad_preferenciales')
                                     ->label('Cantidad Talonarios Preferenciales')
-                                    ->required(),
+                                    ->required()
+                                    ->numeric(),
 
                                 Forms\Components\TextInput::make('rango_inicial_preferencial')
                                     ->label('Rango Inicial Preferencial')
-                                    ->required(),
+                                    ->required()
+                                    ->numeric()
+                                    ->default(function () {
+                                        $ultimo = \App\Models\InventarioTalonarios::orderByDesc('rango_final_preferencial')->first();
+                                        return $ultimo ? $ultimo->rango_final_preferencial + 1 : 1;
+                                    }),
 
                                 Forms\Components\TextInput::make('rango_final_preferencial')
                                     ->label('Rango Final Preferencial')
-                                    ->required(),
+                                    ->required()
+                                    ->numeric(),
 
                                 Forms\Components\TextInput::make('cantidad_restante_preferencial')
                                     ->label('Cantidad Restante Preferencial')
-                                    ->required(),
+                                    ->required()
+                                    ->numeric(),
                             ]),
                     ])
                     ->label('Tarjetas Preferenciales'),
 
-                // Tarjeta para Regulares
                 Forms\Components\Card::make()
                     ->schema([
                         Forms\Components\Grid::make(4)
                             ->schema([
                                 Forms\Components\TextInput::make('cantidad_regulares')
                                     ->label('Cantidad Talonarios Regulares')
-                                    ->required(),
+                                    ->required()
+                                    ->numeric(),
 
                                 Forms\Components\TextInput::make('rango_inicial_regular')
                                     ->label('Rango Inicial Regular')
-                                    ->required(),
+                                    ->required()
+                                    ->numeric()
+                                    ->default(function () {
+                                        $ultimo = \App\Models\InventarioTalonarios::orderByDesc('rango_final_regular')->first();
+                                        return $ultimo ? $ultimo->rango_final_regular + 1 : 1;
+                                    }),
 
                                 Forms\Components\TextInput::make('rango_final_regular')
                                     ->label('Rango Final Regular')
-                                    ->required(),
+                                    ->required()
+                                    ->numeric(),
 
                                 Forms\Components\TextInput::make('cantidad_restante_regular')
                                     ->label('Cantidad Restante Regular')
-                                    ->required(),
+                                    ->required()
+                                    ->numeric(),
                             ]),
                     ])
                     ->label('Tarjetas Regulares'),
 
-                // Observaciones
                 Forms\Components\Card::make()
                     ->schema([
                         Forms\Components\Textarea::make('observaciones')
@@ -98,6 +109,56 @@ class InventarioTalonariosResource extends Resource
                     ]),
             ]);
     }
+
+
+    public static function saving(InventarioTalonarios $record)
+    {
+        $inicioPref = request('rango_inicial_preferencial');
+        $finPref = request('rango_final_preferencial');
+
+        $inicioReg = request('rango_inicial_regular');
+        $finReg = request('rango_final_regular');
+
+        // Validar Preferenciales
+        $existePref = \App\Models\InventarioTalonarios::where(function ($query) use ($inicioPref, $finPref) {
+            $query
+                ->whereBetween('rango_inicial_preferencial', [$inicioPref, $finPref])
+                ->orWhereBetween('rango_final_preferencial', [$inicioPref, $finPref])
+                ->orWhere(function ($q) use ($inicioPref, $finPref) {
+                    $q->where('rango_inicial_preferencial', '<=', $inicioPref)
+                        ->where('rango_final_preferencial', '>=', $finPref);
+                });
+        })->exists();
+
+        if ($existePref) {
+            throw \Filament\Notifications\Notification::make()
+                ->title('Error en rango preferencial')
+                ->body('El rango preferencial se solapa con uno existente.')
+                ->danger()
+                ->send();
+        }
+
+        // Validar Regulares
+        $existeReg = \App\Models\InventarioTalonarios::where(function ($query) use ($inicioReg, $finReg) {
+            $query
+                ->whereBetween('rango_inicial_regular', [$inicioReg, $finReg])
+                ->orWhereBetween('rango_final_regular', [$inicioReg, $finReg])
+                ->orWhere(function ($q) use ($inicioReg, $finReg) {
+                    $q->where('rango_inicial_regular', '<=', $inicioReg)
+                        ->where('rango_final_regular', '>=', $finReg);
+                });
+        })->exists();
+
+        if ($existeReg) {
+            throw \Filament\Notifications\Notification::make()
+                ->title('Error en rango regular')
+                ->body('El rango regular se solapa con uno existente.')
+                ->danger()
+                ->send();
+        }
+    }
+
+
 
 
     public static function table(Table $table): Table
@@ -143,6 +204,27 @@ class InventarioTalonariosResource extends Resource
                     ->color('warning') // Color amaril
                     ->toggleable(isToggledHiddenByDefault: true),
 
+                Tables\Columns\TextColumn::make('estado_preferencial')
+                    ->label('Estado Preferencial')
+                    ->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            0 => 'asignado',
+                            1 => 'asignable',
+                            2 => 'no asignable',
+                            default => 'desconocido',
+                        };
+                    })
+                    ->color(function ($state) {
+                        return match ($state) {
+                            0 => 'danger',       // asignado → verde
+                            1 => 'success',       // asignable → azul
+                            2 => 'primary',         // no asignable → rojo
+                            default => 'gray',    // desconocido
+                        };
+                    }),
+
+
+
                 Tables\Columns\TextColumn::make('cantidad_regulares')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -175,6 +257,25 @@ class InventarioTalonariosResource extends Resource
                     ->formatStateUsing(fn($state) => 'Bs. ' . number_format($state, 2, '.', ','))
                     ->color('warning') // Color amaril
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('estado_regular')
+                    ->label('Estado Preferencial')
+                    ->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            0 => 'asignado',
+                            1 => 'asignable',
+                            2 => 'no asignable',
+                            default => 'desconocido',
+                        };
+                    })
+                    ->color(function ($state) {
+                        return match ($state) {
+                            0 => 'danger',       // asignado → verde
+                            1 => 'success',       // asignable → azul
+                            2 => 'primary',        // no asignable → rojo
+                            default => 'gray',    // desconocido
+                        };
+                    }),
 
                 Tables\Columns\TextColumn::make('observaciones')
                     ->toggleable(isToggledHiddenByDefault: true),

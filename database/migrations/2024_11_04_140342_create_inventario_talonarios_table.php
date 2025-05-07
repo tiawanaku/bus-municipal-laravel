@@ -31,6 +31,10 @@ return new class extends Migration
             $table->integer('total_boletos_regulares');
             $table->decimal('total_aproximado_bolivianos_regular', 10, 2);
 
+            // Nuevos campos de estado
+            $table->integer('estado_preferencial')->default(0);
+            $table->integer('estado_regular')->default(0);
+
 
             $table->string('observaciones')->nullable();
 

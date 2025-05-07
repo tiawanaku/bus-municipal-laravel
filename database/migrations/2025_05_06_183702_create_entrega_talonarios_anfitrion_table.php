@@ -15,7 +15,7 @@ return new class extends Migration
             $table->bigIncrements('id');
 
             // Relaciones opcionales
-            $table->foreignId('anfitrion_id')->nullable()->constrained('anfitrions');
+            $table->bigInteger('anfitrion_id')->unsigned(); // Definir como unsigned porque la clave primaria en la tabla anfitrions es unsigned
             $table->foreignId('cajero_id')->nullable()->constrained('cajeros');
 
             // Datos de entrega
