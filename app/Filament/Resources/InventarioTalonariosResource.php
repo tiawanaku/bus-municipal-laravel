@@ -58,7 +58,6 @@ class InventarioTalonariosResource extends Resource
 
                                 Forms\Components\TextInput::make('rango_final_preferencial')
                                     ->label('Rango Final Preferencial')
-                                    ->required()
                                     ->numeric()
                                     ->rule(function ($get) {
                                         return function ($attribute, $value, $fail) use ($get) {
@@ -95,7 +94,6 @@ class InventarioTalonariosResource extends Resource
 
                                 Forms\Components\TextInput::make('rango_final_regular')
                                     ->label('Rango Final Regular')
-                                    ->required()
                                     ->numeric()
                                     ->rule(function ($get) {
                                         return function ($attribute, $value, $fail) use ($get) {
