@@ -14,7 +14,7 @@ class RutaPolicy
     public function viewAny(User $user): bool
     {
         //return $user->checkPermissionTo('view-any Ruta');
-        return $user->hasRole('Administrador');
+        return $user->hasRole('super_admin');
     }
 
     /**
@@ -31,7 +31,7 @@ class RutaPolicy
     public function create(User $user): bool
     {
         //return $user->checkPermissionTo('create Ruta');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('create Ruta');
+        return $user->hasRole('super_admin') || $user->checkPermissionTo('create Ruta');
     }
 
     /**
@@ -40,7 +40,7 @@ class RutaPolicy
     public function update(User $user, Ruta $ruta): bool
     {
         //return $user->checkPermissionTo('update Ruta');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('update Ruta');
+        return $user->hasRole('super_admin') || $user->checkPermissionTo('update Ruta');
     }
 
     /**
@@ -49,7 +49,7 @@ class RutaPolicy
     public function delete(User $user, Ruta $ruta): bool
     {
         //return $user->checkPermissionTo('delete Ruta');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('delete Ruta');
+        return $user->hasRole('super_admin') || $user->checkPermissionTo('delete Ruta');
     }
 
     /**

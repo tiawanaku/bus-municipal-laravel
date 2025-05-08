@@ -16,13 +16,14 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Hash;
 
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-     //para cambiar el nombre de la etiqueta
-     protected static ?string $navigationLabel = 'Usuarios';
+    //para cambiar el nombre de la etiqueta
+    protected static ?string $navigationLabel = 'Usuarios';
 
     protected static ?string $navigationGroup = 'Administrador del Sistema';
 
@@ -36,14 +37,20 @@ class UserResource extends Resource
             ->schema([
                 //
                 TextInput::make('name')
-                ->required(),
+                    ->required(),
                 TextInput::make('email')
-                ->required()
-                ->email(),
+                    ->required()
+                    ->email(),
                 TextInput::make('password')
-                ->password()
-                ->required(),
-                Select::make('roles')->multiple()->relationship('roles','name'),
+                    ->password()
+                    ->dehydrateStateUsing(fn(string $state): string => Hash::make($state))
+                    ->dehydrated(fn(?string $state): bool => filled($state))
+                    ->required(fn(string $operation): bool => $operation === 'create'),
+                Forms\Components\Select::make('roles')
+                    ->relationship('roles', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable(),
             ]);
     }
 
@@ -63,27 +70,27 @@ class UserResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('Validar')
-                ->icon('heroicon-m-check-badge')
-                ->action(function (User $user){
-                    $user->email_verified_at = Date('Y-m-d H:i:s');
-                    $user->save();
-                    Notification::make()
-                    ->title('Acción realizada')
-                    ->body('El correo del usuario ha sido marcado como válido.')
-                    ->success() // Puedes usar ->success(), ->warning(), etc., según el tipo de mensaje
-                    ->send();
-                }),
+                    ->icon('heroicon-m-check-badge')
+                    ->action(function (User $user) {
+                        $user->email_verified_at = Date('Y-m-d H:i:s');
+                        $user->save();
+                        Notification::make()
+                            ->title('Acción realizada')
+                            ->body('El correo del usuario ha sido marcado como válido.')
+                            ->success() // Puedes usar ->success(), ->warning(), etc., según el tipo de mensaje
+                            ->send();
+                    }),
                 Tables\Actions\Action::make('Rechazar')
-                ->icon('heroicon-m-x-circle')
-                ->action(function (User $user){
-                    $user->email_verified_at = null;
-                    $user->save();
-                    Notification::make()
-                    ->title('Acción realizada')
-                    ->body('El correo del usuario ha sido marcado como inválido.')
-                    ->danger() // Puedes usar ->success(), ->warning(), etc., según el tipo de mensaje
-                    ->send();
-                })
+                    ->icon('heroicon-m-x-circle')
+                    ->action(function (User $user) {
+                        $user->email_verified_at = null;
+                        $user->save();
+                        Notification::make()
+                            ->title('Acción realizada')
+                            ->body('El correo del usuario ha sido marcado como inválido.')
+                            ->danger() // Puedes usar ->success(), ->warning(), etc., según el tipo de mensaje
+                            ->send();
+                    })
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

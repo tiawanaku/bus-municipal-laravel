@@ -12,6 +12,11 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Tables\Actions\ViewAction;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\TextArea;
+
+use Filament\Forms\Components\ToggleButtons;
 
 class AvisoResource extends Resource
 {
@@ -24,45 +29,51 @@ class AvisoResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('noticia')
-                ->label('Noticia')
-                ->options([
-                    'Cambio de Ruta' => 'Cambio de Ruta',
-                    'Bloqueo de Vias' => 'Bloqueo de Vías',
-                    'Nueva Ruta' => 'Nueva Ruta',
-                    'Otro' => 'Otro',
-                ])
-                ->placeholder('Selecciona una noticia')
-                ->required(),
-                
-            Forms\Components\DateTimePicker::make('inicio_periodo')
-                ->label('Inicio de Periodo')
-                ->default(now())
-                ->required(),
-                
-            Forms\Components\DateTimePicker::make('fin_periodo')
-                ->label('Fin de Periodo')
-                ->default(now())
-                ->nullable(),
-                
-            Forms\Components\Select::make('razon')
-            ->label('Razón')
-            ->required()
-            ->options([
-                'Cierre de vias' => 'Cierre de Vías',
-                'Accidente' => 'Accidente',
-                'Mantenimiento' => 'Mantenimiento',
-                'Otro' => 'Otro',
-            ])
-            ->placeholder('Selecciona la razón'),
-                
-            Forms\Components\Textarea::make('paradas_afectadas')
-                ->label('Paradas Afectadas')
-                ->required(),
-                
-            Forms\Components\Textarea::make('detalle')
-                ->label('Detalle')
-                ->required()
-                ->default("Estimados usuarios:\nDebido a ...\nAnte cualquier consulta comuníquese con nosotros a través de los siguientes números:"),
+                    ->label('Noticia')
+                    ->options([
+                        'Cambio de Ruta' => 'Cambio de Ruta',
+                        'Bloqueo de Vias' => 'Bloqueo de Vías',
+                        'Nueva Ruta' => 'Nueva Ruta',
+                        'Otro' => 'Otro',
+                    ])
+                    ->placeholder('Selecciona una noticia')
+                    ->required(),
+
+                Forms\Components\DateTimePicker::make('inicio_periodo')
+                    ->label('Inicio de Periodo')
+                    ->default(now())
+                    ->required(),
+
+                Forms\Components\DateTimePicker::make('fin_periodo')
+                    ->label('Fin de Periodo')
+                    ->default(now())
+                    ->nullable(),
+
+                Forms\Components\Select::make('razon')
+                    ->label('Razón')
+                    ->required()
+                    ->options([
+                        'Cierre de vias' => 'Cierre de Vías',
+                        'Accidente' => 'Accidente',
+                        'Mantenimiento' => 'Mantenimiento',
+                        'Otro' => 'Otro',
+                    ])
+                    ->placeholder('Selecciona la razón'),
+
+                Forms\Components\Textarea::make('paradas_afectadas')
+                    ->label('Paradas Afectadas')
+                    ->required(),
+
+                Forms\Components\Textarea::make('detalle')
+                    ->label('Detalle')
+                    ->required()
+                    ->default("Estimados usuarios:\nDebido a ...\nAnte cualquier consulta comuníquese con nosotros a través de los siguientes números:"),
+
+                Forms\Components\Toggle::make('status')
+                    ->label('¿Publicado?')
+                    ->onColor('success')
+                    ->offColor('danger')
+                    ->inline(false),
             ]);
     }
 
@@ -74,15 +85,35 @@ class AvisoResource extends Resource
                 Tables\Columns\TextColumn::make('inicio_periodo'),
                 Tables\Columns\TextColumn::make('fin_periodo'),
                 Tables\Columns\TextColumn::make('razon'),
-                Tables\Columns\TextColumn::make('user.name') 
-                ->label('Nombre del Usuario'),
-                
+                Tables\Columns\ToggleColumn::make('status')
+    ->label('Publicado'),
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('Nombre del Usuario'),
+
             ])
             ->filters([
                 //
+                Tables\Filters\TernaryFilter::make('status')
+                ->label('Publicado')
+                ->placeholder('Todos los Avisos')
+                ->trueLabel('Solo publicados')
+                ->falseLabel('Solo no publicados'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                ViewAction::make()
+                    ->form([
+                        TextInput::make('razon')
+                            ->required()
+                            ->maxLength(255),
+                            Textarea::make('detalle')
+                            ,
+                        ToggleButtons::make('status')
+                            ->label('Publicar?')
+                            ->boolean()
+                            ->grouped()
+                        // ...
+                    ]),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

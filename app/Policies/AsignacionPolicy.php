@@ -14,7 +14,7 @@ class AsignacionPolicy
     public function viewAny(User $user): bool
     {
         //return $user->checkPermissionTo('view-any Asignacion');
-        return $user->hasRole('Empleado');
+        return $user->hasRole('super_admin');
     }
 
     /**
@@ -31,7 +31,7 @@ class AsignacionPolicy
     public function create(User $user): bool
     {
         //return $user->checkPermissionTo('create Asignacion');
-        return $user->hasRole('Empleado') || $user->checkPermissionTo('create Asignacion');
+        return $user->hasRole('super_admin') || $user->checkPermissionTo('create Asignacion');
     }
 
     /**

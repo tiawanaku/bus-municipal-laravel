@@ -49,4 +49,5 @@ class AsignacionDeBus extends Model
     {
         return $this->belongsTo(Anfitrion::class, 'id_anfitrion');
     }
+    
 }

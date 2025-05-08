@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\MultiSelect;
 use Filament\Forms\Components\Select;
 use App\Filament\Resources\RutaResource\RelationManagers\ParadasRelationManager;
+use Dotswan\MapPicker\Fields\Map;
 
 
 class RutaResource extends Resource
@@ -43,15 +44,38 @@ class RutaResource extends Resource
                     'Ruta Sur' => 'Ruta Sur',
                 ])
                 ->required(),
-
-           
-         
-    
-    ]);
+               /* MAp Picker */
+               Map::make('recorrido')
+               ->label('Recorrido del bus')
+               ->columnSpanFull()
+               ->default(fn (?Model $record) => $record?->recorrido)
+               ->dehydrated(true)
+               ->reactive()
+               ->defaultLocation(latitude: -16.5198, longitude: -68.20793)
+               ->zoom(15)
+               ->drawPolyline(true)
+               
+               ->dragMode(true)
+               
+               ->geoMan(true)
+               ->geoManEditable(true)
+               ->showMarker(false)
+               ->drawMarker(false)
+               ->drawPolygon(false)
+               ->cutPolygon(false)
+                ->editPolygon(false)
+               ->drawRectangle(false)
+               ->drawCircle(false)
+               ->drawCircleMarker(false)
+               ->drawText(false)
+               ->deleteLayer(false)
+               ->rotateMode(false)
+                ]);
         
 
+
     }
-    
+
     public static function table(Table $table): Table
     {
         return $table
@@ -59,6 +83,10 @@ class RutaResource extends Resource
                 //
                 Tables\Columns\TextColumn::make('nombre')
                     ->searchable(),
+                    Tables\Columns\TextColumn::make('paradas.nombre_parada')
+                    ->label('Paradas Asociadas')
+                    ->getStateUsing(fn (Ruta $record) => $record->paradas->pluck('nombre_parada')->join(', ')), 
+
             ])
             ->filters([
                 //
@@ -76,7 +104,7 @@ class RutaResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+                //
             ParadasRelationManager::class,
         ];
     }

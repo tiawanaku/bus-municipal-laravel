@@ -20,8 +20,10 @@ class DatabaseSeeder extends Seeder
             'name' => 'Franz Alanez',
             'email' => 'alanezflores@gmail.com',
         ]);
-        $role = Role::create(['name' => 'Administrador']);
+        /* $role = Role::create(['name' => 'Administrador']);
 
-        $user->assignRole($role);
+        $user->assignRole($role); */
+
+        $user->assignRole('super_admin');
     }
 }

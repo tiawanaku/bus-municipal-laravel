@@ -14,6 +14,7 @@ class Aviso extends Model
         'razon',
         'paradas_afectadas',
         'detalle',
+        'status',
         'user_id',
     ];
     public function user()

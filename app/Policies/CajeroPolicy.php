@@ -14,7 +14,7 @@ class CajeroPolicy
     public function viewAny(User $user): bool
     {
         //return $user->checkPermissionTo('view-any Cajero');
-        return $user->hasRole('Administrador');
+        return $user->hasRole('super_admin');
     }
 
     /**
@@ -31,7 +31,7 @@ class CajeroPolicy
     public function create(User $user): bool
     {
         //return $user->checkPermissionTo('create Cajero');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('create Cajero');
+        return $user->hasRole('super_admin') || $user->checkPermissionTo('create Cajero');
     }
 
     /**
@@ -40,7 +40,7 @@ class CajeroPolicy
     public function update(User $user, Cajero $cajero): bool
     {
         //return $user->checkPermissionTo('update Cajero');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('update Cajero');
+        return $user->hasRole('super_admin') || $user->checkPermissionTo('update Cajero');
     }
 
     /**
@@ -49,7 +49,7 @@ class CajeroPolicy
     public function delete(User $user, Cajero $cajero): bool
     {
         //return $user->checkPermissionTo('delete Cajero');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('delete Cajero');
+        return $user->hasRole('super_admin') || $user->checkPermissionTo('delete Cajero');
     }
 
     /**

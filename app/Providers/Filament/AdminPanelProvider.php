@@ -19,6 +19,7 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Althinect\FilamentSpatieRolesPermissions\FilamentSpatieRolesPermissionsPlugin;
 
+
 class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
@@ -52,7 +53,10 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
-            ->plugin(FilamentSpatieRolesPermissionsPlugin::make())
+         /*    ->plugin(FilamentSpatieRolesPermissionsPlugin::make()) */
+         ->plugins([
+            \BezhanSalleh\FilamentShield\FilamentShieldPlugin::make(),
+        ])
             ->authMiddleware([
                 Authenticate::class,
             ]);

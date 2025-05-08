@@ -14,7 +14,7 @@ class BusPolicy
     public function viewAny(User $user): bool
     {
         //return $user->checkPermissionTo('view-any Bus');
-        return $user->hasRole('Administrador');
+        return $user->hasRole('super_admin');
     }
 
     /**
@@ -31,7 +31,7 @@ class BusPolicy
     public function create(User $user): bool
     {
         //return $user->checkPermissionTo('create Bus');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('create Bus');
+        return $user->hasRole('super_admin') || $user->checkPermissionTo('create Bus');
     }
 
     /**
@@ -40,7 +40,7 @@ class BusPolicy
     public function update(User $user, Bus $bus): bool
     {
         //return $user->checkPermissionTo('update Bus');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('update Bus');
+        return $user->hasRole('super_admin') || $user->checkPermissionTo('update Bus');
     }
 
     /**
@@ -49,7 +49,7 @@ class BusPolicy
     public function delete(User $user, Bus $bus): bool
     {
         //return $user->checkPermissionTo('delete Bus');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('delete Bus');
+        return $user->hasRole('super_admin') || $user->checkPermissionTo('delete Bus');
     }
 
     /**

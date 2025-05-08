@@ -1,72 +1,86 @@
 
-/* Menu hambuerguesa */
-/* const hamburger = document.getElementById('hamburger');
-const sidebar = document.getElementById('sidebar');
-
-hamburger.addEventListener('click', function () {
-    sidebar.classList.toggle('-translate-x-full');
-}); */
-/* Fin Menu Hamburguesa */
+let markerBus; 
+const velocidadBus = 300; // Velocidad promedio del bus en metros por minuto
 
 
 /* Buscador */
 const searchInput = document.getElementById("search");
 const suggestionsDiv = document.getElementById("suggestions");
 
-searchInput.addEventListener("input", function () {
-    const query = this.value.toLowerCase();
-    suggestionsDiv.innerHTML = "";
+let debounceTimer = null;
 
-    if (query.length > 0) {
-        fetch(`/buscar?query=${query}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.length > 0) {
-                    data.forEach(item => {
-                        const suggestionItem = document.createElement("div");
-                        suggestionItem.classList.add("suggestion-item", "p-2", "hover:bg-gray-200");
-                        suggestionItem.innerHTML = `<strong>${item.nombre_parada}</strong> - <span class="text-gray-500">${item.sentido}</span>`;
 
-                        
-                        suggestionItem.addEventListener("click", function () {
-                            if (item.id_paradas) {
-                                centrarEnParada(item.id_paradas);
-                            } else {
-                                console.error("ID de parada no encontrado:", item);
+    searchInput.addEventListener("input", function () {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            const query = this.value.trim().toLowerCase();
+            suggestionsDiv.innerHTML = "";
+    
+            if (query.length > 0) {
+                fetch(`/buscar?query=${encodeURIComponent(query)}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const uniqueItems = new Map();
+    
+                        data.forEach(item => {
+                            const key = `${item.nombre_parada}-${item.sentido}`;
+                            if (!uniqueItems.has(key)) {
+                                uniqueItems.set(key, item);
                             }
                         });
+    
+                        if (uniqueItems.size > 0) {
+                            uniqueItems.forEach(item => {
+                                const suggestionItem = document.createElement("div");
+                                suggestionItem.className = "suggestion-item flex items-center gap-2 p-2 border-b hover:bg-gray-100 cursor-pointer";
+    
+                                suggestionItem.innerHTML = `
+                                    <div class="flex-1">
+                                        <strong class="text-gray-800">${item.nombre_parada}</strong><br>
+                                        <span class="text-sm text-gray-500">${item.sentido}</span>
+                                    </div>
+                                   
+                                `;
+    
+                                suggestionItem.addEventListener("click", function () {
+                                    if (item.id_paradas) {
+                                        centrarEnParada(item.id_paradas);
+                                        suggestionsDiv.classList.add("hidden"); 
+                                        searchInput.value = ''; 
+                                    } else {
+                                        console.error("ID de parada no encontrado:", item);
+                                    }
+                                });
+    
+                                suggestionsDiv.appendChild(suggestionItem);
+                            });
+    
+                            suggestionsDiv.classList.remove("hidden");
+                        } else {
+                            suggestionsDiv.classList.add("hidden");
+                        }
+                    })
+                    .catch(error => console.error("Error fetching suggestions:", error));
+            } else {
+                suggestionsDiv.classList.add("hidden");
+            }
+        }, 300); // 300 ms de espera
+    }); 
 
-                        
-                        suggestionItem.addEventListener("click", function () {
-                            if (item.id_paradas) {
-                                centrarEnParada(item.id_paradas);
-                            } else {
-                                console.error("ID de parada no encontrado:", item);
-                            }
-                        });
 
-                        suggestionsDiv.appendChild(suggestionItem);
-                    });
-                    suggestionsDiv.classList.remove("hidden");
-                } else {
-                    suggestionsDiv.classList.add("hidden");
-                }
-            })
-            .catch(error => console.error("Error fetching suggestions:", error));
-    } else {
-        suggestionsDiv.classList.add("hidden");
-    }
-});
+
+// Cerrar sugerencias si hace click fuera
 document.addEventListener("click", function (event) {
-    if (!searchInput.contains(event.target)) {
+    if (!searchInput.contains(event.target) && !suggestionsDiv.contains(event.target)) {
         suggestionsDiv.classList.add("hidden");
     }
 });
+
 
 
 
@@ -84,6 +98,48 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 L.control.zoom({
     position: 'bottomright'
 }).addTo(map);
+
+
+
+const btn = L.control({ position: 'bottomright' });
+
+btn.onAdd = function (map) {
+    const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+    div.style.backgroundColor = 'white';
+    div.style.padding = '5px';
+    div.style.cursor = 'pointer';
+    div.title = 'Mostrar mi ubicación';
+    div.innerHTML = '<img src="https://cdn-icons-png.flaticon.com/512/684/684908.png" width="20" />';
+
+    div.onclick = function () {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    L.marker([lat, lng]).addTo(map)
+                        .bindPopup("Estás aquí")
+                        .openPopup();
+                    map.setView([lat, lng], 16);
+                },
+                (err) => {
+                    alert("No se pudo obtener la ubicación.");
+                },
+                {
+                    enableHighAccuracy: true
+                }
+            );
+        } else {
+            alert("Geolocalización no es soportada por este navegador.");
+        }
+    };
+
+    return div;
+};
+
+btn.addTo(map);
+
+
 /* Seguimiento del Bus */
 
 var busIcon = L.icon({
@@ -97,8 +153,47 @@ var busIcon = L.icon({
     popupAnchor: [-3, -76] 
 });
 
-let markerBus; 
-const velocidadBus = 300; // Velocidad promedio del bus en metros por minuto
+
+
+
+ 
+
+// Agregando las lineas del recorrido de las rutas 
+const recorridosValidos = rutas.filter(r => r.recorrido != null);
+
+
+recorridosValidos.forEach(function (ruta) {
+    const recorrido = ruta.recorrido;
+
+    if (recorrido && recorrido.geojson && recorrido.geojson.features) {
+        const color = getColorById(ruta.id); // Usamos el id de la ruta
+
+        recorrido.geojson.features.forEach(function (feature) {
+            const latlngs = feature.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+
+            L.polyline(latlngs, {
+                color: color,
+                weight: 4,
+                opacity: 0.7,
+                smoothFactor: 1
+            })
+            .bindPopup(`<strong>${ruta.nombre}</strong>`)
+            .addTo(map);
+        });
+    }
+});
+/* Función para poner color dependiendo de Ruta */
+function getColorById(id) {
+    const colors = {
+        1: 'blue',
+        2: 'purple'
+       
+    };
+    return colors[id] || 'gray'; 
+}
+
+
+
 
 // Función para calcular la distancia entre dos coordenadas usando la fórmula de Haversine
 function calcularDistancia(lat1, lon1, lat2, lon2) {
@@ -115,6 +210,8 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
 
     return R * c; 
 }
+
+
 
 // Función para mostrar la ubicación del bus en el mapa
 function mostrarUbicacionBus() {
@@ -155,27 +252,39 @@ function mostrarTiempoEstimadoDeLlegada(busLat, busLng) {
     locations.forEach(location => {
         const distancia = calcularDistancia(busLat, busLng, location.latitud, location.longitud);
         const tiempoEstimado = Math.round(distancia / velocidadBus);
+        /* Función para cambien el color según Ruta */
+    let bgColorClass = '';
 
+    if (location.id_ruta === 1) {
+    bgColorClass = 'bg-blue-700';
+    } else if (location.id_ruta === 2) {
+    bgColorClass = 'bg-indigo-700';
+    }
         
         const popupContent = `
-            <table class="min-w-full border-collapse">
-                <thead>
-                    <tr>
-                        <th class="bg-gray-600 p-2 text-white font-bold" colspan="3">Buses próximos a llegar en ${location.nombre_parada}</th>
-                    </tr>
-                    <tr>
-                        <th class="bg-gray-600 p-2 text-white font-bold">Nombre de la Parada</th>
-                        <th class="bg-gray-600 p-2 text-white font-bold">Minutos para llegar</th>
-                        <th class="bg-gray-600 p-2 text-white font-bold">Sentido</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr class="bg-gray-100 border">
-                        <td class="p-2">${location.nombre_parada}</td>
-                        <td class="p-2">${tiempoEstimado} min</td>
-                        <td class="p-2">${location.sentido}</td> 
-                </tbody>
-            </table>
+         <div class="rounded-lg overflow-hidden shadow-lg bg-white">
+        <table class="min-w-full text-sm">
+            <thead>
+                <tr>
+                    <th class="${bgColorClass} p-3 text-white font-semibold text-center" colspan="3">
+                        Buses próximos a llegar en <br><span class="text-lg">${location.nombre_parada}</span>
+                    </th>
+                </tr>
+                <tr class="bg-gray-200 text-gray-700 text-center">
+                    <th class="p-2">Nombre de la Parada</th>
+                    <th class="p-2">Minutos para llegar</th>
+                    <th class="p-2">Sentido</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="text-center border-t hover:bg-gray-100">
+                    <td class="p-2 font-medium">${location.nombre_parada}</td>
+                    <td class="p-2 text-green-600 font-bold">${tiempoEstimado} min</td>
+                    <td class="p-2">${location.sentido}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
         `;
 
         actualizarTiempoEnTabs(location.nombre_parada, location.sentido, tiempoEstimado);
@@ -183,13 +292,13 @@ function mostrarTiempoEstimadoDeLlegada(busLat, busLng) {
             iconUrl: 'img/ParadaIcon.png',
 
 
-            iconSize: [38, 85], 
+            iconSize: [38, 55], 
 
             iconAnchor: [22, 94], 
 
             popupAnchor: [-3, -76] 
         });
-        console.log(locations);
+        /* console.log(locations); */
         
         const marker = L.marker([location.latitud, location.longitud, location.sentido], { icon: paradaIcon }).addTo(map);
         marker.bindPopup(popupContent);
@@ -208,7 +317,7 @@ mostrarUbicacionBus();
 
 // Función para centrar el mapa en la ubicación de la parada
 function centrarEnParada(id) {
-    console.log("Centrando en la parada con ID:", id); 
+    /* console.log("Centrando en la parada con ID:", id);  */
     fetch(`/ubicacionparada?id_paradas=${id}`) 
         .then(response => {
             if (!response.ok) {
@@ -219,70 +328,13 @@ function centrarEnParada(id) {
         .then(parada => {
             const { latitud, longitud } = parada; 
             map.setView([latitud, longitud], 18); 
+            window.scrollTo(0, 0); 
+
         })
         .catch(error => console.error("Error al centrar la parada:", error));
 }
 
-/* Para las grids de paradas */
-/* const paradaImages = document.querySelectorAll('.parada-image');
 
-
-paradaImages.forEach(image => {
-    image.addEventListener('click', function () {
-        const idParada = this.getAttribute('data-id'); 
-        centrarEnParada(idParada); 
-    });
-}); */
-/* Fin Grids */
-
-/* Radio Button SENTIDO IDA - VUELTA */
-/* document.addEventListener("DOMContentLoaded", function() {
-    
-    var containerNorte = document.getElementById("ruta-norte");
-    var containerSur = document.getElementById("ruta-sur");
-
-    if (containerNorte && containerSur) {
-       
-        var imagenesNorte = Array.from(containerNorte.querySelectorAll("img"));
-        var imagenesSur = Array.from(containerSur.querySelectorAll("img"));
-
-        
-        function actualizarImagenes(container, imagenes, orden) {
-            
-            var imagenesOrdenadas = [...imagenes];
-
-            
-            if (orden === "ida") {
-                imagenesOrdenadas.reverse();
-            }
-
-           
-            container.innerHTML = '';
-
-            
-            imagenesOrdenadas.forEach(function(imagen) {
-                var div = document.createElement('div');
-                div.appendChild(imagen); 
-                container.appendChild(div); 
-            });
-        }
-
-        
-        document.querySelectorAll('input[name="ruta"]').forEach(function(radio) {
-            radio.addEventListener("change", function() {
-               
-                actualizarImagenes(containerNorte, imagenesNorte, this.value);
-                actualizarImagenes(containerSur, imagenesSur, this.value);
-            });
-        });
-
-        
-        actualizarImagenes(containerNorte, imagenesNorte, 'vuelta');
-        actualizarImagenes(containerSur, imagenesSur, 'vuelta');
-    }
-}); */
-
-/* Fin Radio Button */
 
 /* Js para Tabs Estado del servicio */
 document.addEventListener('DOMContentLoaded', function () {
@@ -294,13 +346,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const tab = this.getAttribute('data-tab');
       
             buttons.forEach(btn => {
-                btn.classList.replace('bg-blue-600', 'bg-gray-200');
-                btn.classList.remove('text-white');  
+                btn.classList.replace('bg-gradient-to-r', 'bg-gray-900');
+                btn.classList.remove('border');  
                 btn.classList.add('text-blue-600');  
             });
 
-            this.classList.replace('bg-gray-200', 'bg-blue-600');
-            this.classList.add('text-white');  
+            this.classList.replace('bg-gray-900', 'bg-gradient-to-r');
+            this.classList.add('from-red-800', 'to-red-900', 'shadow-md', 'text-white'); 
             contents.forEach(content => content.classList.add('hidden'));
             document.getElementById(tab).classList.remove('hidden');
         });
@@ -311,8 +363,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
 /* Función para actualizar el tiempo de los tabs */
   function actualizarTiempoEnTabs(nombreParada, sentido, tiempo) {
+   
   /*   let elementos = document.querySelectorAll(`[data-parada="${nombreParada}"] .tiempo-llegada`); */
   let elementos = document.querySelectorAll(`[data-parada="${nombreParada}"][data-sentido="${sentido}"] .tiempo-llegada`);
     
     elementos.forEach(el => el.textContent = `${tiempo} min`);
 }
+/* Fin */
+

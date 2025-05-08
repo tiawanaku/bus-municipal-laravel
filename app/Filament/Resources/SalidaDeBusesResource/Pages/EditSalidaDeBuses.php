@@ -16,4 +16,6 @@ class EditSalidaDeBuses extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    
 }

@@ -32,38 +32,40 @@ class AnfitrionResource extends Resource
             ->schema([
                 //
                 Forms\Components\TextInput::make('nombre')
-                ->label('Nombre(s)')
-                ->required()
-                ->maxLength(255),
+                    ->label('Nombre(s)')
+                    ->required()
+                    ->maxLength(255),
 
                 Forms\Components\TextInput::make('apellido_paterno')
-                ->label('Apellido Paterno')
-                ->required()
-                ->maxLength(255),
-    
+                    ->label('Apellido Paterno')
+                    ->required()
+                    ->maxLength(255),
+
                 Forms\Components\TextInput::make('apellido_materno')
-                ->label('Apellido Materno')
-                ->required()
-                ->maxLength(255),
-    
+                    ->label('Apellido Materno')
+                    ->required()
+                    ->maxLength(255),
+
                 Forms\Components\DatePicker::make('fecha_nacimiento')
-                ->label('Fecha de Nacimiento')
-                ->required(),
-    
+                    ->label('Fecha de Nacimiento')
+                    ->minDate(now()->subYears(75))
+                    ->maxDate(now()->subYears(18))
+                    ->required(),
+
                 Forms\Components\TextInput::make('numero_contrato')
-                ->label('Número de Contrato')
-                ->required()
-                ->maxLength(255),
-    
+                    ->label('Número de Contrato')
+                    ->required()
+                    ->maxLength(255),
+
                 Forms\Components\TextInput::make('numero_contacto')
-                ->label('Número de Celular')
-                ->required()
-                ->maxLength(255),
-    
+                    ->label('Número de Celular')
+                    ->required()
+                    ->maxLength(255),
+
                 Forms\Components\TextInput::make('numero_referencia')
-                ->label('Número de celular referencial')
-                ->required()
-                ->maxLength(255),
+                    ->label('Número de celular referencial')
+                    ->required()
+                    ->maxLength(255),
             ]);
     }
 
@@ -73,12 +75,12 @@ class AnfitrionResource extends Resource
             ->columns([
                 //
                 Tables\Columns\TextColumn::make('nombre')
-                ->searchable(),
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('apellido_paterno'),
                 Tables\Columns\TextColumn::make('apellido_materno'),
                 Tables\Columns\TextColumn::make('fecha_nacimiento'),
                 Tables\Columns\TextColumn::make('numero_contacto'),
-                
+
             ])
             ->filters([
                 //

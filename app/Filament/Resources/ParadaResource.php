@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\DB;
 use ArberMustafa\FilamentLocationPickrField\Forms\Components\LocationPickr;
 use Dotswan\MapPicker\Fields\Map;
 use Filament\Forms\Set;
+use Filament\Tables\Columns\TextInputColumn;
 
 class ParadaResource extends Resource
 {
@@ -47,7 +48,7 @@ class ParadaResource extends Resource
                     ->required()
                     ->maxLength(255),
 
-                    Forms\Components\Select::make('sentido')
+                Forms\Components\Select::make('sentido')
                     ->label('Sentido')
                     ->options([
                         'Ida' => 'Sentido Ida',
@@ -55,7 +56,12 @@ class ParadaResource extends Resource
                     ])
                     ->required(),
 
-
+                Forms\Components\Select::make('id_ruta')
+                    ->label('Ruta')
+                    ->options(
+                        \App\Models\Ruta::all()->pluck('nombre', 'id') 
+                    )
+                    ->required(),
 
                 // Componente LOcation Picker
                 LocationPickr::make('lat_long_v1')
@@ -96,7 +102,8 @@ class ParadaResource extends Resource
 
                 // Campo de texto para mostrar las coordenadas
                 Forms\Components\TextInput::make('lat_long')
-                    ->label('Ubicación (Lat/Lng)'),
+                    ->label('Ubicación (Lat/Lng)')
+                    ->readonly(),
 
 
             ]);
@@ -113,24 +120,42 @@ class ParadaResource extends Resource
                     ->sortable()
                     ->searchable(),
 
-                TextColumn::make('ruta.nombre')->label('Ruta')->sortable(),
+                TextColumn::make('ruta.nombre')->label('Ruta')->sortable()
+                ->searchable(),
 
 
                 TextColumn::make('sentido')
                     ->label('Sentido')
                     ->sortable()
                     ->searchable(),
+
+
+                TextInputColumn::make('orden')
+                    ->label('Orden')
+
+
+                    ->rules(['integer', 'min:1']),
             ])
+            ->defaultSort('orden')
+
             ->filters([
                 //
+                Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ForceDeleteAction::make(),
+                Tables\Actions\RestoreAction::make(),
+
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
+                Tables\Actions\DeleteBulkAction::make(),
+                Tables\Actions\ForceDeleteBulkAction::make(),
+                Tables\Actions\RestoreBulkAction::make(),
             ]);
     }
 
@@ -140,6 +165,14 @@ class ParadaResource extends Resource
             //
         ];
     }
+
+    public static function getEloquentQuery(): Builder
+{
+    return parent::getEloquentQuery()
+        ->withoutGlobalScopes([
+            SoftDeletingScope::class,
+        ]);
+}
 
     public static function getPages(): array
     {

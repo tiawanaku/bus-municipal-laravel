@@ -15,22 +15,29 @@ use App\Models\Parada;
 class ParadasRelationManager extends RelationManager
 {
     protected static string $relationship = 'paradas';
-    
 
-    
+
+
     protected static ?string $inverseRelationship = 'ruta';
 
     public function form(Form $form): Form
     {
         return $form
         ->schema([
-            Forms\Components\Select::make('id_paradas')  
-                ->label('Parada')
-                ->options(Parada::all()->pluck('nombre_parada,id_paradas'))  
-                ->searchable(),
-        ]);
+            Forms\Components\Select::make('id_paradas')
+                ->label('Seleccionar Parada')
+                ->options(
+                    Parada::all()->mapWithKeys(function ($parada) {
+                        return [$parada->id_paradas => $parada->nombre_parada];
+                    })->toArray()
+                )
+                ->placeholder('Selecciona las paradas')
+                ->reactive()
+                ->searchable()
+        ])
+        ;
     }
-    
+
     public function table(Table $table): Table
     {
         return $table
@@ -38,7 +45,8 @@ class ParadasRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('nombre_parada'),
             ])
             ->headerActions([
-                Tables\Actions\AssociateAction::make(), 
+                Tables\Actions\AssociateAction::make()
+                    ->recordTitleAttribute('nombre_parada'),
             ])
             ->actions([
                 Tables\Actions\DissociateAction::make(),

@@ -3,23 +3,27 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EntregaController;
 use App\Http\Controllers\GpsController;
+use App\Http\Controllers\ParadaController;
 use App\Http\Controllers\SeguimientoController;
+use App\Http\Controllers\InicioController;
+use App\Http\Controllers\PdfController;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('partials.index');
 });
 
-Route::get('/', [GPSController::class, 'obtenerVista'],);
-Route::get('/ubicacion', [GPSController::class, 'obtenerUbicacion']);
+Route::get('/', [InicioController::class, 'obtenerVista'],);
+Route::get('/ubicacion', [InicioController::class, 'obtenerUbicacion']);
 
-Route::get('/buscar', [GPSController::class, 'buscar']);
-Route::get('/ubicacionparada', [GPSController::class, 'obtenerUbicacionParada']);
+Route::get('/buscar', [InicioController::class, 'buscar']);
+Route::get('/ubicacionparada', [InicioController::class, 'obtenerUbicacionParada']);
 
 
 Route::get('/bus-municipal', function () {
-    return view('pageInformation.app'); 
+    return view('pageInformation.partials.principal'); 
 })->name('bus-municipal');
 
 Route::get('/ruta-norte', function () {
@@ -30,3 +34,12 @@ Route::get('/ruta-sur', function () {
     return view('pageInformation.ruta-sur');
 })->name('ruta-sur');
 
+
+
+
+
+  /*   if (!auth()->check()) {
+        abort(404); 
+    } */
+
+    Route::get('/pdf/generate/mantenimientos',[PdfController::class,'MantenimientosRecords']) ->name('pdf.example');
