@@ -50,7 +50,6 @@ class InventarioTalonariosResource extends Resource
 
                                 Forms\Components\TextInput::make('rango_inicial_preferencial')
                                     ->label('Rango Inicial Preferencial')
-                                    ->required()
                                     ->numeric()
                                     ->default(function () {
                                         $ultimo = \App\Models\InventarioTalonarios::orderByDesc('rango_final_preferencial')->first();
@@ -60,7 +59,14 @@ class InventarioTalonariosResource extends Resource
                                 Forms\Components\TextInput::make('rango_final_preferencial')
                                     ->label('Rango Final Preferencial')
                                     ->required()
-                                    ->numeric(),
+                                    ->numeric()
+                                    ->rule(function ($get) {
+                                        return function ($attribute, $value, $fail) use ($get) {
+                                            if ($value < $get('rango_inicial_preferencial')) {
+                                                $fail('El rango final preferencial no puede ser menor que el rango inicial.');
+                                            }
+                                        };
+                                    }),
 
                                 Forms\Components\TextInput::make('cantidad_restante_preferencial')
                                     ->label('Cantidad Restante Preferencial')
@@ -81,7 +87,6 @@ class InventarioTalonariosResource extends Resource
 
                                 Forms\Components\TextInput::make('rango_inicial_regular')
                                     ->label('Rango Inicial Regular')
-                                    ->required()
                                     ->numeric()
                                     ->default(function () {
                                         $ultimo = \App\Models\InventarioTalonarios::orderByDesc('rango_final_regular')->first();
@@ -91,7 +96,14 @@ class InventarioTalonariosResource extends Resource
                                 Forms\Components\TextInput::make('rango_final_regular')
                                     ->label('Rango Final Regular')
                                     ->required()
-                                    ->numeric(),
+                                    ->numeric()
+                                    ->rule(function ($get) {
+                                        return function ($attribute, $value, $fail) use ($get) {
+                                            if ($value < $get('rango_inicial_regular')) {
+                                                $fail('El rango final no puede ser menor que el rango inicial.');
+                                            }
+                                        };
+                                    }),
 
                                 Forms\Components\TextInput::make('cantidad_restante_regular')
                                     ->label('Cantidad Restante Regular')

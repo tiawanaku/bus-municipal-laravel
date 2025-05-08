@@ -14,8 +14,10 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Card;
 
+use Filament\Forms\Components\Placeholder;
+use App\Models\InventarioTalonario;
+use App\Models\InventarioTalonarios;
 
 class EntregaTalonarioResource extends Resource
 {
@@ -29,6 +31,49 @@ class EntregaTalonarioResource extends Resource
     {
         return $form
             ->schema([
+                Section::make('📦 Información de Lotes Activos')
+                    ->schema([
+                        // Estado Regular
+                        Forms\Components\Placeholder::make('estado_lote_regular')
+                            ->label('Estado del Lote Regular')
+                            ->content(function () {
+                                $lote = \App\Models\InventarioTalonarios::where('estado_regular', 1)->first();
+                                return $lote ? '🟢 Asignable' : '❌ No Asignable';
+                            }),
+
+                        // Rango Regular
+                        Forms\Components\Placeholder::make('rango_regular_activo')
+                            ->label('Rango del Lote Regular')
+                            ->content(function () {
+                                $lote = \App\Models\InventarioTalonarios::where('estado_regular', 1)->first();
+                                return $lote
+                                    ? 'Desde ' . $lote->rango_inicial_regular . ' hasta ' . $lote->rango_final_regular
+                                    : 'No hay lote activo';
+                            }),
+
+                        // Estado Preferencial
+                        Forms\Components\Placeholder::make('estado_lote_preferencial')
+                            ->label('Estado del Lote Preferencial')
+                            ->content(function () {
+                                $lote = \App\Models\InventarioTalonarios::where('estado_preferencial', 1)->first();
+                                return $lote ? '🟢 Asignable' : '❌ No Asignable';
+                            }),
+
+                        // Rango Preferencial
+                        Forms\Components\Placeholder::make('rango_preferencial_activo')
+                            ->label('Rango del Lote Preferencial')
+                            ->content(function () {
+                                $lote = \App\Models\InventarioTalonarios::where('estado_preferencial', 1)->first();
+                                return $lote
+                                    ? 'Desde ' . $lote->rango_inicial_preferencial . ' hasta ' . $lote->rango_final_preferencial
+                                    : 'No hay lote activo';
+                            }),
+                    ])
+                    ->columns(4)
+                    ->extraAttributes(['class' => 'bg-white rounded-xl p-4 shadow-sm']),
+
+
+
                 Section::make('Datos de Entrega')
                     ->schema([
                         Forms\Components\Grid::make(3)
@@ -116,10 +161,15 @@ class EntregaTalonarioResource extends Resource
                             ])
                     ]),
 
+
+
+
+
                 Section::make('Talonarios Regulares')
                     ->schema([
                         Forms\Components\Grid::make(4)
                             ->schema([
+
 
                                 Forms\Components\TextInput::make('cantidad_regulares')
                                     ->label('Talonarios Preferenciales')
@@ -136,6 +186,7 @@ class EntregaTalonarioResource extends Resource
                                 //  $set('total_boletos_regulares', $total_boletos);
                                 // $set('total_final_regulares', $total_boletos * 1.5);
                                 // }),
+
 
                                 Forms\Components\TextInput::make('rango_inicial_regular')
                                     ->label('Rango Inicial')
