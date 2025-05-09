@@ -8,12 +8,12 @@ BEGIN
     -- Preferenciales
     SET NEW.total_boletos_preferenciales = NEW.cantidad_preferenciales * 50;
     SET NEW.total_aproximado_bolivianos = NEW.total_boletos_preferenciales * 1;
-    SET NEW.rango_final_preferencial = NEW.rango_inicial_preferencial + NEW.cantidad_preferenciales - 1;
+    SET NEW.rango_final_preferencial = NEW.rango_inicial_preferencial + NEW.total_boletos_preferenciales - 1;
 
     -- Regulares
     SET NEW.total_boletos_regulares = NEW.cantidad_regulares * 50;
     SET NEW.total_aproximado_bolivianos_regular = NEW.total_boletos_regulares * 1.5;
-    SET NEW.rango_final_regular = NEW.rango_inicial_regular + NEW.cantidad_regulares - 1;
+    SET NEW.rango_final_regular = NEW.rango_inicial_regular + NEW.total_boletos_regulares - 1;
 END;
 //
 
@@ -25,12 +25,12 @@ BEGIN
     -- Preferenciales
     SET NEW.total_boletos_preferenciales = NEW.cantidad_preferenciales * 50;
     SET NEW.total_aproximado_bolivianos = NEW.total_boletos_preferenciales * 1;
-    SET NEW.rango_final_preferencial = NEW.rango_inicial_preferencial + NEW.cantidad_preferenciales - 1;
+    SET NEW.rango_final_preferencial = NEW.rango_inicial_preferencial + NEW.total_boletos_preferenciales - 1;
 
     -- Regulares
     SET NEW.total_boletos_regulares = NEW.cantidad_regulares * 50;
     SET NEW.total_aproximado_bolivianos_regular = NEW.total_boletos_regulares * 1.5;
-    SET NEW.rango_final_regular = NEW.rango_inicial_regular + NEW.cantidad_regulares - 1;
+    SET NEW.rango_final_regular = NEW.rango_inicial_regular + NEW.total_boletos_regulares - 1;
 END;
 //
 
