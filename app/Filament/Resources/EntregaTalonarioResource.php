@@ -13,9 +13,14 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Card;
 
+use Filament\Notifications\Notification;
+
+use Filament\Forms\Components\Section;
+
+use Filament\Forms\Components\Placeholder;
+use App\Models\InventarioTalonario;
+use App\Models\InventarioTalonarios;
 
 class EntregaTalonarioResource extends Resource
 {
@@ -29,6 +34,49 @@ class EntregaTalonarioResource extends Resource
     {
         return $form
             ->schema([
+                Section::make('📦 Información de Lotes Activos')
+                    ->schema([
+                        // Estado Regular
+                        Forms\Components\Placeholder::make('estado_lote_regular')
+                            ->label('Estado del Lote Regular')
+                            ->content(function () {
+                                $lote = \App\Models\InventarioTalonarios::where('estado_regular', 1)->first();
+                                return $lote ? '🟢 Asignable' : '❌ No Asignable';
+                            }),
+
+                        // Rango Regular
+                        Forms\Components\Placeholder::make('rango_regular_activo')
+                            ->label('Rango del Lote Regular')
+                            ->content(function () {
+                                $lote = \App\Models\InventarioTalonarios::where('estado_regular', 1)->first();
+                                return $lote
+                                    ? 'Desde ' . $lote->rango_inicial_regular . ' hasta ' . $lote->rango_final_regular
+                                    : 'No hay lote activo';
+                            }),
+
+                        // Estado Preferencial
+                        Forms\Components\Placeholder::make('estado_lote_preferencial')
+                            ->label('Estado del Lote Preferencial')
+                            ->content(function () {
+                                $lote = \App\Models\InventarioTalonarios::where('estado_preferencial', 1)->first();
+                                return $lote ? '🟢 Asignable' : '❌ No Asignable';
+                            }),
+
+                        // Rango Preferencial
+                        Forms\Components\Placeholder::make('rango_preferencial_activo')
+                            ->label('Rango del Lote Preferencial')
+                            ->content(function () {
+                                $lote = \App\Models\InventarioTalonarios::where('estado_preferencial', 1)->first();
+                                return $lote
+                                    ? 'Desde ' . $lote->rango_inicial_preferencial . ' hasta ' . $lote->rango_final_preferencial
+                                    : 'No hay lote activo';
+                            }),
+                    ])
+                    ->columns(4)
+                    ->extraAttributes(['class' => 'bg-white rounded-xl p-4 shadow-sm']),
+
+
+
                 Section::make('Datos de Entrega')
                     ->schema([
                         Forms\Components\Grid::make(3)
@@ -61,7 +109,9 @@ class EntregaTalonarioResource extends Resource
                                 Forms\Components\DatePicker::make('fecha_entrega')
                                     ->label('Fecha de Entrega')
                                     ->prefixIcon('heroicon-o-calendar')
-                                    ->required(),
+                                    ->required()
+                                    ->default(today()), // Esto establece la fecha actual como valor por defecto
+
                             ])
                     ]),
 
@@ -91,12 +141,23 @@ class EntregaTalonarioResource extends Resource
                                 Forms\Components\TextInput::make('rango_inicial_preferencial')
                                     ->label('Rango Inicial')
                                     ->prefixIcon('heroicon-o-arrow-down')
-                                    ->nullable(),
+                                    ->numeric()
+                                    ->default(function () {
+                                        $ultimo = \App\Models\EntregaTalonario::orderByDesc('rango_final_preferencial')->first();
+                                        return $ultimo ? $ultimo->rango_final_preferencial + 1 : 1;
+                                    }),
 
                                 Forms\Components\TextInput::make('rango_final_preferencial')
                                     ->label('Rango Final')
                                     ->prefixIcon('heroicon-o-arrow-up')
-                                    ->nullable(),
+                                    ->numeric()
+                                    ->rule(function ($get) {
+                                        return function ($attribute, $value, $fail) use ($get) {
+                                            if ($value < $get('rango_inicial_preferencial')) {
+                                                $fail('El rango final preferencial no puede ser menor que el rango inicial.');
+                                            }
+                                        };
+                                    }),
 
                                 Forms\Components\TextInput::make('cantidad_restante_preferencial')
                                     ->label('Cantidad Restante')
@@ -116,10 +177,15 @@ class EntregaTalonarioResource extends Resource
                             ])
                     ]),
 
+
+
+
+
                 Section::make('Talonarios Regulares')
                     ->schema([
                         Forms\Components\Grid::make(4)
                             ->schema([
+
 
                                 Forms\Components\TextInput::make('cantidad_regulares')
                                     ->label('Talonarios Preferenciales')
@@ -137,15 +203,28 @@ class EntregaTalonarioResource extends Resource
                                 // $set('total_final_regulares', $total_boletos * 1.5);
                                 // }),
 
+
                                 Forms\Components\TextInput::make('rango_inicial_regular')
                                     ->label('Rango Inicial')
                                     ->prefixIcon('heroicon-o-arrow-down')
-                                    ->nullable(),
+                                    ->numeric()
+                                    ->default(function () {
+                                        $ultimo = \App\Models\EntregaTalonario::orderByDesc('rango_final_regular')->first();
+                                        return $ultimo ? $ultimo->rango_final_regular + 1 : 1;
+                                    }),
+
 
                                 Forms\Components\TextInput::make('rango_final_regular')
                                     ->label('Rango Final')
                                     ->prefixIcon('heroicon-o-arrow-up')
-                                    ->nullable(),
+                                    ->numeric()
+                                    ->rule(function ($get) {
+                                        return function ($attribute, $value, $fail) use ($get) {
+                                            if ($value < $get('rango_inicial_regular')) {
+                                                $fail('El rango final no puede ser menor que el rango inicial.');
+                                            }
+                                        };
+                                    }),
 
                                 Forms\Components\TextInput::make('cantidad_restante_regular')
                                     ->label('Cantidad Restante')
@@ -165,6 +244,60 @@ class EntregaTalonarioResource extends Resource
                     ]),
             ]);
     }
+
+
+    public static function saving(EntregaTalonario $record)
+    {
+        $inicioPref = request('rango_inicial_preferencial');
+        $finPref = request('rango_final_preferencial');
+
+        $inicioReg = request('rango_inicial_regular');
+        $finReg = request('rango_final_regular');
+
+        // Validar Preferenciales
+        $existePref = \App\Models\EntregaTalonario::where(function ($query) use ($inicioPref, $finPref) {
+            $query
+                ->whereBetween('rango_inicial_preferencial', [$inicioPref, $finPref])
+                ->orWhereBetween('rango_final_preferencial', [$inicioPref, $finPref])
+                ->orWhere(function ($q) use ($inicioPref, $finPref) {
+                    $q->where('rango_inicial_preferencial', '<=', $inicioPref)
+                        ->where('rango_final_preferencial', '>=', $finPref);
+                });
+        })->exists();
+
+        if ($existePref) {
+            throw \Filament\Notifications\Notification::make()
+                ->title('Error en rango preferencial')
+                ->body('El rango preferencial se solapa con uno existente.')
+                ->danger()
+                ->send();
+
+            throw new \Exception('Rango preferencial inválido.');
+        }
+
+        // Validar Regulares
+        $existeReg = \App\Models\EntregaTalonario::where(function ($query) use ($inicioReg, $finReg) {
+            $query
+                ->whereBetween('rango_inicial_regular', [$inicioReg, $finReg])
+                ->orWhereBetween('rango_final_regular', [$inicioReg, $finReg])
+                ->orWhere(function ($q) use ($inicioReg, $finReg) {
+                    $q->where('rango_inicial_regular', '<=', $inicioReg)
+                        ->where('rango_final_regular', '>=', $finReg);
+                });
+        })->exists();
+
+        if ($existeReg) {
+            throw \Filament\Notifications\Notification::make()
+                ->title('Error en rango regular')
+                ->body('El rango regular se solapa con uno existente.')
+                ->danger()
+                ->send();
+
+            throw new \Exception('Rango regular inválido.');
+        }
+    }
+
+
 
     public static function table(Table $table): Table
     {
@@ -221,6 +354,25 @@ class EntregaTalonarioResource extends Resource
                     ->color('warning') // Color amaril
                     ->toggleable(isToggledHiddenByDefault: true),
 
+                Tables\Columns\TextColumn::make('estado_preferencial')
+                    ->label('Estado Preferencial')
+                    ->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            0 => 'asignado',
+                            1 => 'asignable',
+                            2 => 'no asignable',
+                            default => 'desconocido',
+                        };
+                    })
+                    ->color(function ($state) {
+                        return match ($state) {
+                            0 => 'danger',       // asignado → verde
+                            1 => 'success',       // asignable → azul
+                            2 => 'primary',         // no asignable → rojo
+                            default => 'gray',    // desconocido
+                        };
+                    }),
+
 
 
                 Tables\Columns\TextColumn::make('cantidad_regulares')
@@ -255,6 +407,24 @@ class EntregaTalonarioResource extends Resource
                     ->color('warning') // Color amaril
                     ->toggleable(isToggledHiddenByDefault: true),
 
+                Tables\Columns\TextColumn::make('estado_regular')
+                    ->label('Estado Preferencial')
+                    ->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            0 => 'asignado',
+                            1 => 'asignable',
+                            2 => 'no asignable',
+                            default => 'desconocido',
+                        };
+                    })
+                    ->color(function ($state) {
+                        return match ($state) {
+                            0 => 'danger',       // asignado → verde
+                            1 => 'success',       // asignable → azul
+                            2 => 'primary',        // no asignable → rojo
+                            default => 'gray',    // desconocido
+                        };
+                    }),
 
 
                 Tables\Columns\TextColumn::make('fecha_entrega')
