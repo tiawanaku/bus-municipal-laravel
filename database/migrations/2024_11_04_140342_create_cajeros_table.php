@@ -16,10 +16,15 @@ return new class extends Migration
             $table->string('nombre');
             $table->string('apellido_paterno');
             $table->string('apellido_materno');
-            $table->date('fecha_nacimiento');
+            $table->string('ci');
+            $table->string('complemento')->nullable(); // asumo que puede ser opcional
+            $table->string('ci_expedido');
+            $table->string('celular', 20); // longitud limitada
+            $table->enum('genero', ['masculino', 'femenino', 'otro']);
+
             $table->string('numero_contrato');
-            $table->string('numero_contacto');
-            $table->string('numero_referencia');
+            $table->date('fecha_inicio_contrato')->nullable();
+            $table->date('fecha_fin_contrato')->nullable();
             $table->timestamps();
         });
     }

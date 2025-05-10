@@ -11,14 +11,15 @@ class InventarioTalonarios extends Model
 
     protected $fillable = [
         'cajero_id',
-        'codigo_autorizacion',
-        'tipo_talonario',
-        'cantidad_tickets',
-        'rango_inicial',
-        'rango_final',
-        'numero_paquete',
-        'valor_ticket_bs',
-        'talonarios_por_paquete',
+        'cantidad_preferenciales',
+        'rango_inicial_preferencial',
+        'rango_final_preferencial',
+        'cantidad_restante_preferencial',
+        'cantidad_regulares',
+        'rango_inicial_regular',
+        'rango_final_regular',
+        'cantidad_restante_regular',
+        'observaciones',
     ];
 
     // Relación con el modelo Cajero

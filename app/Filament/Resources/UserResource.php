@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Hash;
+use Filament\Forms\Components\Password;
 
 class UserResource extends Resource
 {
@@ -35,34 +35,116 @@ class UserResource extends Resource
     {
         return $form
             ->schema([
-                //
-                TextInput::make('name')
-                    ->required(),
-                TextInput::make('email')
-                    ->required()
-                    ->email(),
-                TextInput::make('password')
-                    ->password()
-                    ->dehydrateStateUsing(fn(string $state): string => Hash::make($state))
-                    ->dehydrated(fn(?string $state): bool => filled($state))
-                    ->required(fn(string $operation): bool => $operation === 'create'),
-                Forms\Components\Select::make('roles')
-                    ->relationship('roles', 'name')
-                    ->multiple()
-                    ->preload()
-                    ->searchable(),
+                // Tarjeta para información personal
+                Forms\Components\Card::make()
+                    ->schema([
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('name')
+                                    ->label('Nombre')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->hint('Introduce el nombre')
+                                    ->prefixIcon('heroicon-o-user'),
+
+                                Forms\Components\TextInput::make('apellido_paterno')
+                                    ->label('Apellido Paterno')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->prefixIcon('heroicon-o-user'),
+
+                                Forms\Components\TextInput::make('apellido_materno')
+                                    ->label('Apellido Materno')
+                                    ->nullable()
+                                    ->maxLength(255)
+                                    ->prefixIcon('heroicon-o-user'),
+
+                                Forms\Components\TextInput::make('ci')
+                                    ->label('CI')
+                                    ->required()
+                                    ->maxLength(20)
+                                    ->prefixIcon('heroicon-o-identification'),
+
+                                Forms\Components\TextInput::make('complemento_ci')
+                                    ->label('Complemento CI')
+                                    ->nullable()
+                                    ->maxLength(10)
+                                    ->prefixIcon('heroicon-o-plus'),
+
+                                Forms\Components\TextInput::make('celular')
+                                    ->label('Celular')
+                                    ->nullable()
+                                    ->maxLength(20)
+                                    ->prefixIcon('heroicon-o-phone'),
+                            ]),
+                    ])
+                    ->label('Información Personal'),
+
+                // Tarjeta para contacto
+                Forms\Components\Card::make()
+                    ->schema([
+                        Forms\Components\TextInput::make('email')
+                            ->label('Correo Electrónico')
+                            ->required()
+                            ->email()
+                            ->maxLength(255)
+                            ->prefixIcon('heroicon-o-envelope'),
+
+                        Forms\Components\TextInput::make('password')
+                            ->label('Contraseña')
+                            ->required()
+                            ->password()
+                            ->minLength(8)
+                            ->maxLength(255)
+                            ->prefixIcon('heroicon-o-shield-check'),
+                    ])
+                    ->label('Datos de Contacto'),
+
+                // Tarjeta para asignación de roles
+                Forms\Components\Card::make()
+                    ->schema([
+                        Forms\Components\Select::make('roles')
+                            ->relationship('roles', 'name')
+                            ->multiple()
+                            ->preload()
+                            ->searchable()
+                            ->label('Roles')
+                            ->prefixIcon('heroicon-o-shield-check'),
+                    ])
+                    ->label('Roles'),
             ]);
     }
+
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
                 //
-                TextColumn::make('name'),
-                TextColumn::make('email'),
-                TextColumn::make('email_verified_at'),
-                TextColumn::make('roles.name'),
+                Tables\Columns\TextColumn::make('name')
+                    ->label('Nombre Completo')
+                    ->sortable()
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('apellido_paterno')
+                    ->label('Apellido Paterno')
+                    ->sortable()
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('apellido_materno')
+                    ->label('Apellido Materno')
+                    ->sortable()
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('email')
+                    ->label('Correo Electrónico')
+                    ->sortable()
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('celular')
+                    ->label('Celular')
+                    ->sortable()
+                    ->searchable(),
             ])
             ->filters([
                 //

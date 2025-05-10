@@ -10,12 +10,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-/* use Althinect\FilamentSpatieRolesPermissions\Concerns\HasSuperAdmin; */
 use Filament\Panel;
 
 class User extends Authenticatable implements FilamentUser
 {
-    use HasFactory, Notifiable, HasRoles,HasPanelShield;
+    use HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -24,6 +23,12 @@ class User extends Authenticatable implements FilamentUser
      */
     protected $fillable = [
         'name',
+        'apellido_paterno',
+        'apellido_materno',
+        'cargo',
+        'ci',
+        'complemento_ci',
+        'celular',
         'email',
         'password',
     ];
@@ -50,10 +55,10 @@ class User extends Authenticatable implements FilamentUser
             'password' => 'hashed',
         ];
     }
- */
-    public function canAccessPanel(Panel $panel): bool
+
+    public function canAccessPanel(\Filament\Panel $panel): bool
     {
-        return true;
+        return true; // O una condición para limitar el acceso
     }
 
     public function avisos()

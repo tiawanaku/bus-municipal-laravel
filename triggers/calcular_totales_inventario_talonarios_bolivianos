@@ -1,0 +1,33 @@
+DELIMITER //
+
+-- Trigger para INSERT
+CREATE TRIGGER calcular_totales_inventario_talonarios
+BEFORE INSERT ON inventario_talonarios
+FOR EACH ROW
+BEGIN
+    -- Preferenciales
+    SET NEW.total_boletos_preferenciales = NEW.cantidad_preferenciales * 50;
+    SET NEW.total_aproximado_bolivianos = NEW.total_boletos_preferenciales * 1;
+
+    -- Regulares
+    SET NEW.total_boletos_regulares = NEW.cantidad_regulares * 50;
+    SET NEW.total_aproximado_bolivianos_regular = NEW.total_boletos_regulares * 1.5;
+END;
+//
+
+-- Trigger para UPDATE
+CREATE TRIGGER actualizar_totales_inventario_talonarios
+BEFORE UPDATE ON inventario_talonarios
+FOR EACH ROW
+BEGIN
+    -- Preferenciales
+    SET NEW.total_boletos_preferenciales = NEW.cantidad_preferenciales * 50;
+    SET NEW.total_aproximado_bolivianos = NEW.total_boletos_preferenciales * 1;
+
+    -- Regulares
+    SET NEW.total_boletos_regulares = NEW.cantidad_regulares * 50;
+    SET NEW.total_aproximado_bolivianos_regular = NEW.total_boletos_regulares * 1.5;
+END;
+//
+
+DELIMITER ;
