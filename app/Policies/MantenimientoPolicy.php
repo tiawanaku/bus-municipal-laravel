@@ -3,10 +3,10 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Models\Parada;
+use App\Models\Mantenimiento;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
-class ParadaPolicy
+class MantenimientoPolicy
 {
     use HandlesAuthorization;
 
@@ -15,15 +15,15 @@ class ParadaPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_parada');
+        return $user->can('view_any_mantenimiento');
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Parada $parada): bool
+    public function view(User $user, Mantenimiento $mantenimiento): bool
     {
-        return $user->can('view_parada');
+        return $user->can('view_mantenimiento');
     }
 
     /**
@@ -31,23 +31,23 @@ class ParadaPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_parada');
+        return $user->can('create_mantenimiento');
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Parada $parada): bool
+    public function update(User $user, Mantenimiento $mantenimiento): bool
     {
-        return $user->can('update_parada');
+        return $user->can('update_mantenimiento');
     }
 
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, Parada $parada): bool
+    public function delete(User $user, Mantenimiento $mantenimiento): bool
     {
-        return $user->can('delete_parada');
+        return $user->can('delete_mantenimiento');
     }
 
     /**
@@ -55,15 +55,15 @@ class ParadaPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_parada');
+        return $user->can('delete_any_mantenimiento');
     }
 
     /**
      * Determine whether the user can permanently delete.
      */
-    public function forceDelete(User $user, Parada $parada): bool
+    public function forceDelete(User $user, Mantenimiento $mantenimiento): bool
     {
-        return $user->can('force_delete_parada');
+        return $user->can('force_delete_mantenimiento');
     }
 
     /**
@@ -71,15 +71,15 @@ class ParadaPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_parada');
+        return $user->can('force_delete_any_mantenimiento');
     }
 
     /**
      * Determine whether the user can restore.
      */
-    public function restore(User $user, Parada $parada): bool
+    public function restore(User $user, Mantenimiento $mantenimiento): bool
     {
-        return $user->can('restore_parada');
+        return $user->can('restore_mantenimiento');
     }
 
     /**
@@ -87,15 +87,15 @@ class ParadaPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_parada');
+        return $user->can('restore_any_mantenimiento');
     }
 
     /**
      * Determine whether the user can replicate.
      */
-    public function replicate(User $user, Parada $parada): bool
+    public function replicate(User $user, Mantenimiento $mantenimiento): bool
     {
-        return $user->can('replicate_parada');
+        return $user->can('replicate_mantenimiento');
     }
 
     /**
@@ -103,6 +103,6 @@ class ParadaPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_parada');
+        return $user->can('reorder_mantenimiento');
     }
 }

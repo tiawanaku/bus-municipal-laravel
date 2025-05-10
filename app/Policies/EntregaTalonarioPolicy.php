@@ -11,7 +11,7 @@ class EntregaTalonarioPolicy
     use HandlesAuthorization;
 
     /**
-     * Determine whether the user can view any entrega talonarios.
+     * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
@@ -19,7 +19,7 @@ class EntregaTalonarioPolicy
     }
 
     /**
-     * Determine whether the user can view the entrega talonario.
+     * Determine whether the user can view the model.
      */
     public function view(User $user, EntregaTalonario $entregaTalonario): bool
     {
@@ -27,7 +27,7 @@ class EntregaTalonarioPolicy
     }
 
     /**
-     * Determine whether the user can create entrega talonarios.
+     * Determine whether the user can create models.
      */
     public function create(User $user): bool
     {
@@ -35,7 +35,7 @@ class EntregaTalonarioPolicy
     }
 
     /**
-     * Determine whether the user can update the entrega talonario.
+     * Determine whether the user can update the model.
      */
     public function update(User $user, EntregaTalonario $entregaTalonario): bool
     {
@@ -43,7 +43,7 @@ class EntregaTalonarioPolicy
     }
 
     /**
-     * Determine whether the user can delete the entrega talonario.
+     * Determine whether the user can delete the model.
      */
     public function delete(User $user, EntregaTalonario $entregaTalonario): bool
     {
@@ -51,7 +51,7 @@ class EntregaTalonarioPolicy
     }
 
     /**
-     * Determine whether the user can delete multiple entrega talonarios.
+     * Determine whether the user can bulk delete.
      */
     public function deleteAny(User $user): bool
     {
@@ -59,7 +59,23 @@ class EntregaTalonarioPolicy
     }
 
     /**
-     * Determine whether the user can restore the entrega talonario.
+     * Determine whether the user can permanently delete.
+     */
+    public function forceDelete(User $user, EntregaTalonario $entregaTalonario): bool
+    {
+        return $user->can('force_delete_entrega::talonario');
+    }
+
+    /**
+     * Determine whether the user can permanently bulk delete.
+     */
+    public function forceDeleteAny(User $user): bool
+    {
+        return $user->can('force_delete_any_entrega::talonario');
+    }
+
+    /**
+     * Determine whether the user can restore.
      */
     public function restore(User $user, EntregaTalonario $entregaTalonario): bool
     {
@@ -67,7 +83,15 @@ class EntregaTalonarioPolicy
     }
 
     /**
-     * Determine whether the user can replicate the entrega talonario.
+     * Determine whether the user can bulk restore.
+     */
+    public function restoreAny(User $user): bool
+    {
+        return $user->can('restore_any_entrega::talonario');
+    }
+
+    /**
+     * Determine whether the user can replicate.
      */
     public function replicate(User $user, EntregaTalonario $entregaTalonario): bool
     {
@@ -75,10 +99,10 @@ class EntregaTalonarioPolicy
     }
 
     /**
-     * Determine whether the user can force delete the entrega talonario.
+     * Determine whether the user can reorder.
      */
-    public function forceDelete(User $user, EntregaTalonario $entregaTalonario): bool
+    public function reorder(User $user): bool
     {
-        return $user->can('force_delete_entrega::talonario');
+        return $user->can('reorder_entrega::talonario');
     }
 }

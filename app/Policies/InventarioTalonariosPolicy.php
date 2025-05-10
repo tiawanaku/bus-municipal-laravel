@@ -11,7 +11,7 @@ class InventarioTalonariosPolicy
     use HandlesAuthorization;
 
     /**
-     * Determine whether the user can view any inventario talonarios.
+     * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
@@ -19,7 +19,7 @@ class InventarioTalonariosPolicy
     }
 
     /**
-     * Determine whether the user can view the inventario talonario.
+     * Determine whether the user can view the model.
      */
     public function view(User $user, InventarioTalonarios $inventarioTalonarios): bool
     {
@@ -27,7 +27,7 @@ class InventarioTalonariosPolicy
     }
 
     /**
-     * Determine whether the user can create inventario talonarios.
+     * Determine whether the user can create models.
      */
     public function create(User $user): bool
     {
@@ -35,7 +35,7 @@ class InventarioTalonariosPolicy
     }
 
     /**
-     * Determine whether the user can update the inventario talonario.
+     * Determine whether the user can update the model.
      */
     public function update(User $user, InventarioTalonarios $inventarioTalonarios): bool
     {
@@ -43,7 +43,7 @@ class InventarioTalonariosPolicy
     }
 
     /**
-     * Determine whether the user can delete the inventario talonario.
+     * Determine whether the user can delete the model.
      */
     public function delete(User $user, InventarioTalonarios $inventarioTalonarios): bool
     {
@@ -51,7 +51,7 @@ class InventarioTalonariosPolicy
     }
 
     /**
-     * Determine whether the user can delete multiple inventario talonarios.
+     * Determine whether the user can bulk delete.
      */
     public function deleteAny(User $user): bool
     {
@@ -59,7 +59,23 @@ class InventarioTalonariosPolicy
     }
 
     /**
-     * Determine whether the user can restore the inventario talonario.
+     * Determine whether the user can permanently delete.
+     */
+    public function forceDelete(User $user, InventarioTalonarios $inventarioTalonarios): bool
+    {
+        return $user->can('force_delete_inventario::talonarios');
+    }
+
+    /**
+     * Determine whether the user can permanently bulk delete.
+     */
+    public function forceDeleteAny(User $user): bool
+    {
+        return $user->can('force_delete_any_inventario::talonarios');
+    }
+
+    /**
+     * Determine whether the user can restore.
      */
     public function restore(User $user, InventarioTalonarios $inventarioTalonarios): bool
     {
@@ -67,7 +83,15 @@ class InventarioTalonariosPolicy
     }
 
     /**
-     * Determine whether the user can replicate the inventario talonario.
+     * Determine whether the user can bulk restore.
+     */
+    public function restoreAny(User $user): bool
+    {
+        return $user->can('restore_any_inventario::talonarios');
+    }
+
+    /**
+     * Determine whether the user can replicate.
      */
     public function replicate(User $user, InventarioTalonarios $inventarioTalonarios): bool
     {
@@ -75,10 +99,10 @@ class InventarioTalonariosPolicy
     }
 
     /**
-     * Determine whether the user can force delete the inventario talonario.
+     * Determine whether the user can reorder.
      */
-    public function forceDelete(User $user, InventarioTalonarios $inventarioTalonarios): bool
+    public function reorder(User $user): bool
     {
-        return $user->can('force_delete_inventario::talonarios');
+        return $user->can('reorder_inventario::talonarios');
     }
 }

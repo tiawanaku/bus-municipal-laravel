@@ -11,7 +11,7 @@ class CajeroPolicy
     use HandlesAuthorization;
 
     /**
-     * Determine whether the user can view any cajeros.
+     * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
@@ -19,7 +19,7 @@ class CajeroPolicy
     }
 
     /**
-     * Determine whether the user can view the cajero.
+     * Determine whether the user can view the model.
      */
     public function view(User $user, Cajero $cajero): bool
     {
@@ -27,7 +27,7 @@ class CajeroPolicy
     }
 
     /**
-     * Determine whether the user can create cajeros.
+     * Determine whether the user can create models.
      */
     public function create(User $user): bool
     {
@@ -35,7 +35,7 @@ class CajeroPolicy
     }
 
     /**
-     * Determine whether the user can update the cajero.
+     * Determine whether the user can update the model.
      */
     public function update(User $user, Cajero $cajero): bool
     {
@@ -43,7 +43,7 @@ class CajeroPolicy
     }
 
     /**
-     * Determine whether the user can delete the cajero.
+     * Determine whether the user can delete the model.
      */
     public function delete(User $user, Cajero $cajero): bool
     {
@@ -51,7 +51,7 @@ class CajeroPolicy
     }
 
     /**
-     * Determine whether the user can delete multiple cajeros.
+     * Determine whether the user can bulk delete.
      */
     public function deleteAny(User $user): bool
     {
@@ -59,7 +59,23 @@ class CajeroPolicy
     }
 
     /**
-     * Determine whether the user can restore the cajero.
+     * Determine whether the user can permanently delete.
+     */
+    public function forceDelete(User $user, Cajero $cajero): bool
+    {
+        return $user->can('force_delete_cajero');
+    }
+
+    /**
+     * Determine whether the user can permanently bulk delete.
+     */
+    public function forceDeleteAny(User $user): bool
+    {
+        return $user->can('force_delete_any_cajero');
+    }
+
+    /**
+     * Determine whether the user can restore.
      */
     public function restore(User $user, Cajero $cajero): bool
     {
@@ -67,7 +83,15 @@ class CajeroPolicy
     }
 
     /**
-     * Determine whether the user can replicate the cajero.
+     * Determine whether the user can bulk restore.
+     */
+    public function restoreAny(User $user): bool
+    {
+        return $user->can('restore_any_cajero');
+    }
+
+    /**
+     * Determine whether the user can replicate.
      */
     public function replicate(User $user, Cajero $cajero): bool
     {
@@ -75,10 +99,10 @@ class CajeroPolicy
     }
 
     /**
-     * Determine whether the user can force delete the cajero.
+     * Determine whether the user can reorder.
      */
-    public function forceDelete(User $user, Cajero $cajero): bool
+    public function reorder(User $user): bool
     {
-        return $user->can('force_delete_cajero');
+        return $user->can('reorder_cajero');
     }
 }

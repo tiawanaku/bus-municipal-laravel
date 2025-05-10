@@ -11,7 +11,7 @@ class ConductorPolicy
     use HandlesAuthorization;
 
     /**
-     * Determine whether the user can view any conductores.
+     * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
@@ -19,7 +19,7 @@ class ConductorPolicy
     }
 
     /**
-     * Determine whether the user can view the conductor.
+     * Determine whether the user can view the model.
      */
     public function view(User $user, Conductor $conductor): bool
     {
@@ -27,7 +27,7 @@ class ConductorPolicy
     }
 
     /**
-     * Determine whether the user can create conductores.
+     * Determine whether the user can create models.
      */
     public function create(User $user): bool
     {
@@ -35,7 +35,7 @@ class ConductorPolicy
     }
 
     /**
-     * Determine whether the user can update the conductor.
+     * Determine whether the user can update the model.
      */
     public function update(User $user, Conductor $conductor): bool
     {
@@ -43,7 +43,7 @@ class ConductorPolicy
     }
 
     /**
-     * Determine whether the user can delete the conductor.
+     * Determine whether the user can delete the model.
      */
     public function delete(User $user, Conductor $conductor): bool
     {
@@ -51,7 +51,7 @@ class ConductorPolicy
     }
 
     /**
-     * Determine whether the user can delete multiple conductores.
+     * Determine whether the user can bulk delete.
      */
     public function deleteAny(User $user): bool
     {
@@ -59,7 +59,23 @@ class ConductorPolicy
     }
 
     /**
-     * Determine whether the user can restore the conductor.
+     * Determine whether the user can permanently delete.
+     */
+    public function forceDelete(User $user, Conductor $conductor): bool
+    {
+        return $user->can('force_delete_conductor');
+    }
+
+    /**
+     * Determine whether the user can permanently bulk delete.
+     */
+    public function forceDeleteAny(User $user): bool
+    {
+        return $user->can('force_delete_any_conductor');
+    }
+
+    /**
+     * Determine whether the user can restore.
      */
     public function restore(User $user, Conductor $conductor): bool
     {
@@ -67,7 +83,15 @@ class ConductorPolicy
     }
 
     /**
-     * Determine whether the user can replicate the conductor.
+     * Determine whether the user can bulk restore.
+     */
+    public function restoreAny(User $user): bool
+    {
+        return $user->can('restore_any_conductor');
+    }
+
+    /**
+     * Determine whether the user can replicate.
      */
     public function replicate(User $user, Conductor $conductor): bool
     {
@@ -75,10 +99,10 @@ class ConductorPolicy
     }
 
     /**
-     * Determine whether the user can force delete the conductor.
+     * Determine whether the user can reorder.
      */
-    public function forceDelete(User $user, Conductor $conductor): bool
+    public function reorder(User $user): bool
     {
-        return $user->can('force_delete_conductor');
+        return $user->can('reorder_conductor');
     }
 }
