@@ -20,7 +20,7 @@ use Filament\Forms\Components\Section;
 
 use Filament\Forms\Components\Placeholder;
 use App\Models\InventarioTalonario;
-use App\Models\InventarioTalonarios;
+use Illuminate\Validation\ValidationException;
 
 class EntregaTalonarioResource extends Resource
 {
@@ -34,54 +34,101 @@ class EntregaTalonarioResource extends Resource
     {
         return $form
             ->schema([
+                // Pregunta para seleccionar el tipo de talonario a asignar
+                Forms\Components\Select::make('tipo_talonarios') // No 'tipo_asignacion'
+                    ->label('¿Qué tipo de talonario va a asignar?')
+                    ->options([
+                        'preferenciales' => 'Preferenciales',
+                        'regulares'      => 'Regulares',
+                        'ambos'          => 'Preferenciales y Regulares',
+                    ])
+                    ->required()
+                    ->reactive()
+                    ->afterStateUpdated(function ($state, $set) {
+                        if ($state === 'ambos') {
+                            $set('show_preferenciales', true);
+                            $set('show_regulares', true);
+                        } elseif ($state === 'preferenciales') {
+                            $set('show_preferenciales', true);
+                            $set('show_regulares', false);
+                        } else {
+                            $set('show_preferenciales', false);
+                            $set('show_regulares', true);
+                        }
+                    }),
+
+
+                // Sección con información de los lotes activos
                 Section::make('📦 Información de Lotes Activos')
                     ->schema([
-                        // Estado Regular
-                        Forms\Components\Placeholder::make('estado_lote_regular')
+
+                        // Información del Lote Regular
+                        Placeholder::make('estado_lote_regular')
                             ->label('Estado del Lote Regular')
                             ->content(function () {
                                 $lote = \App\Models\InventarioTalonarios::where('estado_regular', 1)->first();
                                 return $lote ? '🟢 Asignable' : '❌ No Asignable';
-                            }),
+                            })
+                            ->visible(fn($get) => $get('show_regulares') === true),
 
-                        // Rango Regular
-                        Forms\Components\Placeholder::make('rango_regular_activo')
+                        Placeholder::make('rango_regular_activo')
                             ->label('Rango del Lote Regular')
                             ->content(function () {
                                 $lote = \App\Models\InventarioTalonarios::where('estado_regular', 1)->first();
                                 return $lote
                                     ? 'Desde ' . $lote->rango_inicial_regular . ' hasta ' . $lote->rango_final_regular
                                     : 'No hay lote activo';
-                            }),
+                            })
+                            ->visible(fn($get) => $get('show_regulares') === true),
 
-                        // Estado Preferencial
-                        Forms\Components\Placeholder::make('estado_lote_preferencial')
+                        Placeholder::make('cantidad_restante_regular')
+                            ->label('Cantidad Restante Regular')
+                            ->content(function () {
+                                $lote = \App\Models\InventarioTalonarios::where('estado_regular', 1)->first();
+                                return $lote
+                                    ? $lote->cantidad_restante_regular
+                                    : 'No disponible';
+                            })
+                            ->visible(fn($get) => $get('show_regulares') === true),
+
+                        // Información del Lote Preferencial
+                        Placeholder::make('estado_lote_preferencial')
                             ->label('Estado del Lote Preferencial')
                             ->content(function () {
                                 $lote = \App\Models\InventarioTalonarios::where('estado_preferencial', 1)->first();
                                 return $lote ? '🟢 Asignable' : '❌ No Asignable';
-                            }),
+                            })
+                            ->visible(fn($get) => $get('show_preferenciales') === true),
 
-                        // Rango Preferencial
-                        Forms\Components\Placeholder::make('rango_preferencial_activo')
+                        Placeholder::make('rango_preferencial_activo')
                             ->label('Rango del Lote Preferencial')
                             ->content(function () {
                                 $lote = \App\Models\InventarioTalonarios::where('estado_preferencial', 1)->first();
                                 return $lote
                                     ? 'Desde ' . $lote->rango_inicial_preferencial . ' hasta ' . $lote->rango_final_preferencial
                                     : 'No hay lote activo';
-                            }),
-                    ])
-                    ->columns(4)
-                    ->extraAttributes(['class' => 'bg-white rounded-xl p-4 shadow-sm']),
+                            })
+                            ->visible(fn($get) => $get('show_preferenciales') === true),
 
+                        Placeholder::make('cantidad_restante_preferencial')
+                            ->label('Cantidad Restante Preferencial')
+                            ->content(function () {
+                                $lote = \App\Models\InventarioTalonarios::where('estado_preferencial', 1)->first();
+                                return $lote
+                                    ? $lote->cantidad_restante_preferencial
+                                    : 'No disponible';
+                            })
+                            ->visible(fn($get) => $get('show_preferenciales') === true),
+
+                    ])
+                    ->columns(6)
+                    ->extraAttributes(['class' => 'bg-white rounded-xl p-4 shadow-sm']),
 
 
                 Section::make('Datos de Entrega')
                     ->schema([
                         Forms\Components\Grid::make(3)
                             ->schema([
-
                                 Forms\Components\Select::make('users_id')
                                     ->label('Responsable de Entrega')
                                     ->prefixIcon('heroicon-o-user-circle')
@@ -111,32 +158,35 @@ class EntregaTalonarioResource extends Resource
                                     ->prefixIcon('heroicon-o-calendar')
                                     ->required()
                                     ->default(today()), // Esto establece la fecha actual como valor por defecto
-
                             ])
                     ]),
 
+                // Sección solo para Preferenciales
                 Section::make('Talonarios Preferenciales')
                     ->schema([
                         Forms\Components\Grid::make(4)
                             ->schema([
-                                Forms\Components\TextInput::make('cantidad_preferenciales')
+
+
+                                Forms\Components\TextInput::make('cantidad_preferenciales, ')
                                     ->label('Talonarios Preferenciales')
                                     ->prefixIcon('heroicon-o-calculator')
-                                    ->nullable(),
+                                    ->numeric()
+                                    ->nullable()
+                                    ->rule(function () {
+                                        return function (string $attribute, $value, $fail) {
+                                            $lote = \App\Models\InventarioTalonarios::where('estado_preferencial', 1)->first();
 
+                                            if (!$lote) {
+                                                $fail('❌ No hay lote preferencial activo para asignar.');
+                                                return;
+                                            }
 
-                                // Forms\Components\TextInput::make('cantidad_preferenciales')
-                                //  ->label('Talonarios Preferenciales')
-                                //  ->prefixIcon('heroicon-o-calculator')
-                                //  ->required()
-                                //  ->reactive()
-                                // ->afterStateUpdated(function (callable $set, $state) {
-                                //    $total_boletos = (int) $state * 50;
-                                //     $set('total_boletos_preferenciales', $total_boletos);
-                                //     $set('total_final_preferenciales', $total_boletos * 1);
-                                // }),
-
-
+                                            if ($value > $lote->cantidad_restante_preferencial) {
+                                                $fail('⚠️ No puedes asignar más talonarios de los disponibles (' . $lote->cantidad_restante_preferencial . ').');
+                                            }
+                                        };
+                                    }),
 
                                 Forms\Components\TextInput::make('rango_inicial_preferencial')
                                     ->label('Rango Inicial')
@@ -163,46 +213,34 @@ class EntregaTalonarioResource extends Resource
                                     ->label('Cantidad Restante')
                                     ->prefixIcon('heroicon-o-chart-bar')
                                     ->nullable(),
+                            ]),
+                    ])
+                    ->hidden(fn($get) => ! $get('show_preferenciales')),
 
-                                //Forms\Components\TextInput::make('total_boletos_preferenciales')
-                                //->label('Total de Boletos Preferenciales')
-                                // ->disabled()
-                                // ->dehydrated(false), // para que no se guarde en la base de datos
-
-                                //Forms\Components\TextInput::make('total_final_preferenciales')
-                                //  ->label('Total Talonarios en BS')
-                                //->disabled()
-                                //->dehydrated(false),
-
-                            ])
-                    ]),
-
-
-
-
-
+                // Sección solo para Regulares
                 Section::make('Talonarios Regulares')
                     ->schema([
                         Forms\Components\Grid::make(4)
                             ->schema([
-
-
                                 Forms\Components\TextInput::make('cantidad_regulares')
-                                    ->label('Talonarios Preferenciales')
+                                    ->label('Talonarios Regulares')
                                     ->prefixIcon('heroicon-o-calculator')
-                                    ->nullable(),
+                                    ->numeric()
+                                    ->nullable()
+                                    ->rule(function () {
+                                        return function (string $attribute, $value, $fail) {
+                                            $lote = \App\Models\InventarioTalonarios::where('estado_regular', 1)->first();
 
-                                // Forms\Components\TextInput::make('cantidad_regulares')
-                                // ->label('Cantidad Talonarios Regulares')
-                                // ->prefixIcon('heroicon-o-calculator')
-                                // ->nullable()
-                                // ->reactive()
-                                //->afterStateUpdated(function (callable $set, $state) {
-                                //   $total_boletos = (int) $state * 50;
-                                //  $set('total_boletos_regulares', $total_boletos);
-                                // $set('total_final_regulares', $total_boletos * 1.5);
-                                // }),
+                                            if (!$lote) {
+                                                $fail('❌ No hay lote regular activo para asignar.');
+                                                return;
+                                            }
 
+                                            if ($value > $lote->cantidad_restante_regular) {
+                                                $fail('⚠️ No puedes asignar más talonarios de los disponibles (' . $lote->cantidad_restante_regular . ').');
+                                            }
+                                        };
+                                    }),
 
                                 Forms\Components\TextInput::make('rango_inicial_regular')
                                     ->label('Rango Inicial')
@@ -212,7 +250,6 @@ class EntregaTalonarioResource extends Resource
                                         $ultimo = \App\Models\EntregaTalonario::orderByDesc('rango_final_regular')->first();
                                         return $ultimo ? $ultimo->rango_final_regular + 1 : 1;
                                     }),
-
 
                                 Forms\Components\TextInput::make('rango_final_regular')
                                     ->label('Rango Final')
@@ -230,21 +267,11 @@ class EntregaTalonarioResource extends Resource
                                     ->label('Cantidad Restante')
                                     ->prefixIcon('heroicon-o-chart-bar')
                                     ->nullable(),
-
-                                // Forms\Components\TextInput::make('total_boletos_regulares')
-                                // ->label('Total de Boletos Regulares')
-                                // ->disabled()
-                                //->dehydrated(false),
-
-                                // Forms\Components\TextInput::make('total_final_regulares')
-                                //->label('Total Final Regulares (Bs.)')
-                                // ->disabled()
-                                // ->dehydrated(false),
-                            ])
-                    ]),
+                            ]),
+                    ])
+                    ->hidden(fn($get) => ! $get('show_regulares')),
             ]);
     }
-
 
     public static function saving(EntregaTalonario $record)
     {
@@ -435,11 +462,13 @@ class EntregaTalonarioResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
+
             ]);
     }
 

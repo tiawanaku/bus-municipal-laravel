@@ -12,6 +12,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\Actions\Action;
+use Filament\Notifications\Notification;
+use Filament\Forms\Components\Button;
 
 class InventarioTalonariosResource extends Resource
 {
@@ -25,20 +28,57 @@ class InventarioTalonariosResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\Select::make('tipo_talonarios')
+                    ->label('¿Qué tipo de talonarios recibirá?')
+                    ->options([
+                        'preferenciales' => 'Preferenciales',
+                        'regulares' => 'Regulares',
+                        'ambos' => 'Preferenciales y Regulares',
+                    ])
+                    ->required()
+                    ->reactive()
+                    ->afterStateUpdated(function ($state, $set) {
+                        // Si el usuario selecciona "Ambos", muestra ambos formularios de talonarios
+                        if ($state === 'ambos') {
+                            $set('show_preferenciales', true);
+                            $set('show_regulares', true);
+                        } elseif ($state === 'preferenciales') {
+                            $set('show_preferenciales', true);
+                            $set('show_regulares', false);
+                        } elseif ($state === 'regulares') {
+                            $set('show_preferenciales', false);
+                            $set('show_regulares', true);
+                        }
+                    }),
+
+
+                // Sección de Datos del Cajero
                 Forms\Components\Card::make()
                     ->schema([
-                        Forms\Components\Select::make('cajero_id')
-                            ->label('Encargado de Recepción de Talonarios')
-                            ->options(function () {
-                                return \App\Models\Cajero::all()->mapWithKeys(function ($cajero) {
-                                    $fullName = $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno;
-                                    return [$cajero->id => $fullName];
-                                });
-                            })
-                            ->required(),
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\Select::make('cajero_id')
+                                    ->label('Encargado de Recepción de Talonarios')
+                                    ->options(function () {
+                                        return \App\Models\Cajero::all()->mapWithKeys(function ($cajero) {
+                                            $fullName = $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno;
+                                            return [$cajero->id => $fullName];
+                                        });
+                                    })
+                                    ->required(),
+
+                                Forms\Components\DatePicker::make('fecha_entrega')
+                                    ->label('Fecha de Entrega')
+                                    ->default(now())
+                                    ->disabled()
+                                    ->dehydrated(true) // Esto fuerza que se envíe el valor aunque esté deshabilitado
+
+                            ]),
                     ])
                     ->label('Datos del Cajero'),
 
+
+                // Sección de Tarjetas Preferenciales (Solo se muestra si el tipo seleccionado es preferencial o ambos)
                 Forms\Components\Card::make()
                     ->schema([
                         Forms\Components\Grid::make(4)
@@ -69,12 +109,33 @@ class InventarioTalonariosResource extends Resource
 
                                 Forms\Components\TextInput::make('cantidad_restante_preferencial')
                                     ->label('Cantidad Restante Preferencial')
+                                    ->numeric()
                                     ->required()
-                                    ->numeric(),
+                                    ->disabled()
+                                    ->dehydrated(),
                             ]),
-                    ])
-                    ->label('Tarjetas Preferenciales'),
 
+                        Forms\Components\Checkbox::make('confirmar_preferenciales')
+                            ->label('Confirmar preferenciales')
+                            ->reactive()
+                            ->required()
+                            ->afterStateUpdated(function (callable $get, callable $set, $state) {
+                                if ($state) {
+                                    $cantidad = $get('cantidad_preferenciales');
+                                    $set('cantidad_restante_preferencial', $cantidad);
+
+                                    Notification::make()
+                                        ->title('Preferenciales confirmadas')
+                                        ->body("Se ha asignado {$cantidad} a cantidad restante.")
+                                        ->success()
+                                        ->send();
+                                }
+                            }),
+                    ])
+                    ->label('Tarjetas Preferenciales')
+                    ->hidden(fn($get) => !$get('show_preferenciales')),
+
+                // Sección de Tarjetas Regulares (Solo se muestra si el tipo seleccionado es regular o ambos)
                 Forms\Components\Card::make()
                     ->schema([
                         Forms\Components\Grid::make(4)
@@ -83,6 +144,7 @@ class InventarioTalonariosResource extends Resource
                                     ->label('Cantidad Talonarios Regulares')
                                     ->required()
                                     ->numeric(),
+
 
                                 Forms\Components\TextInput::make('rango_inicial_regular')
                                     ->label('Rango Inicial Regular')
@@ -104,13 +166,34 @@ class InventarioTalonariosResource extends Resource
                                     }),
 
                                 Forms\Components\TextInput::make('cantidad_restante_regular')
-                                    ->label('Cantidad Restante Regular')
+                                    ->label('Cantidad Restante Regulares')
                                     ->required()
-                                    ->numeric(),
+                                    ->numeric()
+                                    ->disabled()
+                                    ->dehydrated(), // Necesario para enviar el valor aunque esté deshabilitado
+
+                                Forms\Components\Checkbox::make('confirmar_regulares')
+                                    ->label('Confirmar regulares')
+                                    ->reactive()
+                                    ->required()
+                                    ->afterStateUpdated(function (callable $get, callable $set, $state) {
+                                        if ($state) {
+                                            $cantidad = $get('cantidad_regulares');
+                                            $set('cantidad_restante_regular', $cantidad);
+
+                                            \Filament\Notifications\Notification::make()
+                                                ->title('Regulares confirmadas')
+                                                ->body("Se ha asignado {$cantidad} a cantidad restante.")
+                                                ->success()
+                                                ->send();
+                                        }
+                                    }),
                             ]),
                     ])
-                    ->label('Tarjetas Regulares'),
+                    ->label('Tarjetas Regulares')
+                    ->hidden(fn($get) => !$get('show_regulares')),
 
+                // Sección de Observaciones
                 Forms\Components\Card::make()
                     ->schema([
                         Forms\Components\Textarea::make('observaciones')
@@ -119,7 +202,6 @@ class InventarioTalonariosResource extends Resource
                     ]),
             ]);
     }
-
 
     public static function saving(InventarioTalonarios $record)
     {
@@ -296,6 +378,9 @@ class InventarioTalonariosResource extends Resource
             ->searchable() // Esta línea habilita la búsqueda
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make()
+
+
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
