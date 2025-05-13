@@ -168,7 +168,7 @@ class EntregaTalonarioResource extends Resource
                             ->schema([
 
 
-                                Forms\Components\TextInput::make('cantidad_preferenciales, ')
+                                Forms\Components\TextInput::make('cantidad_preferenciales')
                                     ->label('Talonarios Preferenciales')
                                     ->prefixIcon('heroicon-o-calculator')
                                     ->numeric()

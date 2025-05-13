@@ -110,12 +110,9 @@ class InventarioTalonariosResource extends Resource
                                 Forms\Components\TextInput::make('cantidad_restante_preferencial')
                                     ->label('Cantidad Restante Preferencial')
                                     ->numeric()
-                                    ->required()
-                                    ->disabled()
-                                    ->dehydrated(),
-                            ]),
+                                    ->required(),
 
-                        Forms\Components\Checkbox::make('confirmar_preferenciales')
+                                    Forms\Components\Checkbox::make('confirmar_preferenciales')
                             ->label('Confirmar preferenciales')
                             ->reactive()
                             ->required()
@@ -130,7 +127,9 @@ class InventarioTalonariosResource extends Resource
                                         ->success()
                                         ->send();
                                 }
-                            }),
+                              }),
+                            ]),
+
                     ])
                     ->label('Tarjetas Preferenciales')
                     ->hidden(fn($get) => !$get('show_preferenciales')),
@@ -168,26 +167,23 @@ class InventarioTalonariosResource extends Resource
                                 Forms\Components\TextInput::make('cantidad_restante_regular')
                                     ->label('Cantidad Restante Regulares')
                                     ->required()
-                                    ->numeric()
-                                    ->disabled()
-                                    ->dehydrated(), // Necesario para enviar el valor aunque esté deshabilitado
+                                    ->numeric(), // Necesario para enviar el valor aunque esté deshabilitado
+Forms\Components\Checkbox::make('confirmar_regulares')
+    ->label('Confirmar regulares')
+    ->reactive()
+    ->required()
+    ->afterStateUpdated(function (callable $get, callable $set, $state) {
+        if ($state) {
+            $cantidad = $get('cantidad_regulares');
+            $set('cantidad_restante_regular', $cantidad);
 
-                                Forms\Components\Checkbox::make('confirmar_regulares')
-                                    ->label('Confirmar regulares')
-                                    ->reactive()
-                                    ->required()
-                                    ->afterStateUpdated(function (callable $get, callable $set, $state) {
-                                        if ($state) {
-                                            $cantidad = $get('cantidad_regulares');
-                                            $set('cantidad_restante_regular', $cantidad);
-
-                                            \Filament\Notifications\Notification::make()
-                                                ->title('Regulares confirmadas')
-                                                ->body("Se ha asignado {$cantidad} a cantidad restante.")
-                                                ->success()
-                                                ->send();
-                                        }
-                                    }),
+            Notification::make()
+                ->title('Regulares confirmadas')
+                ->body("Se ha asignado {$cantidad} a cantidad restante.")
+                ->success()
+                ->send();
+        }
+    }),
                             ]),
                     ])
                     ->label('Tarjetas Regulares')
