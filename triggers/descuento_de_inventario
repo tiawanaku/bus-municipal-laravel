@@ -7,30 +7,26 @@ BEGIN
     DECLARE id_preferencial_actual INT;
     DECLARE id_regular_actual INT;
 
-    -- Obtener el ID del lote preferencial activo
-    SELECT id INTO id_preferencial_actual
-    FROM inventario_talonarios
-    WHERE cajero_id = NEW.cajero_id AND estado_preferencial = 1
-    LIMIT 1;
+    -- === PREFERENCIALES ===
+    IF NEW.cantidad_preferenciales IS NOT NULL AND NEW.cantidad_preferenciales > 0 THEN
+        -- Buscar lote preferencial activo
+        SELECT id INTO id_preferencial_actual
+        FROM inventario_talonarios
+        WHERE cajero_id = NEW.cajero_id AND estado_preferencial = 1
+        ORDER BY id ASC
+        LIMIT 1;
 
-    -- Obtener el ID del lote regular activo
-    SELECT id INTO id_regular_actual
-    FROM inventario_talonarios
-    WHERE cajero_id = NEW.cajero_id AND estado_regular = 1
-    LIMIT 1;
-
-    -- Preferenciales: solo descontar del lote con estado 1
-    IF NEW.cantidad_preferenciales REGEXP '^[0-9]+$' THEN
+        -- Restar la cantidad entregada
         UPDATE inventario_talonarios
-        SET cantidad_restante_preferencial = cantidad_restante_preferencial - CAST(NEW.cantidad_preferenciales AS UNSIGNED)
+        SET cantidad_restante_preferencial = cantidad_restante_preferencial - NEW.cantidad_preferenciales
         WHERE id = id_preferencial_actual;
 
-        -- Si la cantidad restante llega a 0, marcar como agotado (estado 0)
+        -- Si se agotó, marcar como 0
         UPDATE inventario_talonarios
         SET estado_preferencial = 0
         WHERE id = id_preferencial_actual AND cantidad_restante_preferencial <= 0;
 
-        -- Activar siguiente lote pendiente (estado 2)
+        -- Activar siguiente lote pendiente si no hay activo
         UPDATE inventario_talonarios
         SET estado_preferencial = 1
         WHERE id = (
@@ -47,18 +43,26 @@ BEGIN
         );
     END IF;
 
-    -- Regulares: solo descontar del lote con estado 1
-    IF NEW.cantidad_regulares REGEXP '^[0-9]+$' THEN
+    -- === REGULARES ===
+    IF NEW.cantidad_regulares IS NOT NULL AND NEW.cantidad_regulares > 0 THEN
+        -- Buscar lote regular activo
+        SELECT id INTO id_regular_actual
+        FROM inventario_talonarios
+        WHERE cajero_id = NEW.cajero_id AND estado_regular = 1
+        ORDER BY id ASC
+        LIMIT 1;
+
+        -- Restar la cantidad entregada
         UPDATE inventario_talonarios
-        SET cantidad_restante_regular = cantidad_restante_regular - CAST(NEW.cantidad_regulares AS UNSIGNED)
+        SET cantidad_restante_regular = cantidad_restante_regular - NEW.cantidad_regulares
         WHERE id = id_regular_actual;
 
-        -- Si la cantidad restante llega a 0, marcar como agotado (estado 0)
+        -- Si se agotó, marcar como 0
         UPDATE inventario_talonarios
         SET estado_regular = 0
         WHERE id = id_regular_actual AND cantidad_restante_regular <= 0;
 
-        -- Activar siguiente lote pendiente (estado 2)
+        -- Activar siguiente lote pendiente si no hay activo
         UPDATE inventario_talonarios
         SET estado_regular = 1
         WHERE id = (

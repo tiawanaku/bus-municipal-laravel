@@ -12,21 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('entrega_talonarios_anfitrion', function (Blueprint $table) {
-            $table->bigIncrements('id');
+            $table->id();
 
-            // Relaciones opcionales
-            $table->bigInteger('anfitrion_id')->unsigned(); // Definir como unsigned porque la clave primaria en la tabla anfitrions es unsigned
-            $table->foreignId('cajero_id')->nullable()->constrained('cajeros');
+            $table->foreignId('anfitrion_id')->constrained('anfitrions')->onDelete('restrict');
+            $table->foreignId('cajero_id')->nullable()->constrained('cajeros'); // Cajero secundario que entrega
 
-            // Datos de entrega
             $table->string('numero_autorizacion')->nullable();
 
-            // Talonarios Preferenciales
+            // Preferenciales
             $table->integer('cantidad_talonarios_preferenciales')->nullable();
             $table->integer('rango_inicial_preferenciales')->nullable();
             $table->integer('rango_final_preferenciales')->nullable();
 
-            // Talonarios Regulares
+            // Regulares
             $table->integer('cantidad_talonarios_regulares')->nullable();
             $table->integer('rango_inicial_regulares')->nullable();
             $table->integer('rango_final_regulares')->nullable();

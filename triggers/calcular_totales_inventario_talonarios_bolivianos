@@ -1,4 +1,4 @@
-DELIMITER //
+DELIMITER $$
 
 -- Trigger para INSERT
 CREATE TRIGGER calcular_totales_inventario_talonarios
@@ -14,8 +14,7 @@ BEGIN
     SET NEW.total_boletos_regulares = NEW.cantidad_regulares * 50;
     SET NEW.total_aproximado_bolivianos_regular = NEW.total_boletos_regulares * 1.5;
     SET NEW.rango_final_regular = NEW.rango_inicial_regular + NEW.total_boletos_regulares - 1;
-END;
-//
+END$$
 
 -- Trigger para UPDATE
 CREATE TRIGGER actualizar_totales_inventario_talonarios
@@ -31,7 +30,6 @@ BEGIN
     SET NEW.total_boletos_regulares = NEW.cantidad_regulares * 50;
     SET NEW.total_aproximado_bolivianos_regular = NEW.total_boletos_regulares * 1.5;
     SET NEW.rango_final_regular = NEW.rango_inicial_regular + NEW.total_boletos_regulares - 1;
-END;
-//
+END$$
 
 DELIMITER ;

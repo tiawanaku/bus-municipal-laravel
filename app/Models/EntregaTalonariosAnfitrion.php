@@ -2,9 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-
+use Illuminate\Database\Eloquent\Model;
 
 class EntregaTalonariosAnfitrion extends Model
 {
@@ -16,12 +15,18 @@ class EntregaTalonariosAnfitrion extends Model
         'anfitrion_id',
         'cajero_id',
         'numero_autorizacion',
+
+        // Preferenciales
         'cantidad_talonarios_preferenciales',
         'rango_inicial_preferenciales',
         'rango_final_preferenciales',
+
+        // Regulares
         'cantidad_talonarios_regulares',
         'rango_inicial_regulares',
         'rango_final_regulares',
+
+        // Totales
         'total_tickets_regulares',
         'total_tickets_preferenciales',
         'total_recaudar_regulares',
@@ -29,14 +34,19 @@ class EntregaTalonariosAnfitrion extends Model
         'total_recaudar',
     ];
 
-    // Relaciones
+    /**
+     * Relación con el anfitrión
+     */
     public function anfitrion()
     {
-        return $this->belongsTo(Anfitrion::class, 'anfitrion_id');
+        return $this->belongsTo(Anfitrion::class);
     }
 
+    /**
+     * Relación con el cajero que entrega
+     */
     public function cajero()
     {
-        return $this->belongsTo(Cajero::class, 'cajero_id');
+        return $this->belongsTo(Cajero::class);
     }
 }

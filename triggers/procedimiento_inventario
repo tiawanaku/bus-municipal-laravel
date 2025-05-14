@@ -1,0 +1,184 @@
+DELIMITER $$
+
+CREATE PROCEDURE inventario_talonarios (
+    IN p_cajero_id BIGINT UNSIGNED,
+    IN p_cantidad_preferenciales INT,
+    IN p_rango_inicial_preferencial INT,
+    IN p_cantidad_regulares INT,
+    IN p_rango_inicial_regular INT,
+    IN p_fecha_entrega DATE,
+    IN p_observaciones VARCHAR(255)
+)
+BEGIN
+    DECLARE v_rango_final_preferencial INT;
+    DECLARE v_rango_final_regular INT;
+    DECLARE v_total_boletos_preferenciales INT;
+    DECLARE v_total_boletos_regulares INT;
+    DECLARE v_total_bs_preferenciales DECIMAL(10,2);
+    DECLARE v_total_bs_regulares DECIMAL(10,2);
+    DECLARE v_total_recaudar DECIMAL(10,2);
+    DECLARE v_estado_preferencial INT DEFAULT 1;
+    DECLARE v_estado_regular INT DEFAULT 1;
+
+    -- Calcular rangos finales
+    SET v_rango_final_preferencial = p_rango_inicial_preferencial + (p_cantidad_preferenciales * 50) - 1;
+    SET v_rango_final_regular = p_rango_inicial_regular + (p_cantidad_regulares * 50) - 1;
+
+    -- Calcular totales de boletos
+    SET v_total_boletos_preferenciales = p_cantidad_preferenciales * 50;
+    SET v_total_boletos_regulares = p_cantidad_regulares * 50;
+
+    -- Calcular montos aproximados en Bs
+    SET v_total_bs_preferenciales = v_total_boletos_preferenciales * 1.00;
+    SET v_total_bs_regulares = v_total_boletos_regulares * 1.50;
+
+    -- Calcular total a recaudar
+    SET v_total_recaudar = v_total_bs_preferenciales + v_total_bs_regulares;
+
+    -- Verificar si hay registros activos (estado = 1)
+    IF EXISTS (
+        SELECT 1 FROM inventario_talonarios
+        WHERE estado_preferencial = 1
+    ) THEN
+        SET v_estado_preferencial = 2; -- en espera
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM inventario_talonarios
+        WHERE estado_regular = 1
+    ) THEN
+        SET v_estado_regular = 2; -- en espera
+    END IF;
+
+    -- Insertar registro
+    INSERT INTO inventario_talonarios (
+        cajero_id,
+        cantidad_preferenciales,
+        rango_inicial_preferencial,
+        rango_final_preferencial,
+        cantidad_restante_preferencial,
+        total_boletos_preferenciales,
+        total_aproximado_bolivianos,
+        cantidad_regulares,
+        rango_inicial_regular,
+        rango_final_regular,
+        cantidad_restante_regular,
+        total_boletos_regulares,
+        total_aproximado_bolivianos_regular,
+        estado_preferencial,
+        estado_regular,
+        tipo_talonarios,
+        fecha_entrega,
+        observaciones,
+        created_at,
+        updated_at
+    ) VALUES (
+        p_cajero_id,
+        p_cantidad_preferenciales,
+        p_rango_inicial_preferencial,
+        v_rango_final_preferencial,
+        p_cantidad_preferenciales, -- se inicializa el inventario restante
+        v_total_boletos_preferenciales,
+        v_total_bs_preferenciales,
+        p_cantidad_regulares,
+        p_rango_inicial_regular,
+        v_rango_final_regular,
+        p_cantidad_regulares, -- se inicializa el inventario restante
+        v_total_boletos_regulares,
+        v_total_bs_regulares,
+        v_estado_preferencial,
+        v_estado_regular,
+        'mixto',
+        p_fecha_entrega,
+        p_observaciones,
+        NOW(),
+        NOW()
+    );
+
+END$$
+
+DELIMITER ;
+
+
+-- procedimiento almacenado  para la actualizacion o edicion delos registros
+
+DELIMITER $$
+
+CREATE PROCEDURE actualizar_inventario_talonarios (
+    IN p_id BIGINT UNSIGNED,  -- El ID del registro a actualizar
+    IN p_cajero_id BIGINT UNSIGNED,
+    IN p_cantidad_preferenciales INT,
+    IN p_rango_inicial_preferencial INT,
+    IN p_cantidad_regulares INT,
+    IN p_rango_inicial_regular INT,
+    IN p_fecha_entrega DATE,
+    IN p_observaciones VARCHAR(255)
+)
+BEGIN
+    DECLARE v_rango_final_preferencial INT;
+    DECLARE v_rango_final_regular INT;
+    DECLARE v_total_boletos_preferenciales INT;
+    DECLARE v_total_boletos_regulares INT;
+    DECLARE v_total_bs_preferenciales DECIMAL(10,2);
+    DECLARE v_total_bs_regulares DECIMAL(10,2);
+    DECLARE v_total_recaudar DECIMAL(10,2);
+    DECLARE v_estado_preferencial INT DEFAULT 1;
+    DECLARE v_estado_regular INT DEFAULT 1;
+
+    -- Calcular rangos finales
+    SET v_rango_final_preferencial = p_rango_inicial_preferencial + (p_cantidad_preferenciales * 50) - 1;
+    SET v_rango_final_regular = p_rango_inicial_regular + (p_cantidad_regulares * 50) - 1;
+
+    -- Calcular totales de boletos
+    SET v_total_boletos_preferenciales = p_cantidad_preferenciales * 50;
+    SET v_total_boletos_regulares = p_cantidad_regulares * 50;
+
+    -- Calcular montos aproximados en Bs
+    SET v_total_bs_preferenciales = v_total_boletos_preferenciales * 1.00;
+    SET v_total_bs_regulares = v_total_boletos_regulares * 1.50;
+
+    -- Calcular total a recaudar
+    SET v_total_recaudar = v_total_bs_preferenciales + v_total_bs_regulares;
+
+    -- Verificar si hay registros activos (estado = 1) y ajustar el estado
+    IF EXISTS (
+        SELECT 1 FROM inventario_talonarios
+        WHERE estado_preferencial = 1 AND id = p_id
+    ) THEN
+        SET v_estado_preferencial = 2; -- en espera
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM inventario_talonarios
+        WHERE estado_regular = 1 AND id = p_id
+    ) THEN
+        SET v_estado_regular = 2; -- en espera
+    END IF;
+
+    -- Actualizar el registro existente con los nuevos valores
+    UPDATE inventario_talonarios
+    SET
+        cajero_id = p_cajero_id,
+        cantidad_preferenciales = p_cantidad_preferenciales,
+        rango_inicial_preferencial = p_rango_inicial_preferencial,
+        rango_final_preferencial = v_rango_final_preferencial,
+        cantidad_restante_preferencial = p_cantidad_preferenciales, -- se actualiza el inventario restante
+        total_boletos_preferenciales = v_total_boletos_preferenciales,
+        total_aproximado_bolivianos = v_total_bs_preferenciales,
+        cantidad_regulares = p_cantidad_regulares,
+        rango_inicial_regular = p_rango_inicial_regular,
+        rango_final_regular = v_rango_final_regular,
+        cantidad_restante_regular = p_cantidad_regulares, -- se actualiza el inventario restante
+        total_boletos_regulares = v_total_boletos_regulares,
+        total_aproximado_bolivianos_regular = v_total_bs_regulares,
+        estado_preferencial = v_estado_preferencial,
+        estado_regular = v_estado_regular,
+        tipo_talonarios = 'mixto',
+        fecha_entrega = p_fecha_entrega,
+        observaciones = p_observaciones,
+        updated_at = NOW()
+    WHERE id = p_id;
+
+END$$
+
+DELIMITER ;

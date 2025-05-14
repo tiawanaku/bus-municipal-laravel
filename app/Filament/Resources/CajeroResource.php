@@ -22,56 +22,62 @@ class CajeroResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
 
-    public static function form(Forms\Form $form): Forms\Form
+    public static function form(Form $form): Form
     {
-        return $form->schema([
-            Section::make('Información Personal')
-                ->schema([
-                    Forms\Components\TextInput::make('nombre')->required()->label('Nombre'),
-                    Forms\Components\TextInput::make('apellido_paterno')->required()->label('Apellido Paterno'),
-                    Forms\Components\TextInput::make('apellido_materno')->required()->label('Apellido Materno'),
-                    Forms\Components\TextInput::make('ci')->required()->label('CI'),
-                    Forms\Components\TextInput::make('complemento')->label('Complemento')->nullable(),
-                    Forms\Components\TextInput::make('ci_expedido')->required()->label('CI Expedido'),
-                    Forms\Components\TextInput::make('celular')->required()->label('Celular'),
-                    Forms\Components\Select::make('genero')
-                        ->required()
-                        ->options([
-                            'masculino' => 'Masculino',
-                            'femenino' => 'Femenino',
-                            'otro' => 'Otro',
-                        ])
-                        ->label('Género'),
-                ])
-                ->columns(3),
+        return $form
+            ->schema([
+                Forms\Components\Select::make('tipo_cajero')
+                    ->label('Tipo de Cajero')
+                    ->options([
+                        'principal' => 'Principal',
+                        'secundario' => 'Secundario',
+                    ])
+                    ->required(),
 
-            Section::make('Contrato')
-                ->schema([
-                    Forms\Components\TextInput::make('numero_contrato')->required()->label('Número de Contrato'),
-                    Forms\Components\DatePicker::make('fecha_inicio_contrato')->label('Fecha de Inicio de Contrato')->required(),
-                    Forms\Components\DatePicker::make('fecha_fin_contrato')->label('Fecha de Fin de Contrato')->required(),
-                ])
-                ->columns(3),
-        ]);
+                Forms\Components\Select::make('cajero_padre_id')
+                    ->label('Cajero Padre (si es secundario)')
+                    ->relationship('cajeroPadre', 'nombre')
+                    ->searchable()
+                    ->preload()
+                    ->visible(fn($get) => $get('tipo_cajero') === 'secundario')
+                    ->nullable(),
+
+                Forms\Components\TextInput::make('nombre')->required(),
+                Forms\Components\TextInput::make('apellido_paterno')->required(),
+                Forms\Components\TextInput::make('apellido_materno')->required(),
+
+                Forms\Components\TextInput::make('ci')->label('CI')->required(),
+                Forms\Components\TextInput::make('complemento')->nullable(),
+                Forms\Components\TextInput::make('ci_expedido')->label('CI Expedido')->required(),
+                Forms\Components\TextInput::make('celular')->required(),
+                Forms\Components\Select::make('genero')
+                    ->options([
+                        'masculino' => 'Masculino',
+                        'femenino' => 'Femenino',
+                        'otro' => 'Otro',
+                    ])
+                    ->required(),
+
+                Forms\Components\TextInput::make('numero_contrato')->required(),
+                Forms\Components\DatePicker::make('fecha_inicio_contrato')->nullable(),
+                Forms\Components\DatePicker::make('fecha_fin_contrato')->nullable(),
+            ]);
     }
+
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('nombre')->label('Nombre')->searchable(),
-                Tables\Columns\TextColumn::make('apellido_paterno')->label('Apellido Paterno')->searchable(),
-                Tables\Columns\TextColumn::make('apellido_materno')->label('Apellido Materno')->searchable(),
-                Tables\Columns\TextColumn::make('ci')->label('CI'),
-                Tables\Columns\BadgeColumn::make('genero')->label('Género')->colors([
-                    'primary' => 'masculino',
-                    'pink' => 'femenino',
-                    'gray' => 'otro',
-                ]),
-                Tables\Columns\TextColumn::make('fecha_inicio_contrato')->label('Inicio Contrato'),
-                Tables\Columns\TextColumn::make('fecha_fin_contrato')->label('Fin Contrato'),
+                Tables\Columns\TextColumn::make('nombre')->searchable(),
+                Tables\Columns\TextColumn::make('apellido_paterno'),
+                Tables\Columns\TextColumn::make('apellido_materno'),
+                Tables\Columns\TextColumn::make('tipo_cajero')->badge(),
+                Tables\Columns\TextColumn::make('cajeroPadre.nombre')->label('Cajero Padre'),
+                Tables\Columns\TextColumn::make('ci'),
+                Tables\Columns\TextColumn::make('celular'),
+                Tables\Columns\TextColumn::make('numero_contrato'),
             ])
-            ->defaultSort('nombre')
 
             ->filters([
                 //

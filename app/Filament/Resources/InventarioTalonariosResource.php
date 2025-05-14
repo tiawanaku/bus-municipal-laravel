@@ -15,6 +15,10 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Forms\Components\Button;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Select;
+use App\Models\Cajero;
+
 
 class InventarioTalonariosResource extends Resource
 {
@@ -28,176 +32,144 @@ class InventarioTalonariosResource extends Resource
     {
         return $form
             ->schema([
+                // Selección del tipo de talonario
                 Forms\Components\Select::make('tipo_talonarios')
-                    ->label('¿Qué tipo de talonarios recibirá?')
+                    ->label('¿Qué tipo de talonario va a asignar?')
                     ->options([
                         'preferenciales' => 'Preferenciales',
-                        'regulares' => 'Regulares',
-                        'ambos' => 'Preferenciales y Regulares',
+                        'regulares'      => 'Regulares',
+                        'ambos'          => 'Preferenciales y Regulares',
                     ])
                     ->required()
                     ->reactive()
                     ->afterStateUpdated(function ($state, $set) {
-                        // Si el usuario selecciona "Ambos", muestra ambos formularios de talonarios
+                        // Mostrar u ocultar las secciones dependiendo de la selección
                         if ($state === 'ambos') {
                             $set('show_preferenciales', true);
                             $set('show_regulares', true);
                         } elseif ($state === 'preferenciales') {
                             $set('show_preferenciales', true);
                             $set('show_regulares', false);
-                        } elseif ($state === 'regulares') {
+                        } else {
                             $set('show_preferenciales', false);
                             $set('show_regulares', true);
                         }
                     }),
 
+                // Sección de Cajero y Fecha de Entrega
+                Grid::make(3)->schema([
+                    Forms\Components\Select::make('cajero_id')
+                        ->label('Cajero Principal')
+                        ->prefixIcon('heroicon-o-user')
+                        ->options(function () {
+                            return \App\Models\Cajero::where('tipo_cajero', 'principal')
+                                ->get()
+                                ->mapWithKeys(function ($cajero) {
+                                    $fullName = $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno;
+                                    return [$cajero->id => $fullName];
+                                });
+                        })
+                        ->searchable()
+                        ->required(),
 
-                // Sección de Datos del Cajero
-                Forms\Components\Card::make()
-                    ->schema([
-                        Forms\Components\Grid::make(2)
-                            ->schema([
-                                Forms\Components\Select::make('cajero_id')
-                                    ->label('Encargado de Recepción de Talonarios')
-                                    ->options(function () {
-                                        return \App\Models\Cajero::all()->mapWithKeys(function ($cajero) {
-                                            $fullName = $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno;
-                                            return [$cajero->id => $fullName];
-                                        });
-                                    })
-                                    ->required(),
+                    Forms\Components\DatePicker::make('fecha_entrega')
+                        ->label('Fecha de Entrega')
+                        ->default(now()) // Valor por defecto: fecha actual
+                        ->disabled()     // No editable por el usuario
+                        ->dehydrated(true) // Importante: permite que se guarde en la BD
+                        ->required(),
 
-                                Forms\Components\DatePicker::make('fecha_entrega')
-                                    ->label('Fecha de Entrega')
-                                    ->default(now())
-                                    ->disabled()
-                                    ->dehydrated(true) // Esto fuerza que se envíe el valor aunque esté deshabilitado
+                    Forms\Components\TextInput::make('tipo_talonarios')
+                        ->label('Tipo de Talonarios')
+                        ->nullable(),
+                ]),
 
-                            ]),
-                    ])
-                    ->label('Datos del Cajero'),
+                // Sección de Preferenciales (solo visible si 'show_preferenciales' es true)
+                Forms\Components\Section::make('Preferenciales')->schema([
+                    Grid::make(3)->schema([
+                        Forms\Components\TextInput::make('cantidad_preferenciales')
+                            ->numeric()
+                            ->Default(0),
 
+                        Forms\Components\TextInput::make('rango_inicial_preferencial')
+                            ->label('Rango Inicial')
+                            ->prefixIcon('heroicon-o-arrow-down')
+                            ->numeric()
+                            ->default(function () {
+                                $ultimo = \App\Models\InventarioTalonarios::orderByDesc('rango_final_preferencial')->first();
+                                return $ultimo ? $ultimo->rango_final_preferencial + 1 : 1;
+                            }),
 
-                // Sección de Tarjetas Preferenciales (Solo se muestra si el tipo seleccionado es preferencial o ambos)
-                Forms\Components\Card::make()
-                    ->schema([
-                        Forms\Components\Grid::make(4)
-                            ->schema([
-                                Forms\Components\TextInput::make('cantidad_preferenciales')
-                                    ->label('Cantidad Talonarios Preferenciales')
-                                    ->required()
-                                    ->numeric(),
-
-                                Forms\Components\TextInput::make('rango_inicial_preferencial')
-                                    ->label('Rango Inicial Preferencial')
-                                    ->numeric()
-                                    ->default(function () {
-                                        $ultimo = \App\Models\InventarioTalonarios::orderByDesc('rango_final_preferencial')->first();
-                                        return $ultimo ? $ultimo->rango_final_preferencial + 1 : 1;
-                                    }),
-
-                                Forms\Components\TextInput::make('rango_final_preferencial')
-                                    ->label('Rango Final Preferencial')
-                                    ->numeric()
-                                    ->rule(function ($get) {
-                                        return function ($attribute, $value, $fail) use ($get) {
-                                            if ($value < $get('rango_inicial_preferencial')) {
-                                                $fail('El rango final preferencial no puede ser menor que el rango inicial.');
-                                            }
-                                        };
-                                    }),
-
-                                Forms\Components\TextInput::make('cantidad_restante_preferencial')
-                                    ->label('Cantidad Restante Preferencial')
-                                    ->numeric()
-                                    ->required(),
-
-                                    Forms\Components\Checkbox::make('confirmar_preferenciales')
-                            ->label('Confirmar preferenciales')
-                            ->reactive()
-                            ->required()
-                            ->afterStateUpdated(function (callable $get, callable $set, $state) {
-                                if ($state) {
-                                    $cantidad = $get('cantidad_preferenciales');
-                                    $set('cantidad_restante_preferencial', $cantidad);
-
-                                    Notification::make()
-                                        ->title('Preferenciales confirmadas')
-                                        ->body("Se ha asignado {$cantidad} a cantidad restante.")
-                                        ->success()
-                                        ->send();
-                                }
-                              }),
-                            ]),
-
-                    ])
-                    ->label('Tarjetas Preferenciales')
-                    ->hidden(fn($get) => !$get('show_preferenciales')),
-
-                // Sección de Tarjetas Regulares (Solo se muestra si el tipo seleccionado es regular o ambos)
-                Forms\Components\Card::make()
-                    ->schema([
-                        Forms\Components\Grid::make(4)
-                            ->schema([
-                                Forms\Components\TextInput::make('cantidad_regulares')
-                                    ->label('Cantidad Talonarios Regulares')
-                                    ->required()
-                                    ->numeric(),
+                        Forms\Components\TextInput::make('rango_final_preferencial')
+                            ->label('Rango Final')
+                            ->prefixIcon('heroicon-o-arrow-up')
+                            ->disabled()
+                            ->numeric(),
 
 
-                                Forms\Components\TextInput::make('rango_inicial_regular')
-                                    ->label('Rango Inicial Regular')
-                                    ->numeric()
-                                    ->default(function () {
-                                        $ultimo = \App\Models\InventarioTalonarios::orderByDesc('rango_final_regular')->first();
-                                        return $ultimo ? $ultimo->rango_final_regular + 1 : 1;
-                                    }),
+                        Forms\Components\TextInput::make('cantidad_restante_preferencial')
+                            ->numeric(),
+                        Forms\Components\TextInput::make('total_boletos_preferenciales')
+                            ->numeric()
+                            ->disabled(),
+                        Forms\Components\TextInput::make('total_aproximado_bolivianos')
+                            ->numeric(2)
+                            ->disabled()
+                            ->prefix('Bs.'),
+                    ]),
+                ])->visible(fn($get) => $get('show_preferenciales')), // Condición de visibilidad
 
-                                Forms\Components\TextInput::make('rango_final_regular')
-                                    ->label('Rango Final Regular')
-                                    ->numeric()
-                                    ->rule(function ($get) {
-                                        return function ($attribute, $value, $fail) use ($get) {
-                                            if ($value < $get('rango_inicial_regular')) {
-                                                $fail('El rango final no puede ser menor que el rango inicial.');
-                                            }
-                                        };
-                                    }),
+                // Sección de Regulares (solo visible si 'show_regulares' es true)
+                Forms\Components\Section::make('Regulares')->schema([
+                    Grid::make(3)->schema([
+                        Forms\Components\TextInput::make('cantidad_regulares')
+                            ->Default(0)
+                            ->numeric(),
+                        Forms\Components\TextInput::make('rango_inicial_regular')
+                            ->label('Rango Inicial')
+                            ->prefixIcon('heroicon-o-arrow-down')
+                            ->numeric()
+                            ->default(function () {
+                                $ultimo = \App\Models\InventarioTalonarios::orderByDesc('rango_final_regular')->first();
+                                return $ultimo ? $ultimo->rango_final_regular + 1 : 1;
+                            }),
+                        Forms\Components\TextInput::make('rango_final_regular')
+                            ->label('Rango Final')
+                            ->prefixIcon('heroicon-o-arrow-up')
+                            ->disabled()
+                            ->numeric()
+                            ->rule(function ($get) {
+                                return function ($attribute, $value, $fail) use ($get) {
+                                    if ($value < $get('rango_inicial_regular')) {
+                                        $fail('El rango final no puede ser menor que el rango inicial.');
+                                    }
+                                };
+                            }),
 
-                                Forms\Components\TextInput::make('cantidad_restante_regular')
-                                    ->label('Cantidad Restante Regulares')
-                                    ->required()
-                                    ->numeric(), // Necesario para enviar el valor aunque esté deshabilitado
-Forms\Components\Checkbox::make('confirmar_regulares')
-    ->label('Confirmar regulares')
-    ->reactive()
-    ->required()
-    ->afterStateUpdated(function (callable $get, callable $set, $state) {
-        if ($state) {
-            $cantidad = $get('cantidad_regulares');
-            $set('cantidad_restante_regular', $cantidad);
-
-            Notification::make()
-                ->title('Regulares confirmadas')
-                ->body("Se ha asignado {$cantidad} a cantidad restante.")
-                ->success()
-                ->send();
-        }
-    }),
-                            ]),
-                    ])
-                    ->label('Tarjetas Regulares')
-                    ->hidden(fn($get) => !$get('show_regulares')),
+                        Forms\Components\TextInput::make('cantidad_restante_regular')
+                            ->numeric(),
+                        Forms\Components\TextInput::make('total_boletos_regulares')
+                            ->numeric()
+                            ->disabled(),
+                        Forms\Components\TextInput::make('total_aproximado_bolivianos_regular')
+                            ->numeric(2)
+                            ->disabled()
+                            ->prefix('Bs.'),
+                    ]),
+                ])->visible(fn($get) => $get('show_regulares')), // Condición de visibilidad
 
                 // Sección de Observaciones
-                Forms\Components\Card::make()
+                Forms\Components\Section::make('Observaciones')
                     ->schema([
                         Forms\Components\Textarea::make('observaciones')
                             ->label('Observaciones')
-                            ->nullable(),
-                    ]),
+                            ->rows(3),
+                    ])
+                    ->columns(1),
             ]);
     }
+
+
 
     public static function saving(InventarioTalonarios $record)
     {
@@ -374,7 +346,8 @@ Forms\Components\Checkbox::make('confirmar_regulares')
             ->searchable() // Esta línea habilita la búsqueda
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
+                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ViewAction::make(),
 
 
             ])

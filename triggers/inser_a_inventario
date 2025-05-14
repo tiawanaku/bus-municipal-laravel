@@ -17,19 +17,24 @@ BEGIN
     FROM inventario_talonarios
     WHERE cantidad_restante_regular > 0 AND estado_regular = 1;
 
-    -- Asignar estado_preferencial
-    IF lotes_activos_preferencial = 0 THEN
+    -- Asignar estado_preferencial según si hay otros activos
+    IF lotes_activos_preferencial = 0 AND NEW.cantidad_restante_preferencial > 0 THEN
         SET NEW.estado_preferencial = 1; -- asignable
-    ELSE
+    ELSEIF NEW.cantidad_restante_preferencial > 0 THEN
         SET NEW.estado_preferencial = 2; -- no asignable
+    ELSE
+        SET NEW.estado_preferencial = 0; -- inactivo o sin preferenciales
     END IF;
 
-    -- Asignar estado_regular
-    IF lotes_activos_regular = 0 THEN
+    -- Asignar estado_regular según si hay otros activos
+    IF lotes_activos_regular = 0 AND NEW.cantidad_restante_regular > 0 THEN
         SET NEW.estado_regular = 1; -- asignable
-    ELSE
+    ELSEIF NEW.cantidad_restante_regular > 0 THEN
         SET NEW.estado_regular = 2; -- no asignable
+    ELSE
+        SET NEW.estado_regular = 0; -- inactivo o sin regulares
     END IF;
+
 END$$
 
 DELIMITER ;

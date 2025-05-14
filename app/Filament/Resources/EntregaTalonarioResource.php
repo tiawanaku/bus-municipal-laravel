@@ -125,33 +125,40 @@ class EntregaTalonarioResource extends Resource
                     ->extraAttributes(['class' => 'bg-white rounded-xl p-4 shadow-sm']),
 
 
+
+
                 Section::make('Datos de Entrega')
                     ->schema([
                         Forms\Components\Grid::make(3)
                             ->schema([
-                                Forms\Components\Select::make('users_id')
-                                    ->label('Responsable de Entrega')
-                                    ->prefixIcon('heroicon-o-user-circle')
-                                    ->options(function () {
-                                        return \App\Models\User::all()->pluck('name', 'id')->mapWithKeys(function ($item, $key) {
-                                            $user = \App\Models\User::find($key);
-                                            $fullName = $user->name . ' ' . $user->apellido_paterno . ' ' . $user->apellido_materno;
-                                            return [$key => $fullName];
-                                        });
-                                    })
-                                    ->nullable(),
 
-                                Forms\Components\Select::make('cajero_id')
-                                    ->label('Cajero')
+                                Forms\Components\Select::make('cajero_id')  // Cajero Secundario
+                                    ->label('Cajero pricipal')
                                     ->prefixIcon('heroicon-o-user')
                                     ->options(function () {
-                                        return \App\Models\Cajero::all()->pluck('nombre', 'id')->mapWithKeys(function ($item, $key) {
-                                            $cajero = \App\Models\Cajero::find($key);
-                                            $fullName = $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno;
-                                            return [$key => $fullName];
-                                        });
+                                        return \App\Models\Cajero::where('tipo_cajero', 'principal')  // Filtramos por cajeros secundarios
+                                            ->get()
+                                            ->mapWithKeys(function ($cajero) {
+                                                $fullName = $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno;
+                                                return [$cajero->id => $fullName];
+                                            });
                                     })
-                                    ->required(),
+                                    ->searchable()  // Habilitar búsqueda
+                                    ->required(),  // Hacer que sea obligatorio
+
+                                Forms\Components\Select::make('recibido_por')  // Cajero Principal
+                                    ->label('Cajero secundario')
+                                    ->prefixIcon('heroicon-o-user')
+                                    ->options(function () {
+                                        return \App\Models\Cajero::where('tipo_cajero', 'secundario')  // Filtramos por cajeros principales
+                                            ->get()
+                                            ->mapWithKeys(function ($cajero) {
+                                                $fullName = $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno;
+                                                return [$cajero->id => $fullName];
+                                            });
+                                    })
+                                    ->searchable()  // Habilitar búsqueda
+                                    ->required(),  // Hacer que sea obligatorio
 
                                 Forms\Components\DatePicker::make('fecha_entrega')
                                     ->label('Fecha de Entrega')
