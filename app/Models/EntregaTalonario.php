@@ -24,6 +24,7 @@ class EntregaTalonario extends Model
         'rango_inicial_regular',
         'rango_final_regular',
         'cantidad_restante_regular',
+        'tipo_talonarios',
         'fecha_entrega',
     ];
 

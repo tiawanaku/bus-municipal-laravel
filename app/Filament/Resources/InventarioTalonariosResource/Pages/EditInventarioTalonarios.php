@@ -5,6 +5,7 @@ namespace App\Filament\Resources\InventarioTalonariosResource\Pages;
 use App\Filament\Resources\InventarioTalonariosResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Tables;
 
 class EditInventarioTalonarios extends EditRecord
 {
@@ -14,6 +15,7 @@ class EditInventarioTalonarios extends EditRecord
     {
         return [
             Actions\DeleteAction::make(),
+
         ];
     }
 }
