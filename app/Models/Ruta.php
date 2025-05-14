@@ -11,7 +11,11 @@ class Ruta extends Model
     use HasFactory;
     protected $fillable = [
         'nombre',
-        'recorrido'
+        'recorrido',
+        'imagen',
+        'color',
+        'descripcion',
+        'video_link'
     ];
     protected $casts = [
         'recorrido' => 'array',

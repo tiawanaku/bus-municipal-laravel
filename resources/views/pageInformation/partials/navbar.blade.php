@@ -1,18 +1,19 @@
 <nav class="bg-gray-900 text-gray-300 fixed top-0 left-0 w-full z-50 shadow-md">
     <div class="container mx-auto flex flex-wrap items-center justify-between px-6 py-3">
-        <a href="/bus-municipal" class="flex items-center">
-            <img src="img/logo.png" alt="Bus Municipal Logo" class="h-8 mr-2">
-
+        <a href="/bus-municipal" class="flex items-center shrink-0">
+            <img src="img/logo.png" alt="Bus Municipal Logo" class="h-10 w-auto mr-2">
         </a>
 
 
-        <!-- Boton de Inicio de Sesión en pantallas pequeñas -->
-        <a href="/admin">
-            <button type="button"
-                class="block sm:hidden text-blue-500 hover:text-white border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-xl px-5 py-2.5 ml-4 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800">
-                Iniciar Sesión
-            </button>
-        </a>
+        <!-- Botón que solo aparece en pantallas pequeñas (menores a 768px) -->
+        <div class="md:hidden px-4 mt-2">
+            <a href="/admin">
+                <button type="button"
+                    class="w-full text-blue-500 hover:text-white border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-base py-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800">
+                    Iniciar Sesión
+                </button>
+            </a>
+        </div>
 
         <!-- Botón Drop Down en pantallas pequeñas -->
         <div data-dial-init class="fixed right-6 bottom-16 group block md:hidden">
@@ -41,7 +42,7 @@
                     <li>
                         <a href="/bus-municipal#rutas"
                             class="flex items-center px-5 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white">
-                           
+
                             <svg class="w-3.5 h-3.5 me-2" xmlns="http://www.w3.org/2000/svg" fill="currentColor"
                                 viewBox="0 0 20 20">
                                 <path fill-rule="evenodd"
@@ -80,19 +81,36 @@
         <div class="hidden w-full md:block md:w-auto" id="navbar-default">
             <ul class="flex flex-col md:flex-row md:space-x-8 md:mt-0">
                 <li><a href="/"
-                        class="block py-2 px-3 rounded hover:bg-gray-800 hover:text-blue-500 md:hover:bg-transparent md:hover:text-yellow-500">En
+                        class="nav-link block py-2 px-3 rounded hover:bg-gray-800 hover:text-blue-500 md:hover:bg-transparent md:hover:text-sky-400">En
                         Vivo</a></li>
-
                 <li><a href="/bus-municipal#about"
-                        class="block py-2 px-3 rounded hover:bg-gray-800 hover:text-blue-500 md:hover:bg-transparent md:hover:text-yellow-500">Sobre
+                        class="nav-link block py-2 px-3 rounded hover:bg-gray-800 hover:text-blue-500 md:hover:bg-transparent md:hover:text-sky-400">Sobre
                         Nosotros</a></li>
-                <li><a href="/bus-municipal#rutas"
-                        class="block py-2 px-3 rounded hover:bg-gray-800 hover:text-yellow-500 md:hover:bg-transparent md:hover:text-yellow-500">Rutas</a>
+                <li>
+                    <button id="dropdownNavbarLink" data-dropdown-toggle="dropdownNavbar"
+                        class="nav-link flex items-center justify-between w-full py-2 px-3 rounded hover:bg-gray-800 hover:text-sky-500 md:hover:bg-transparent md:hover:text-sky-400">
+                        Rutas
+                        <svg class="w-4 h-4 ml-1" aria-hidden="true" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+                            </path>
+                        </svg>
+                    </button>
+                    <div id="dropdownNavbar"
+                        class="z-50 hidden font-normal bg-gray-900 divide-y divide-gray-100 rounded-lg shadow w-44">
+                        <ul class="py-2 text-sm text-gray-200" aria-labelledby="dropdownNavbarLink">
+                            <li><a href="{{ route('ruta-norte') }}" class="block px-4 py-2 hover:bg-gray-700">Ruta
+                                    Norte</a></li>
+                            <li><a href="{{ route('ruta-sur') }}" class="block px-4 py-2 hover:bg-gray-700">Ruta Sur</a>
+                            </li>
+                        </ul>
+                    </div>
                 </li>
                 <li><a href="/bus-municipal#pasajes"
-                        class="block py-2 px-3 rounded hover:bg-gray-800 hover:text-yellow-500 md:hover:bg-transparent md:hover:text-yellow-500">Pasajes
-                        y horarios</a></li>
+                        class="nav-link block py-2 px-3 rounded hover:bg-gray-800 hover:text-blue-500 md:hover:bg-transparent md:hover:text-sky-400">Pasajes
+                        y Horarios</a></li>
             </ul>
+
         </div>
     </div>
 </nav>

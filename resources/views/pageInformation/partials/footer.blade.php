@@ -11,7 +11,6 @@
         <ul>
         <li><a href="/" class="hover:text-blue-500">En Vivo</a></li>
           <li><a href="/bus-municipal#about" class="hover:text-blue-500">Sobre Nosotros</a></li>
-          <li><a href="/bus-municipal#rutas" class="hover:text-blue-500">Rutas</a></li>
           <li><a href="/bus-municipal#pasajes" class="hover:text-blue-500">Pasajes y Horarios</a></li>
 
          

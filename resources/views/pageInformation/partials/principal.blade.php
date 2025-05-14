@@ -1,13 +1,19 @@
 @extends('layouts.app')
 @section('content')
   <!-- Header Section -->
-  <header class="bg-gray-900 bg-cover bg-center h-screen " style="background-image: url('img/background.jpg');">
+  <header class="bg-gray-900 bg-cover bg-center h-screen"
+    style="background-image: url('{{ asset('storage/' . $header->imagen) }}');">
     <div class="bg-black bg-opacity-60 h-full flex flex-col justify-center items-center text-center">
-    <h1 class="text-5xl text-white font-bold mb-4">Bus Municipal</h1>
-    <p class=" italic text-lg text-gray-300 mb-6">"El bus del corazón de los alteños".</p>
-    <button type="button"
-      class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg  px-6 py-3.5 text-center me-2 mb-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800"><a
-      href="/">Seguimiento en Vivo</a></button>
+    <h1 class="text-5xl text-white font-bold mb-4">
+      {{ $header->titulo ?? 'Bus Municipal' }}
+    </h1>
+    <div class="text-lg text-white italic mb-6">
+      {!! $header->descripcion ?? '<em>"El bus del corazón de los alteños."</em>' !!}
+    </div>
+    <a href="/"
+      class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-6 py-3.5 text-center mb-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800">
+      Seguimiento en Vivo
+    </a>
     </div>
   </header>
   <!-- About Section -->
@@ -16,173 +22,200 @@
     <div class="absolute inset-0 bg-black bg-opacity-90"></div>
 
     <div class="container mx-auto px-6 md:px-12 relative text-center">
-    <h2 class="text-4xl font-bold text-blue-500 mb-12">Sobre nosotros</h2>
+    <h2 class="text-4xl font-bold text-blue-500 mb-12">
+      {{ $about->titulo ?? 'Sobre Nosotros' }}
+    </h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-      <p class="text-lg text-gray-300 md:text-left">
+
+      <div class="text-lg text-white  mb-6">
+      {!! $about->descripcion ?? '<p class="text-lg text-gray-300 md:text-center">
       El Servicio Municipal de Transporte Público Masivo (Bus Municipal) de la ciudad de El Alto inició sus
       operaciones el 04 de septiembre de 2023.<br><br>
       Con el objetivo de brindar un servicio público de transporte municipal, que contribuya a mejorar las condiciones
       de vida de la población beneficiaria con escasos servicios de transporte y ser una alternativa al transporte
       público convencional.
-      </p>
-      <figure
-      class="relative max-w-sm ml-auto transition-all duration-300 cursor-pointer filter grayscale hover:grayscale-0">
-
-      <img class="rounded-lg" src="img/about_bus.jpg" alt="image description">
-
-      <figcaption class="absolute px-4 text-lg text-white bottom-6">
-        <p></p>
-      </figcaption>
+      </p>' !!}
+      </div>
+      <figure class="md:ml-auto md:max-w-md w-full">
+      @if (!empty($about->imagen))
+      <img class="rounded-lg shadow-lg transition-transform duration-300 hover:scale-105"
+      src="{{ asset('storage/' . $about->imagen) }}" alt="Sobre Nosotros">
+    @endif
       </figure>
-      <!-- Misión y Visión -->
+
 
     </div>
+    <!-- Misión y Visión -->
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center mt-12">
-      <div>
-      <h2 class="text-3xl font-bold text-blue-500 mb-12">Misión</h2>
-      <p>Hola mundo</p>
+    <!-- Msisión -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center mt-12 overflow-x-hidden">
+      <div data-aos="fade-right" data-aos-duration="1000" data-aos-easing="ease-in-out">
+      <h2 class="text-3xl font-bold text-blue-500 mb-6">{{ $mision->titulo ?? 'Misión' }}</h2>
+      <div class="text-lg text-white mb-4">
+        {!! $mision->descripcion ?? '<p>"Nuestra misión es..."</p>' !!}
       </div>
-      <div>
-      <h2 class="text-3xl font-bold text-blue-500 mb-12">Visión</h2>
-      <p>Hola mundo</p>
       </div>
+      <div class="flex justify-center" data-aos="fade-left" data-aos-duration="1000" data-aos-easing="ease-in-out">
+      @if (!empty($vision->imagen))
+      <img class="rounded-lg shadow-lg mx-auto object-cover h-64 w-full"
+      src="{{ asset('storage/' . $mision->imagen) }}" alt="Misión">
 
+    @endif
+      </div>
+    </div>
+    <!-- Visión -->
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center mt-12 overflow-x-hidden">
+      <div class="order-2 md:order-1" data-aos="fade-right" data-aos-duration="1000" data-aos-easing="ease-in-out">
+      @if (!empty($vision->imagen))
+      <img class="rounded-lg shadow-lg mx-auto object-cover h-64 w-full max-w-full md:max-w-md"
+      src="{{ asset('storage/' . $vision->imagen) }}" alt="Visión">
+    @endif
+      </div>
+      <div class="order-1 md:order-2" data-aos="fade-left" data-aos-duration="1000" data-aos-easing="ease-in-out">
+      <h2 class="text-3xl font-bold text-blue-500 mb-6">{{ $vision->titulo ?? 'Visión' }}</h2>
+      <div class="text-lg text-white mb-4 max-w-full md:max-w-xl">
+        {!! $vision->descripcion ?? '<p>"Nuestra visión es..."</p>' !!}
+      </div>
+      </div>
     </div>
 
     </div>
   </section>
   <!-- Sección de Pasajes y Horarios -->
   <section id="pasajes" class="py-20 bg-gray-900 px-8">
-    <div class="text-center mb-10">
-    <h2 class="text-3xl font-bold text-blue-500">Pasajes y Horarios</h2>
+    <h2 class="text-4xl font-bold text-white mb-12 text-center">
+    Conoce Nuestros Pasajes
+    </h2>
+    <div class="flex justify-center">
+    <div class="grid gap-4 max-w-screen-xl w-full justify-center"
+      style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); max-width: 1000px;">
+      @foreach ($pasajes as $pasaje)
+      <div
+      class="rounded-xl shadow-xl p-6 transition-transform transform hover:scale-105 bg-gray-800 text-white w-[250px] border-l-2"
+      style="border-left-color: {{ $pasaje->color }}" data-aos="fade-up" data-aos-easing="ease-in-out">
+      <h2 class="text-2xl font-bold">{{ $pasaje->titulo }}</h2>
+      <p class="mb-2">{{ $pasaje->descripcion }}</p>
+      <p class="font-semibold text-4xl">Bs {{ number_format($pasaje->precio, 2) }}</p>
 
+      <div class="mt-4 relative h-[150px] overflow-hidden">
+      <!--       <img src="{{ asset('storage/' . $pasaje->imagen) }}" alt="." class="w-full h-full object-contain"> -->
+      </div>
+      </div>
+    @endforeach
     </div>
-    <div class="grid md:grid-cols-2 gap-8 ">
-    <div class=" bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
-
-      <img class="rounded-t-lg " src="/img/informacion/pasajesBus.png" alt="" />
-
-
     </div>
-    <div class=" bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700">
-
-      <img class="rounded-t-lg " src="/img/informacion/horariosBus.png" alt="" />
-
-
-    </div>
-
-    </div>
-
   </section>
-  <!-- Ruta  -->
-  <section id="rutas" class="py-20 bg-gray-900">
-    <div class="container mx-auto">
-    <div class="text-center mb-10">
-      <h2 class="text-3xl font-bold text-blue-500">Nuestras Rutas</h2>
-      <p class="text-gray-400 mt-3">Explora las rutas de los buses municipales disponibles.</p>
-    </div>
-    <div class="grid md:grid-cols-2 gap-8">
-      <!-- Ruta Norte -->
-      <div class="relative group overflow-hidden rounded-lg shadow-lg">
-      <img src="img/rutaNORTE.jpg" alt="Ruta Norte" class="w-full h-48 object-cover">
-      <div class="absolute inset-0 bg-blue-900 opacity-10 group-hover:opacity-20 transition duration-300"></div>
+  <!-- Horarios del Servicio -->
+  <section id="horarios" class="py-20 px-8 bg-gray-900 text-white bg-fixed"
+    style="background-image: radial-gradient(circle, rgba(255, 255, 255, 0.09) 1px, transparent 1px); background-size: 30px 30px;">
+    <h2 class="text-4xl font-bold mb-12 text-center">Horarios de Servicio</h2>
+
+    <div class="flex justify-center">
+    <div class="grid gap-8 max-w-screen-lg w-full justify-center"
+      style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+
+      @foreach ($horarios as $horario)
       <div
-        class="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent opacity-80 group-hover:opacity-100 transition duration-300">
-      </div>
-      <div class="absolute bottom-4 left-4">
-        <h3 class="text-4xl font-bold text-white">Ruta Norte</h3>
-        <p class="text-gray-200">Recorrido desde Ceibo/Ceja hasta llegar a Playa Verde.</p>
+      class="bg-[#2D3748] rounded-lg shadow-xl shadow-blue-500/50 p-6 transition transform hover:scale-105 hover:bg-[#3b4861] border-b-4"
+      style="border-bottom-color: #3B82F6;">
+      <h3 class="text-2xl font-semibold text-[#F6A5B0] mb-4">
+      {{ ucfirst($horario->turno) }}
+      </h3>
 
-        <button type="button" onclick="window.location='{{ route('ruta-norte') }}'"
-        class="text-white bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 shadow-lg shadow-blue-500/50 dark:shadow-lg dark:shadow-blue-800/80 font-medium rounded-lg text-base px-5 py-2.5 text-center me-2 mb-2 ">Ver
-        más</button>
-
+      <ul class="list-none space-y-3">
+      <li class="flex flex-col">
+      <span class="font-semibold text-lg">
+        {{ \Carbon\Carbon::parse($horario->desde)->format('g:i A') }} —
+        {{ \Carbon\Carbon::parse($horario->hasta)->format('g:i A') }}
+      </span>
+      </li>
+      @if ($horario->descripcion)
+      <li class="flex items-center">
+      <span class="text-gray-300">
+      {{ $horario->descripcion }}
+      </span>
+      </li>
+      @endif
+      </ul>
       </div>
-      </div>
-      <!-- Ruta Sur -->
-      <div class="relative group overflow-hidden rounded-lg shadow-lg">
-      <img src="img/rutaSUR.jpg" alt="Ruta Sur" class="w-full h-48 object-cover">
-      <div
-        class="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent opacity-80 group-hover:opacity-100 transition duration-300">
-      </div>
-
-      <div
-        class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80 group-hover:opacity-100 transition duration-300">
-      </div>
-      <div class="absolute bottom-4 left-4">
-        <h3 class="text-4xl font-bold text-white">Ruta Sur</h3>
-        <p class="text-gray-200">Recorrido desde Calle 3/Ceja hasta llegar a Samo.</p>
-        <button type="button" onclick="window.location='{{ route('ruta-sur') }}'"
-        class="text-white bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-purple-300 dark:focus:ring-purple-800 shadow-lg shadow-purple-500/50 dark:shadow-lg dark:shadow-purple-800/80 font-medium rounded-lg text-base px-5 py-2.5 text-center me-2 mb-2">Ver
-        más</button>
-
-      </div>
-      </div>
-
-
+    @endforeach
 
     </div>
-
-
-
-
-
-
-
+    </div>
   </section>
 
-  <section id="avisos" class="py-20 bg-gray-900 px-8">
-    <div class="container mx-auto px-6 md:px-12 relative text-center">
-    <h2 class="text-3xl font-bold text-blue-500 mb-10">Galería</h2>
+
+
+
+
+  <!-- Sección Galeria -->
+  <section class="py-12 bg-gray-900">
+    <div class="container mx-auto px-4">
+    <h2 class="text-3xl font-bold text-center text-white mb-8">Galería</h2>
+
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      @foreach ($galerias as $index => $imagen)
+      <div class="relative group rounded overflow-hidden shadow hover:shadow-lg transition">
+      <a href="javascript:void(0);" onclick="openModal({{ $index }})">
+      <img src="{{ asset('storage/' . $imagen->imagen) }}" alt="Imagen galería"
+      class="w-full h-48 object-cover cursor-pointer">
+      <div
+      class="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+      <p class="text-white text-sm px-4 text-center">{{ $imagen->descripcion }}</p>
+      </div>
+      </a>
+      </div>
+    @endforeach
     </div>
-    <div id="gallery" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
 
-    <!-- Modal del Carrusel -->
-    <div id="carouselModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden"
-    onclick="handleBackdropClick(event)">
-    <div class="relative">
-      <button class="absolute top-2 right-2 text-white text-3xl" onclick="closeCarousel()">&times;</button>
-      <img id="carouselImage" src="" alt="Carrusel" class="max-h-screen rounded shadow-lg">
-      <div class="flex justify-between mt-4">
-
-
-
-      <!-- Slider controls -->
-      <button onclick="prevImage()" type="button"
-        class="absolute top-0 start-0 z-30 flex items-center justify-center h-full px-4 cursor-pointer group focus:outline-none"
-        data-carousel-prev>
-        <span
-        class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/30 dark:bg-gray-800/30 group-hover:bg-white/50 dark:group-hover:bg-gray-800/60 group-focus:ring-4 group-focus:ring-white dark:group-focus:ring-gray-800/70 group-focus:outline-none">
-        <svg class="w-4 h-4 text-gray-800 dark:text-gray-800 rtl:rotate-180" aria-hidden="true"
-          xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
-          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M5 1 1 5l4 4" />
-        </svg>
-        <span class="sr-only">Previous</span>
-        </span>
+    <!-- Modal con carrusel -->
+    <div id="modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 hidden"
+      onclick="closeModal(event)">
+      <div class="relative w-full max-w-3xl mx-auto" onclick="event.stopPropagation()">
+      <!-- Evita cerrar cuando se hace clic dentro del modal -->
+      <!-- Botón cerrar -->
+      <button onclick="closeModal()"
+        class="absolute top-2 right-2 text-white text-4xl p-2 bg-gray-800 rounded-full hover:bg-blue-500 transition">
+        &times;
       </button>
-      <button onclick="nextImage()" type="button"
-        class="absolute top-0 end-0 z-30 flex items-center justify-center h-full px-4 cursor-pointer group focus:outline-none"
-        data-carousel-next>
-        <span
-        class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/30 dark:bg-gray-800/30 group-hover:bg-white/50 dark:group-hover:bg-gray-800/60 group-focus:ring-4 group-focus:ring-white dark:group-focus:ring-gray-800/70 group-focus:outline-none">
-        <svg class="w-4 h-4 text-gray-800 dark:text-gray-800 rtl:rotate-180" aria-hidden="true"
-          xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
-          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="m1 9 4-4-4-4" />
-        </svg>
-        <span class="sr-only">Next</span>
-        </span>
-      </button>
+
+      <!-- Imagen actual -->
+      <div class="text-center p-4">
+        <img id="modal-image" src="" alt="Imagen grande" class="max-h-[80vh] mx-auto rounded">
+        <p id="modal-description" class="text-white mt-4 text-sm"></p>
+
+        <!-- Controles -->
+        <div class="flex justify-between mt-4">
+        <!-- Flecha izquierda -->
+        <button onclick="changeImage(-1)"
+          class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white text-2xl px-4 py-2 rounded-full bg-gray-800 hover:bg-blue-500 transition">
+          &#10094;
+        </button>
+
+        <!-- Flecha derecha -->
+        <button onclick="changeImage(1)"
+          class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white text-2xl px-4 py-2 rounded-full bg-gray-800 hover:bg-blue-500 transition">
+          &#10095;
+        </button>
+        </div>
+      </div>
       </div>
     </div>
     </div>
-
-
   </section>
+
+
+  <script>
+    const images = @json($galerias->values()); 
+  </script>
+
+
+
+
+
 @endsection
 @section('scripts')
   <!-- Scripts específicos para esta vista -->
-  <script src="{{ asset('js/scripts2.js') }}"></script>
+  <script src="{{ asset('js/scriptsPrincipal.js') }}"></script>
 @endsection
