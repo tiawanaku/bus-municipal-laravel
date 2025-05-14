@@ -11,17 +11,20 @@ use Illuminate\Database\Eloquent\Model;
 use Filament\Forms;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Form;
-use Filament\Forms\Components\HasMany;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Forms\Components\MultiSelect;
-use Filament\Forms\Components\Select;
 use App\Filament\Resources\RutaResource\RelationManagers\ParadasRelationManager;
 use Dotswan\MapPicker\Fields\Map;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Card;
+use Filament\Forms\Components\ColorPicker;
+use Filament\Infolists\Components\ColorEntry;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\ImageColumn;
+
+
 
 
 class RutaResource extends Resource
@@ -44,35 +47,58 @@ class RutaResource extends Resource
                     'Ruta Sur' => 'Ruta Sur',
                 ])
                 ->required(),
-               /* MAp Picker */
-               Map::make('recorrido')
-               ->label('Recorrido del bus')
-               ->columnSpanFull()
-               ->default(fn (?Model $record) => $record?->recorrido)
-               ->dehydrated(true)
-               ->reactive()
-               ->defaultLocation(latitude: -16.5198, longitude: -68.20793)
-               ->zoom(15)
-               ->drawPolyline(true)
-               
-               ->dragMode(true)
-               
-               ->geoMan(true)
-               ->geoManEditable(true)
-               ->showMarker(false)
-               ->drawMarker(false)
-               ->drawPolygon(false)
-               ->cutPolygon(false)
-                ->editPolygon(false)
-               ->drawRectangle(false)
-               ->drawCircle(false)
-               ->drawCircleMarker(false)
-               ->drawText(false)
-               ->deleteLayer(false)
-               ->rotateMode(false)
-                ]);
-        
+            /* MAp Picker */
+            Map::make('recorrido')
+                ->label('Recorrido del bus')
+                ->columnSpanFull()
+                ->default(fn(?Model $record) => $record?->recorrido)
+                ->dehydrated(true)
+                ->reactive()
+                ->defaultLocation(latitude: -16.5198, longitude: -68.20793)
+                ->zoom(15)
+                ->drawPolyline(true)
 
+                ->dragMode(true)
+
+                ->geoMan(true)
+                ->geoManEditable(true)
+                ->showMarker(false)
+                ->drawMarker(false)
+                ->drawPolygon(false)
+                ->cutPolygon(false)
+                ->editPolygon(false)
+                ->drawRectangle(false)
+                ->drawCircle(false)
+                ->drawCircleMarker(false)
+                ->drawText(false)
+                ->deleteLayer(false)
+                ->rotateMode(false),
+
+            /* Imagen de fondo en la página Rutas y colores para los popup de paradas y el recorrido */
+            FileUpload::make('imagen')
+                ->label('Imagen')
+                ->image()
+                ->disk('public')
+                ->directory('img/rutas')
+                ->nullable()
+                ->maxSize(1024),
+
+            TextArea::make('descripcion')
+                ->label('Descripción')
+                ->nullable()
+                ->maxLength(500),
+
+            ColorPicker::make('color')
+                ->label('Color')
+                ->required(),
+            /* Link para el video iframe */
+            TextInput::make('video_link')
+                ->label('Link del video')
+                ->url()
+                ->placeholder('Ejemplo: https://www.facebook.com/ElAltoAlcaldia/videos/...')
+                ->columnSpanFull()
+                ->nullable(),
+        ]);
 
     }
 
@@ -83,9 +109,15 @@ class RutaResource extends Resource
                 //
                 Tables\Columns\TextColumn::make('nombre')
                     ->searchable(),
-                    Tables\Columns\TextColumn::make('paradas.nombre_parada')
+                ImageColumn::make('imagen')
+                    ->square(),
+                Tables\Columns\TextColumn::make('color')
+                    ->label('Color')
+                    ->formatStateUsing(fn($state) => "<span style='background-color: {$state}; border-radius: 50%; width: 20px; height: 20px; display: inline-block'></span>")
+                    ->html(),
+                Tables\Columns\TextColumn::make('paradas.nombre_parada')
                     ->label('Paradas Asociadas')
-                    ->getStateUsing(fn (Ruta $record) => $record->paradas->pluck('nombre_parada')->join(', ')), 
+                    ->getStateUsing(fn(Ruta $record) => $record->paradas->pluck('nombre_parada')->join(', ')),
 
             ])
             ->filters([

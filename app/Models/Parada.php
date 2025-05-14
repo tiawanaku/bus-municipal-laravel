@@ -24,8 +24,10 @@ class Parada extends Model
         'nombre_parada',
         'sentido',
         'lat_long',
-        'id_ruta',
+        'imagen',
+        'descripcion',
         'orden',
+        'id_ruta'
     ];
    
     

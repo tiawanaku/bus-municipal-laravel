@@ -156,17 +156,17 @@ var busIcon = L.icon({
 
 
 
- 
+ /* Agregando las rutas al mapa con los colores de la base de datos*/
 
-// Agregando las lineas del recorrido de las rutas 
-const recorridosValidos = rutas.filter(r => r.recorrido != null);
-
+const recorridosValidos = window.rutasData.filter(r => r.recorrido != null);
 
 recorridosValidos.forEach(function (ruta) {
     const recorrido = ruta.recorrido;
 
     if (recorrido && recorrido.geojson && recorrido.geojson.features) {
-        const color = getColorById(ruta.id); // Usamos el id de la ruta
+
+        // Si ruta.color no existe o es null, se usará gris por defecto
+        const color = ruta.color || '#101218';
 
         recorrido.geojson.features.forEach(function (feature) {
             const latlngs = feature.geometry.coordinates.map(coord => [coord[1], coord[0]]);
@@ -182,15 +182,6 @@ recorridosValidos.forEach(function (ruta) {
         });
     }
 });
-/* Función para poner color dependiendo de Ruta */
-function getColorById(id) {
-    const colors = {
-        1: 'blue',
-        2: 'purple'
-       
-    };
-    return colors[id] || 'gray'; 
-}
 
 
 
@@ -249,58 +240,52 @@ function mostrarUbicacionBus() {
 
 // Función para mostrar el tiempo estimado de llegada en cada parada
 function mostrarTiempoEstimadoDeLlegada(busLat, busLng) {
-    locations.forEach(location => {
+    window.locationsData.forEach(location => {
         const distancia = calcularDistancia(busLat, busLng, location.latitud, location.longitud);
         const tiempoEstimado = Math.round(distancia / velocidadBus);
-        /* Función para cambien el color según Ruta */
-    let bgColorClass = '';
 
-    if (location.id_ruta === 1) {
-    bgColorClass = 'bg-blue-700';
-    } else if (location.id_ruta === 2) {
-    bgColorClass = 'bg-indigo-700';
-    }
-        
+       
+        let bgColorStyle = 'background-color: #6c757d;'; // Por defecto gris
+        if (location.ruta && location.ruta.color) {
+            bgColorStyle = `background-color: ${location.ruta.color};`;
+        }
+
         const popupContent = `
-         <div class="rounded-lg overflow-hidden shadow-lg bg-white">
-        <table class="min-w-full text-sm">
-            <thead>
-                <tr>
-                    <th class="${bgColorClass} p-3 text-white font-semibold text-center" colspan="3">
-                        Buses próximos a llegar en <br><span class="text-lg">${location.nombre_parada}</span>
-                    </th>
-                </tr>
-                <tr class="bg-gray-200 text-gray-700 text-center">
-                    <th class="p-2">Nombre de la Parada</th>
-                    <th class="p-2">Minutos para llegar</th>
-                    <th class="p-2">Sentido</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr class="text-center border-t hover:bg-gray-100">
-                    <td class="p-2 font-medium">${location.nombre_parada}</td>
-                    <td class="p-2 text-green-600 font-bold">${tiempoEstimado} min</td>
-                    <td class="p-2">${location.sentido}</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+            <div class="rounded-lg overflow-hidden shadow-lg bg-white">
+                <table class="min-w-full text-sm">
+                    <thead>
+                        <tr>
+                            <th colspan="3" style="${bgColorStyle}" class="p-3 text-white font-semibold text-center">
+                                Buses próximos a llegar en <br><span class="text-lg">${location.nombre_parada}</span>
+                            </th>
+                        </tr>
+                        <tr class="bg-gray-200 text-gray-700 text-center">
+                            <th class="p-2">Nombre de la Parada</th>
+                            <th class="p-2">Minutos para llegar</th>
+                            <th class="p-2">Sentido</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="text-center border-t hover:bg-gray-100">
+                            <td class="p-2 font-medium">${location.nombre_parada}</td>
+                            <td class="p-2 text-green-600 font-bold">${tiempoEstimado} min</td>
+                            <td class="p-2">${location.sentido}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         `;
 
         actualizarTiempoEnTabs(location.nombre_parada, location.sentido, tiempoEstimado);
-        var paradaIcon = L.icon({
+
+        const paradaIcon = L.icon({
             iconUrl: 'img/ParadaIcon.png',
-
-
-            iconSize: [38, 55], 
-
-            iconAnchor: [22, 94], 
-
-            popupAnchor: [-3, -76] 
+            iconSize: [38, 55],
+            iconAnchor: [22, 94],
+            popupAnchor: [-3, -76]
         });
-        /* console.log(locations); */
-        
-        const marker = L.marker([location.latitud, location.longitud, location.sentido], { icon: paradaIcon }).addTo(map);
+
+        const marker = L.marker([location.latitud, location.longitud], { icon: paradaIcon }).addTo(map);
         marker.bindPopup(popupContent);
         marker.on('click', function () {
             marker.openPopup();
@@ -359,7 +344,29 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
   
+/* Funcion para activar los sub tabs */
+ document.addEventListener('DOMContentLoaded', function () {
+        const buttons = document.querySelectorAll('[data-tabs-target]');
+        const contents = document.querySelectorAll('#subTabContent > div');
 
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Quitar clases activas de botones
+                buttons.forEach(btn => btn.classList.remove('active', 'text-blue-600', 'border-b-2', 'border-blue-600'));
+
+                // Ocultar todos los contenidos
+                contents.forEach(c => c.classList.add('hidden'));
+
+                // Activar el botón actual
+                button.classList.add('active', 'text-blue-600', 'border-b-2', 'border-blue-600');
+
+                // Mostrar el contenido asociado
+                const targetId = button.getAttribute('data-tabs-target');
+                document.querySelector(targetId).classList.remove('hidden');
+            });
+        });
+    });
+    /* Fin */
 
 /* Función para actualizar el tiempo de los tabs */
   function actualizarTiempoEnTabs(nombreParada, sentido, tiempo) {

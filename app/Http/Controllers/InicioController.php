@@ -7,6 +7,11 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Parada;
 use App\Models\Aviso;
 use App\Models\Ruta;
+use App\Models\Contenido;
+use App\Models\Pasaje;
+use App\Models\Horario;
+use App\Models\Galeria;
+use Carbon\Carbon;
 
 class InicioController extends Controller
 {
@@ -21,16 +26,21 @@ class InicioController extends Controller
             'sentido',
             'id_ruta',
             'orden',
-            'id_paradas'
-        )->get();
+            'id_paradas',
+        )
+            ->with('ruta')
+            ->get();
 
 
-        $avisos = Aviso::where('status', 1)->get();
+        $avisos = Aviso::where('status', 1)
+            ->where('fin_periodo', '>', Carbon::now()) // Filtramos para que solo se muestren los avisos que no están vencidos
+            ->get();
+
         foreach ($avisos as $aviso) {
             $aviso->created_at_humano = $aviso->created_at->diffForHumans();
         }
-        $rutas = Ruta::all(); 
-        
+        $rutas = Ruta::all();
+
 
         return view('partials.index', [
             'avisos' => $avisos,
@@ -103,5 +113,66 @@ class InicioController extends Controller
         } else {
             return response()->json(['error' => 'Parada no encontrada'], 404);
         }
+    }
+
+    /* Función para traer todos los datos para la vista RUTA NORTE */
+    public function showRutaNorte()
+    {
+        // Buscar la ruta que contenga "sur" (ignorando mayúsculas)
+        $ruta = Ruta::whereRaw('LOWER(nombre) LIKE ?', ['%norte%'])->first();
+
+        if (!$ruta) {
+            abort(404, 'Ruta Norte no encontrada');
+        }
+
+        // Eliminar duplicados por nombre (insensible a mayúsculas)
+        $paradas = $ruta->paradas
+            ->sortBy('orden')
+            ->unique(function ($parada) {
+                return strtolower($parada->nombre_parada);
+            });
+
+        return view('pageInformation.ruta-norte', [
+            'paradas' => $paradas,
+            'rutas' => $ruta
+        ]);
+    }
+    /* Función para traer todos los datos para la vista RUTA SUR */
+    public function showRutaSur()
+    {
+        // Buscar la ruta que contenga "sur" (ignorando mayúsculas)
+        $ruta = Ruta::whereRaw('LOWER(nombre) LIKE ?', ['%sur%'])->first();
+
+        if (!$ruta) {
+            abort(404, 'Ruta Sur no encontrada');
+        }
+
+        // Eliminar duplicados por nombre (insensible a mayúsculas)
+        $paradas = $ruta->paradas
+            ->sortBy('orden')
+            ->unique(function ($parada) {
+                return strtolower($parada->nombre_parada);
+            });
+
+        return view('pageInformation.ruta-sur', [
+            'paradas' => $paradas,
+            'rutas' => $ruta
+        ]);
+    }
+    /* Función para traer todos los contenidos para la vista PRINCIPAL */
+    public function paraPrincipal()
+    {
+        $header = Contenido::where('seccion', 'header')->first();
+        $about = Contenido::where('seccion', 'about')->first();
+        $mision = Contenido::where('seccion', 'mision')->first();
+        $vision = Contenido::where('seccion', 'vision')->first();
+
+        $pasajes = Pasaje::all();
+        $horarios = Horario::all();
+        $galerias = Galeria::where('activo', true)
+            ->orderBy('created_at', 'desc') // más recientes primero
+            ->get();
+
+        return view('pageInformation.partials.principal', compact('header', 'about', 'mision', 'vision', 'pasajes', 'horarios', 'galerias'));
     }
 }

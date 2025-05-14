@@ -7,6 +7,7 @@
     "require": {
         "php": "^8.2",
         "arbermustafa/filament-locationpickr-field": "2.0.0",
+        "barryvdh/laravel-dompdf": "^3.1",
         "bezhansalleh/filament-shield": "^3.3",
         "dotswan/filament-map-picker": "^1.4",
         "filament/filament": "^3.2",

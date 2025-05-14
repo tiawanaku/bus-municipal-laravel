@@ -12,6 +12,7 @@ use App\Models\Bus;
 
 class PatientTypeOverview extends BaseWidget
 {
+     protected static ?int $sort = 1;
     protected function getStats(): array
     {
         return [

@@ -23,9 +23,11 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Hidden;
 use Illuminate\Support\Facades\DB;
 use ArberMustafa\FilamentLocationPickrField\Forms\Components\LocationPickr;
-use Dotswan\MapPicker\Fields\Map;
-use Filament\Forms\Set;
+
 use Filament\Tables\Columns\TextInputColumn;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Card;
+use Filament\Tables\Columns\ImageColumn;
 
 class ParadaResource extends Resource
 {
@@ -59,7 +61,7 @@ class ParadaResource extends Resource
                 Forms\Components\Select::make('id_ruta')
                     ->label('Ruta')
                     ->options(
-                        \App\Models\Ruta::all()->pluck('nombre', 'id') 
+                        \App\Models\Ruta::all()->pluck('nombre', 'id')
                     )
                     ->required(),
 
@@ -106,6 +108,29 @@ class ParadaResource extends Resource
                     ->readonly(),
 
 
+
+                // Card de paradas
+                Card::make([
+
+                    TextInput::make('descripcion')
+                        ->label('Descripción')
+                        ->required()
+                        ->maxLength(255)
+                        ->nullable(),
+                    /* Para imagenes */
+                    FileUpload::make('imagen')
+                        ->label('Imagen')
+                        ->image()
+                        ->disk('public')
+                        ->directory('img/paradas') // Carpeta donde se almacenarán las imágenes
+                        ->nullable(),
+
+                ]),
+
+
+
+
+
             ]);
 
 
@@ -121,7 +146,7 @@ class ParadaResource extends Resource
                     ->searchable(),
 
                 TextColumn::make('ruta.nombre')->label('Ruta')->sortable()
-                ->searchable(),
+                    ->searchable(),
 
 
                 TextColumn::make('sentido')
@@ -131,10 +156,14 @@ class ParadaResource extends Resource
 
 
                 TextInputColumn::make('orden')
-                    ->label('Orden')
+                    ->label('Orden de parada')
+                    ->placeholder('Ej: 1')
+                    ->rules(['required', 'integer', 'min:1'])
+                ,
+
+                ImageColumn::make('imagen'),
 
 
-                    ->rules(['integer', 'min:1']),
             ])
             ->defaultSort('orden')
 
@@ -167,12 +196,12 @@ class ParadaResource extends Resource
     }
 
     public static function getEloquentQuery(): Builder
-{
-    return parent::getEloquentQuery()
-        ->withoutGlobalScopes([
-            SoftDeletingScope::class,
-        ]);
-}
+    {
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
+    }
 
     public static function getPages(): array
     {
