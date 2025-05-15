@@ -3,42 +3,53 @@
 namespace App\Filament\Resources\EntregaTalonarioResource\Pages;
 
 use App\Filament\Resources\EntregaTalonarioResource;
-use Filament\Actions;
+use App\Models\EntregaTalonario;
 use Filament\Resources\Pages\CreateRecord;
-
-
-use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Model;
 use Filament\Notifications\Notification;
+use Illuminate\Database\QueryException;
 
 class CreateEntregaTalonario extends CreateRecord
 {
     protected static string $resource = EntregaTalonarioResource::class;
 
-    protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
+    protected function handleRecordCreation(array $data): Model
     {
         try {
-            return static::getModel()::create($data);
+
+
+            // Asegurar valores predeterminados si vienen vacíos
+            $data['cantidad_preferenciales'] = $data['cantidad_preferenciales'] ?? 0;
+            $data['rango_inicial_preferencial'] = $data['rango_inicial_preferencial'] ?? 0;
+            $data['cantidad_regulares'] = $data['cantidad_regulares'] ?? 0;
+            $data['rango_inicial_regular'] = $data['rango_inicial_regular'] ?? 0;
+            $data['fecha_entrega'] = $data['fecha_entrega'] ?? now();
+            $data['observaciones'] = $data['observaciones'] ?? '';
+
+            DB::statement('CALL realizar_entrega_talonarios_completa(?, ?, ?, ?, ?, ?)', [
+                $data['cajero_id'],
+                $data['recibido_por'],
+                $data['cantidad_preferenciales'],
+                $data['rango_inicial_preferencial'],
+                $data['cantidad_regulares'],
+                $data['rango_inicial_regular'],
+            ]);
+
+            Notification::make()
+                ->title('Entrega realizada correctamente')
+                ->success()
+                ->send();
+
+            return EntregaTalonario::latest('id')->first();
         } catch (QueryException $e) {
-            $mensaje = $e->getMessage();
+            Notification::make()
+                ->title('Error al realizar la entrega')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
 
-            // Verificar si es un error del TRIGGER
-            if (str_contains($mensaje, 'Error: No hay suficientes talonarios')) {
-                Notification::make()
-                    ->title('Error al entregar talonarios')
-                    ->body($mensaje)
-                    ->danger()
-                    ->send();
-            } else {
-                Notification::make()
-                    ->title('Error inesperado')
-                    ->body('No se pudo crear el registro. Revisa los datos ingresados.')
-                    ->danger()
-                    ->send();
-            }
-
-            // Aquí puedes lanzar una excepción personalizada o manejar el error de otra manera
-            // Retornar un valor nulo o lanzar una excepción, dependiendo de tu necesidad
-            throw new \Exception('Error al crear el registro'); // O podrías retornar un valor por defecto, según lo que necesites.
+            throw $e;
         }
     }
 }

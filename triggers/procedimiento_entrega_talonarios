@@ -1,0 +1,145 @@
+CREATE PROCEDURE realizar_entrega_talonarios_completa(
+    IN p_cajero_id BIGINT UNSIGNED,
+    IN p_recibido_por BIGINT UNSIGNED,
+    IN p_cantidad_pref INT,
+    IN p_rango_inicial_pref INT,
+    IN p_cantidad_reg INT,
+    IN p_rango_inicial_reg INT
+)
+BEGIN
+    -- Declaraciones de variables
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE inv_id BIGINT;
+    DECLARE restante_pref INT;
+    DECLARE restante_reg INT;
+
+    DECLARE pref_restante_total INT DEFAULT p_cantidad_pref;
+    DECLARE reg_restante_total INT DEFAULT p_cantidad_reg;
+
+    DECLARE tipo_talonario VARCHAR(20);
+    DECLARE rango_final_pref INT;
+    DECLARE rango_final_reg INT;
+
+    -- Cursor y manejador de errores
+    DECLARE cur CURSOR FOR
+        SELECT id, cantidad_restante_preferencial, cantidad_restante_regular
+        FROM inventario_talonarios
+        WHERE estado_preferencial = 1 OR estado_regular = 1
+        ORDER BY id ASC;
+
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+    -- Calcular rangos finales asegurando no negativos
+    SET rango_final_pref = IF(p_cantidad_pref > 0, GREATEST(p_rango_inicial_pref + p_cantidad_pref - 1, 0), 0);
+    SET rango_final_reg = IF(p_cantidad_reg > 0, GREATEST(p_rango_inicial_reg + p_cantidad_reg - 1, 0), 0);
+
+    -- Determinar tipo de talonario
+    SET tipo_talonario = CASE
+        WHEN p_cantidad_pref > 0 AND p_cantidad_reg > 0 THEN 'mixto'
+        WHEN p_cantidad_pref > 0 THEN 'preferencial'
+        WHEN p_cantidad_reg > 0 THEN 'regular'
+        ELSE 'ninguno'
+    END;
+
+    -- Procesar inventario
+    OPEN cur;
+
+    read_loop: LOOP
+        FETCH cur INTO inv_id, restante_pref, restante_reg;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+
+        -- Preferenciales
+        IF pref_restante_total > 0 AND restante_pref IS NOT NULL AND restante_pref > 0 THEN
+            IF restante_pref >= pref_restante_total THEN
+                UPDATE inventario_talonarios
+                SET cantidad_restante_preferencial = restante_pref - pref_restante_total,
+                    estado_preferencial = IF(restante_pref - pref_restante_total = 0, 0, 1)
+                WHERE id = inv_id;
+                SET pref_restante_total = 0;
+            ELSE
+                UPDATE inventario_talonarios
+                SET cantidad_restante_preferencial = 0,
+                    estado_preferencial = 0
+                WHERE id = inv_id;
+                SET pref_restante_total = pref_restante_total - restante_pref;
+            END IF;
+        END IF;
+
+        -- Regulares
+        IF reg_restante_total > 0 AND restante_reg IS NOT NULL AND restante_reg > 0 THEN
+            IF restante_reg >= reg_restante_total THEN
+                UPDATE inventario_talonarios
+                SET cantidad_restante_regular = restante_reg - reg_restante_total,
+                    estado_regular = IF(restante_reg - reg_restante_total = 0, 0, 1)
+                WHERE id = inv_id;
+                SET reg_restante_total = 0;
+            ELSE
+                UPDATE inventario_talonarios
+                SET cantidad_restante_regular = 0,
+                    estado_regular = 0
+                WHERE id = inv_id;
+                SET reg_restante_total = reg_restante_total - restante_reg;
+            END IF;
+        END IF;
+
+        IF pref_restante_total <= 0 AND reg_restante_total <= 0 THEN
+            LEAVE read_loop;
+        END IF;
+    END LOOP;
+
+    CLOSE cur;
+
+    -- Cálculo de totales
+    SET @total_boletos_pref = p_cantidad_pref * 50;
+    SET @total_boletos_reg = p_cantidad_reg * 50;
+    SET @total_bs_pref = @total_boletos_pref * 1.0;
+    SET @total_bs_reg = @total_boletos_reg * 1.5;
+
+    -- Insertar entrega
+    INSERT INTO entrega_talonarios (
+        cajero_id,
+        recibido_por,
+        cantidad_preferenciales,
+        rango_inicial_preferencial,
+        rango_final_preferencial,
+        cantidad_restante_preferencial,
+        total_boletos_preferenciales,
+        total_aproximado_bolivianos,
+        cantidad_regulares,
+        rango_inicial_regular,
+        rango_final_regular,
+        cantidad_restante_regular,
+        total_boletos_regulares,
+        total_aproximado_bolivianos_regular,
+        estado_preferencial,
+        estado_regular,
+        tipo_talonarios,
+        fecha_entrega,
+        created_at,
+        updated_at
+    )
+    VALUES (
+        p_cajero_id,
+        p_recibido_por,
+        p_cantidad_pref,
+        p_rango_inicial_pref,
+        rango_final_pref,
+        p_cantidad_pref,
+        @total_boletos_pref,
+        @total_bs_pref,
+        p_cantidad_reg,
+        p_rango_inicial_reg,
+        rango_final_reg,
+        p_cantidad_reg,
+        @total_boletos_reg,
+        @total_bs_reg,
+        IF(p_cantidad_pref > 0, 1, 0),
+        IF(p_cantidad_reg > 0, 1, 0),
+        tipo_talonario,
+        CURDATE(),
+        NOW(),
+        NOW()
+    );
+END;

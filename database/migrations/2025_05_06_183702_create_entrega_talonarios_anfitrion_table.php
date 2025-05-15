@@ -16,7 +16,7 @@ return new class extends Migration
 
             $table->foreignId('anfitrion_id')->constrained('anfitrions')->onDelete('restrict');
             $table->foreignId('cajero_id')->nullable()->constrained('cajeros'); // Cajero secundario que entrega
-
+            $table->date('fecha_entrega')->nullable();
             $table->string('numero_autorizacion')->nullable();
 
             // Preferenciales
@@ -28,6 +28,7 @@ return new class extends Migration
             $table->integer('cantidad_talonarios_regulares')->nullable();
             $table->integer('rango_inicial_regulares')->nullable();
             $table->integer('rango_final_regulares')->nullable();
+
 
             // Totales
             $table->integer('total_tickets_regulares')->nullable();

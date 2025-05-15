@@ -29,11 +29,19 @@ class EntregaTalonariosAnfitrionResource extends Resource
                     ->columns(3)
                     ->schema([
 
-                        Forms\Components\Select::make('cajero_id')
-                            ->label('Cajero')
-                            ->relationship('cajero', 'nombre')
-                            ->getOptionLabelFromRecordUsing(fn($record) => $record->nombre . ' ' . $record->apellido_paterno . ' ' . $record->apellido_materno)
-                            ->required(),
+                        Forms\Components\Select::make('recibido_por')  // Cajero Principal
+                            ->label('Cajero secundario')
+                            ->prefixIcon('heroicon-o-user')
+                            ->options(function () {
+                                return \App\Models\Cajero::where('tipo_cajero', 'secundario')  // Filtramos por cajeros principales
+                                    ->get()
+                                    ->mapWithKeys(function ($cajero) {
+                                        $fullName = $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno;
+                                        return [$cajero->id => $fullName];
+                                    });
+                            })
+                            ->searchable()  // Habilitar búsqueda
+                            ->required(),  // Hacer que sea obligatorio
 
 
                         Forms\Components\Select::make('anfitrion_id')
@@ -69,11 +77,23 @@ class EntregaTalonariosAnfitrionResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('id')->label('ID')->sortable(),
                 Tables\Columns\TextColumn::make('anfitrion.nombre')->label('Anfitrión')->searchable(),
-                Tables\Columns\TextColumn::make('cajero.nombre')->label('Cajero')->searchable(),
-                Tables\Columns\TextColumn::make('numero_autorizacion'),
-                Tables\Columns\TextColumn::make('total_recaudar')->money('BOB'),
-                Tables\Columns\TextColumn::make('created_at')->dateTime('d/m/Y H:i'),
+                Tables\Columns\TextColumn::make('recibido_por')->label('Recibido Por'), // Si quieres nombre relacionado, cambiar según relación
+                Tables\Columns\TextColumn::make('numero_autorizacion')->label('Número Autorización')->searchable(),
+                Tables\Columns\TextColumn::make('cantidad_talonarios_preferenciales')->label('Cant. Talonarios Preferenciales'),
+                Tables\Columns\TextColumn::make('rango_inicial_preferenciales')->label('Rango Inicial Preferenciales'),
+                Tables\Columns\TextColumn::make('rango_final_preferenciales')->label('Rango Final Preferenciales'),
+                Tables\Columns\TextColumn::make('cantidad_talonarios_regulares')->label('Cant. Talonarios Regulares'),
+                Tables\Columns\TextColumn::make('rango_inicial_regulares')->label('Rango Inicial Regulares'),
+                Tables\Columns\TextColumn::make('rango_final_regulares')->label('Rango Final Regulares'),
+                Tables\Columns\TextColumn::make('total_tickets_regulares')->label('Total Tickets Regulares'),
+                Tables\Columns\TextColumn::make('total_tickets_preferenciales')->label('Total Tickets Preferenciales'),
+                Tables\Columns\TextColumn::make('total_recaudar_regulares')->label('Total Recaudar Regulares')->money('BOB'),
+                Tables\Columns\TextColumn::make('total_recaudar_preferenciales')->label('Total Recaudar Preferenciales')->money('BOB'),
+                Tables\Columns\TextColumn::make('total_recaudar')->label('Total Recaudar')->money('BOB'),
+                Tables\Columns\TextColumn::make('created_at')->label('Creado')->dateTime('d/m/Y H:i'),
+                Tables\Columns\TextColumn::make('updated_at')->label('Actualizado')->dateTime('d/m/Y H:i'),
             ])
             ->filters([
                 //

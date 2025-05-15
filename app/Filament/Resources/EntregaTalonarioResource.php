@@ -204,6 +204,8 @@ class EntregaTalonarioResource extends Resource
                                         return $ultimo ? $ultimo->rango_final_preferencial + 1 : 1;
                                     }),
 
+
+
                                 Forms\Components\TextInput::make('rango_final_preferencial')
                                     ->label('Rango Final')
                                     ->prefixIcon('heroicon-o-arrow-up')
@@ -220,6 +222,11 @@ class EntregaTalonarioResource extends Resource
                                     ->label('Cantidad Restante')
                                     ->prefixIcon('heroicon-o-chart-bar')
                                     ->nullable(),
+
+                                Forms\Components\Checkbox::make('confirmacion_datos')
+                                    ->label('✅ Confirmo que los datos ingresados son correctos')
+                                    ->required()
+                                    ->validationAttribute('confirmación')
                             ]),
                     ])
                     ->hidden(fn($get) => ! $get('show_preferenciales')),
@@ -274,6 +281,11 @@ class EntregaTalonarioResource extends Resource
                                     ->label('Cantidad Restante')
                                     ->prefixIcon('heroicon-o-chart-bar')
                                     ->nullable(),
+
+                                Forms\Components\Checkbox::make('confirmacion_datos')
+                                    ->label('✅ Confirmo que los datos ingresados son correctos')
+                                    ->required()
+                                    ->validationAttribute('confirmación')
                             ]),
                     ])
                     ->hidden(fn($get) => ! $get('show_regulares')),
