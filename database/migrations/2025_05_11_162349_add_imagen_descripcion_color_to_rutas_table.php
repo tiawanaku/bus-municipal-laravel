@@ -12,12 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('rutas', function (Blueprint $table) {
-            //
+            if (!Schema::hasColumn('rutas', 'imagen')) {
+                $table->string('imagen')->nullable()->after('nombre');
+            }
 
+            if (!Schema::hasColumn('rutas', 'descripcion')) {
+                $table->text('descripcion')->nullable()->after('imagen');
+            }
 
-            $table->string('imagen')->nullable()->after('nombre');  // Columna para la imagen
-        $table->text('descripcion')->nullable()->after('imagen');  // Columna para la descripción
-        $table->string('color', 7)->nullable()->after('descripcion');
+            if (!Schema::hasColumn('rutas', 'color')) {
+                $table->string('color', 7)->nullable()->after('descripcion');
+            }
         });
     }
 
@@ -27,8 +32,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('rutas', function (Blueprint $table) {
-            //
-             $table->dropColumn(['imagen', 'descripcion', 'color']);
+            $table->dropColumn(['imagen', 'descripcion', 'color']);
         });
     }
 };

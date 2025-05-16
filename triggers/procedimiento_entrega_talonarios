@@ -1,3 +1,5 @@
+DELIMITER $$
+
 CREATE PROCEDURE realizar_entrega_talonarios_completa(
     IN p_cajero_id BIGINT UNSIGNED,
     IN p_recibido_por BIGINT UNSIGNED,
@@ -29,7 +31,7 @@ BEGIN
 
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
 
-    -- Calcular rangos finales asegurando no negativos
+    -- Calcular rangos finales asegurando que no sean negativos
     SET rango_final_pref = IF(p_cantidad_pref > 0, GREATEST(p_rango_inicial_pref + p_cantidad_pref - 1, 0), 0);
     SET rango_final_reg = IF(p_cantidad_reg > 0, GREATEST(p_rango_inicial_reg + p_cantidad_reg - 1, 0), 0);
 
@@ -142,4 +144,6 @@ BEGIN
         NOW(),
         NOW()
     );
-END;
+END$$
+
+DELIMITER ;

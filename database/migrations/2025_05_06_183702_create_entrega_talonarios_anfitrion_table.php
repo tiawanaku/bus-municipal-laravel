@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('anfitrion_id')->constrained('anfitrions')->onDelete('restrict');
-            $table->foreignId('cajero_id')->nullable()->constrained('cajeros'); // Cajero secundario que entrega
+            $table->foreignId('recibido_por')->nullable()->constrained('cajeros'); // Cajero secundario que entrega
             $table->date('fecha_entrega')->nullable();
             $table->string('numero_autorizacion')->nullable();
 
@@ -29,13 +29,16 @@ return new class extends Migration
             $table->integer('rango_inicial_regulares')->nullable();
             $table->integer('rango_final_regulares')->nullable();
 
-
             // Totales
             $table->integer('total_tickets_regulares')->nullable();
             $table->integer('total_tickets_preferenciales')->nullable();
             $table->decimal('total_recaudar_regulares', 10, 2)->nullable();
             $table->decimal('total_recaudar_preferenciales', 10, 2)->nullable();
             $table->decimal('total_recaudar', 10, 2)->nullable();
+
+            // Nuevos estados
+            $table->tinyInteger('estado_preferencial')->default(2); // 0: Vendidos, 1: En venta, 2: Por vender
+            $table->tinyInteger('estado_regular')->default(2);      // 0: Vendidos, 1: En venta, 2: Por vender
 
             $table->timestamps();
         });

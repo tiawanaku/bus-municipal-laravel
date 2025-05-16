@@ -12,11 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('rutas', function (Blueprint $table) {
-            //
-             $table->string('imagen')->nullable()->after('nombre');
-        $table->text('descripcion')->nullable()->after('imagen');
-        $table->string('color', 7)->nullable()->after('descripcion');
-        $table->string('video_link')->nullable()->after('color');
+            if (!Schema::hasColumn('rutas', 'imagen')) {
+                $table->string('imagen')->nullable()->after('nombre');
+            }
+
+            if (!Schema::hasColumn('rutas', 'descripcion')) {
+                $table->text('descripcion')->nullable()->after('imagen');
+            }
+
+            if (!Schema::hasColumn('rutas', 'color')) {
+                $table->string('color', 7)->nullable()->after('descripcion');
+            }
+
+            if (!Schema::hasColumn('rutas', 'video_link')) {
+                $table->string('video_link')->nullable()->after('color');
+            }
         });
     }
 
@@ -26,8 +36,19 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('rutas', function (Blueprint $table) {
-            //
-            $table->dropColumn(['imagen', 'descripcion', 'color', 'video_link']);
+            // Solo elimina las columnas si existen
+            if (Schema::hasColumn('rutas', 'imagen')) {
+                $table->dropColumn('imagen');
+            }
+            if (Schema::hasColumn('rutas', 'descripcion')) {
+                $table->dropColumn('descripcion');
+            }
+            if (Schema::hasColumn('rutas', 'color')) {
+                $table->dropColumn('color');
+            }
+            if (Schema::hasColumn('rutas', 'video_link')) {
+                $table->dropColumn('video_link');
+            }
         });
     }
 };

@@ -15,7 +15,7 @@ return new class extends Migration {
 
             // Relación entre cajero principal y secundario
             $table->foreignId('cajero_id')->nullable()->constrained('cajeros'); // Cajero secundario que recibe
-            $table->foreignId('entregado_por')->nullable()->constrained('cajeros'); // Cajero principal que entrega
+            $table->foreignId('recibido_por')->nullable()->constrained('cajeros'); // Cajero principal que entrega
 
 
             // Preferenciales
