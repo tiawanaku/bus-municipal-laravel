@@ -11,32 +11,35 @@ class EntregaTalonario extends Model
 
     protected $table = 'entrega_talonarios';
 
-    protected $fillable = [
-        'cajero_id', // cajero secundario que recibe
-        'entregado_por', // cajero principal que entrega
+   protected $fillable = [
+    'cajero_id',
+    'inventario_id',
 
-        // Preferenciales
-        'cantidad_preferenciales',
-        'rango_inicial_preferencial',
-        'rango_final_preferencial',
-        'cantidad_restante_preferencial',
-        'total_boletos_preferenciales',
-        'total_aproximado_bolivianos',
+    // Preferenciales
+    'cantidad_preferenciales',
+    'rango_inicial_preferencial',
+    'rango_final_preferencial',
+    'cantidad_restante_preferencial',
+    'total_boletos_preferenciales',
+    'total_aproximado_bolivianos_preferencial',
 
-        // Regulares
-        'cantidad_regulares',
-        'rango_inicial_regular',
-        'rango_final_regular',
-        'cantidad_restante_regular',
-        'total_boletos_regulares',
-        'total_aproximado_bolivianos_regular',
+    // Regulares
+    'cantidad_regulares',
+    'rango_inicial_regular',
+    'rango_final_regular',
+    'cantidad_restante_regular',
+    'total_boletos_regulares',
+    'total_aproximado_bolivianos_regular',
 
-        // Estado
-        'estado_preferencial',
-        'estado_regular',
+    // Adicional
+    'estado_preferencial',
+    'estado_regular',
+    'tipo_talonarios',
+    'fecha_entrega',
+    'observaciones',
+    'total_recaudacion_bolivianos',
 
-        'tipo_talonarios',
-        'fecha_entrega',
+
     ];
 
     /**

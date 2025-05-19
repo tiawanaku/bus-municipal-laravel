@@ -1,0 +1,82 @@
+DELIMITER $$
+
+CREATE PROCEDURE inventario_talonarios (
+    IN p_cajero_id BIGINT UNSIGNED,
+    IN p_cantidad_preferenciales INT,
+    IN p_rango_inicial_preferencial INT,
+    IN p_cantidad_regulares INT,
+    IN p_rango_inicial_regular INT,
+    IN p_fecha_entrega DATE,
+    IN p_observaciones VARCHAR(255)
+)
+BEGIN
+    DECLARE v_rango_final_preferencial INT DEFAULT 0;
+    DECLARE v_rango_final_regular INT DEFAULT 0;
+    DECLARE v_total_boletos_preferenciales INT DEFAULT 0;
+    DECLARE v_total_boletos_regulares INT DEFAULT 0;
+    DECLARE v_total_bs_preferenciales DECIMAL(10,2) DEFAULT 0.00;
+    DECLARE v_total_bs_regulares DECIMAL(10,2) DEFAULT 0.00;
+    DECLARE v_total_recaudar DECIMAL(10,2) DEFAULT 0.00;
+
+    IF p_cantidad_preferenciales > 0 THEN
+        SET v_rango_final_preferencial = p_rango_inicial_preferencial + (p_cantidad_preferenciales * 50) - 1;
+        SET v_total_boletos_preferenciales = p_cantidad_preferenciales * 50;
+        SET v_total_bs_preferenciales = v_total_boletos_preferenciales * 1.00;
+    END IF;
+
+    IF p_cantidad_regulares > 0 THEN
+        SET v_rango_final_regular = p_rango_inicial_regular + (p_cantidad_regulares * 50) - 1;
+        SET v_total_boletos_regulares = p_cantidad_regulares * 50;
+        SET v_total_bs_regulares = v_total_boletos_regulares * 1.50;
+    END IF;
+
+    SET v_total_recaudar = v_total_bs_preferenciales + v_total_bs_regulares;
+
+    INSERT INTO inventario_talonarios (
+        cajero_id,
+        cantidad_preferenciales,
+        rango_inicial_preferencial,
+        rango_final_preferencial,
+        total_boletos_preferenciales,
+        total_aproximado_bolivianos_preferencial,
+        cantidad_restante_preferencial,
+        cantidad_regulares,
+        rango_inicial_regular,
+        rango_final_regular,
+        total_boletos_regulares,
+        total_aproximado_bolivianos_regular,
+        cantidad_restante_regular,
+        estado_preferencial,
+        estado_regular,
+        tipo_talonarios,
+        fecha_entrega,
+        observaciones,
+        total_recaudacion_bolivianos,
+        created_at,
+        updated_at
+    ) VALUES (
+        p_cajero_id,
+        p_cantidad_preferenciales,
+        p_rango_inicial_preferencial,
+        v_rango_final_preferencial,
+        v_total_boletos_preferenciales,
+        v_total_bs_preferenciales,
+        p_cantidad_preferenciales,
+        p_cantidad_regulares,
+        p_rango_inicial_regular,
+        v_rango_final_regular,
+        v_total_boletos_regulares,
+        v_total_bs_regulares,
+        p_cantidad_regulares,
+        NULL,
+        NULL,
+        'mixto',
+        p_fecha_entrega,
+        p_observaciones,
+        v_total_recaudar,
+        NOW(),
+        NOW()
+    );
+END$$
+
+DELIMITER ;

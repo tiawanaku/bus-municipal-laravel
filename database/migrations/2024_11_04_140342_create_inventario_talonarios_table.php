@@ -20,24 +20,29 @@ return new class extends Migration
             $table->integer('cantidad_preferenciales')->nullable();
             $table->integer('rango_inicial_preferencial')->nullable();
             $table->integer('rango_final_preferencial')->nullable();
-            $table->integer('cantidad_restante_preferencial')->nullable();
             $table->integer('total_boletos_preferenciales')->nullable();
-            $table->decimal('total_aproximado_bolivianos', 10, 2)->nullable();
+            $table->decimal('total_aproximado_bolivianos_preferencial', 10, 2)->nullable();
+            $table->integer('cantidad_restante_preferencial')->nullable();
 
             // Regulares
             $table->integer('cantidad_regulares')->nullable();
             $table->integer('rango_inicial_regular')->nullable();
             $table->integer('rango_final_regular')->nullable();
-            $table->integer('cantidad_restante_regular')->nullable();
             $table->integer('total_boletos_regulares')->nullable();
             $table->decimal('total_aproximado_bolivianos_regular', 10, 2)->nullable();
+            $table->integer('cantidad_restante_regular')->nullable();
 
             // Info adicional
-            $table->integer('estado_preferencial')->default(0);
-            $table->integer('estado_regular')->default(0);
+            $table->integer('estado_preferencial')->nullable();
+            $table->integer('estado_regular')->nullable();
+
+            
             $table->string('tipo_talonarios')->nullable(); // puede ser mixto, preferencial, regular
             $table->date('fecha_entrega')->nullable();
             $table->string('observaciones')->nullable();
+
+            // Nueva columna
+            $table->decimal('total_recaudacion_bolivianos', 10, 2)->nullable();
 
             $table->timestamps();
         });
