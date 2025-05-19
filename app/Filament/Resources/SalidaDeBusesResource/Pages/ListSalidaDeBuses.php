@@ -16,4 +16,13 @@ class ListSalidaDeBuses extends ListRecords
             Actions\CreateAction::make(),
         ];
     }
+
+    protected function getFooterWidgets(): array
+    {
+        return [
+            SalidaDeBusesResource\Widgets\MapWidget::class,
+            SalidaDeBusesResource\Widgets\InformeSeguimiento::class,
+
+        ];
+    }
 }

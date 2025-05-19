@@ -14,8 +14,9 @@ class Bus extends Model
         'numero_chasis',
         ];
 
-        public function asignaciones()
-        {
-            return $this->hasMany(Asignacion::class);
+       
+        
+        public function mantenimientos() {
+            return $this->hasMany(Mantenimiento::class);
         }
 }

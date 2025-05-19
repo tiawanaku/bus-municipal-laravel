@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\Section;
 
 class CajeroResource extends Resource
 {
@@ -25,60 +26,65 @@ class CajeroResource extends Resource
     {
         return $form
             ->schema([
-                //
-                Forms\Components\TextInput::make('nombre')
-                ->label('Nombre(s)')
-                ->required()
-                ->maxLength(255),
+                Forms\Components\Select::make('tipo_cajero')
+                    ->label('Tipo de Cajero')
+                    ->options([
+                        'principal' => 'Principal',
+                        'secundario' => 'Secundario',
+                    ])
+                    ->required(),
 
-                Forms\Components\TextInput::make('apellido_paterno')
-                ->label('Apellido Paterno')
-                ->required()
-                ->maxLength(255),
-    
-                Forms\Components\TextInput::make('apellido_materno')
-                ->label('Apellido Materno')
-                ->required()
-                ->maxLength(255),
-    
-                Forms\Components\DatePicker::make('fecha_nacimiento')
-                ->label('Fecha de Nacimiento')
-                ->required(),
-    
-                Forms\Components\TextInput::make('numero_contrato')
-                ->label('Número de Contrato')
-                ->required()
-                ->maxLength(255),
-    
-                Forms\Components\TextInput::make('numero_contacto')
-                ->label('Número de Celular')
-                ->required()
-                ->maxLength(255),
-    
-                Forms\Components\TextInput::make('numero_referencia')
-                ->label('Número de celular referencial')
-                ->required()
-                ->maxLength(255),
+                Forms\Components\Select::make('cajero_padre_id')
+                    ->label('Cajero Padre (si es secundario)')
+                    ->relationship('cajeroPadre', 'nombre')
+                    ->searchable()
+                    ->preload()
+                    ->visible(fn($get) => $get('tipo_cajero') === 'secundario')
+                    ->nullable(),
+
+                Forms\Components\TextInput::make('nombre')->required(),
+                Forms\Components\TextInput::make('apellido_paterno')->required(),
+                Forms\Components\TextInput::make('apellido_materno')->required(),
+
+                Forms\Components\TextInput::make('ci')->label('CI')->required(),
+                Forms\Components\TextInput::make('complemento')->nullable(),
+                Forms\Components\TextInput::make('ci_expedido')->label('CI Expedido')->required(),
+                Forms\Components\TextInput::make('celular')->required(),
+                Forms\Components\Select::make('genero')
+                    ->options([
+                        'masculino' => 'Masculino',
+                        'femenino' => 'Femenino',
+                        'otro' => 'Otro',
+                    ])
+                    ->required(),
+
+                Forms\Components\TextInput::make('numero_contrato')->required(),
+                Forms\Components\DatePicker::make('fecha_inicio_contrato')->nullable(),
+                Forms\Components\DatePicker::make('fecha_fin_contrato')->nullable(),
             ]);
     }
+
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                //
-                Tables\Columns\TextColumn::make('nombre')
-                ->searchable(),
+                Tables\Columns\TextColumn::make('nombre')->searchable(),
                 Tables\Columns\TextColumn::make('apellido_paterno'),
                 Tables\Columns\TextColumn::make('apellido_materno'),
-                Tables\Columns\TextColumn::make('fecha_nacimiento'),
-                Tables\Columns\TextColumn::make('numero_contacto'),
+                Tables\Columns\TextColumn::make('tipo_cajero')->badge(),
+                Tables\Columns\TextColumn::make('cajeroPadre.nombre')->label('Cajero Padre'),
+                Tables\Columns\TextColumn::make('ci'),
+                Tables\Columns\TextColumn::make('celular'),
+                Tables\Columns\TextColumn::make('numero_contrato'),
             ])
+
             ->filters([
                 //
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

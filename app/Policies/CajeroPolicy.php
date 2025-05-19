@@ -2,19 +2,20 @@
 
 namespace App\Policies;
 
-use Illuminate\Auth\Access\Response;
-use App\Models\Cajero;
 use App\Models\User;
+use App\Models\Cajero;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class CajeroPolicy
 {
+    use HandlesAuthorization;
+
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
-        //return $user->checkPermissionTo('view-any Cajero');
-        return $user->hasRole('Administrador');
+        return $user->can('view_any_cajero');
     }
 
     /**
@@ -22,7 +23,7 @@ class CajeroPolicy
      */
     public function view(User $user, Cajero $cajero): bool
     {
-        return $user->checkPermissionTo('view Cajero');
+        return $user->can('view_cajero');
     }
 
     /**
@@ -30,8 +31,7 @@ class CajeroPolicy
      */
     public function create(User $user): bool
     {
-        //return $user->checkPermissionTo('create Cajero');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('create Cajero');
+        return $user->can('create_cajero');
     }
 
     /**
@@ -39,8 +39,7 @@ class CajeroPolicy
      */
     public function update(User $user, Cajero $cajero): bool
     {
-        //return $user->checkPermissionTo('update Cajero');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('update Cajero');
+        return $user->can('update_cajero');
     }
 
     /**
@@ -48,23 +47,62 @@ class CajeroPolicy
      */
     public function delete(User $user, Cajero $cajero): bool
     {
-        //return $user->checkPermissionTo('delete Cajero');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('delete Cajero');
+        return $user->can('delete_cajero');
     }
 
     /**
-     * Determine whether the user can restore the model.
+     * Determine whether the user can bulk delete.
      */
-    public function restore(User $user, Cajero $cajero): bool
+    public function deleteAny(User $user): bool
     {
-        return $user->checkPermissionTo('restore Cajero');
+        return $user->can('delete_any_cajero');
     }
 
     /**
-     * Determine whether the user can permanently delete the model.
+     * Determine whether the user can permanently delete.
      */
     public function forceDelete(User $user, Cajero $cajero): bool
     {
-        return $user->checkPermissionTo('force-delete Cajero');
+        return $user->can('force_delete_cajero');
+    }
+
+    /**
+     * Determine whether the user can permanently bulk delete.
+     */
+    public function forceDeleteAny(User $user): bool
+    {
+        return $user->can('force_delete_any_cajero');
+    }
+
+    /**
+     * Determine whether the user can restore.
+     */
+    public function restore(User $user, Cajero $cajero): bool
+    {
+        return $user->can('restore_cajero');
+    }
+
+    /**
+     * Determine whether the user can bulk restore.
+     */
+    public function restoreAny(User $user): bool
+    {
+        return $user->can('restore_any_cajero');
+    }
+
+    /**
+     * Determine whether the user can replicate.
+     */
+    public function replicate(User $user, Cajero $cajero): bool
+    {
+        return $user->can('replicate_cajero');
+    }
+
+    /**
+     * Determine whether the user can reorder.
+     */
+    public function reorder(User $user): bool
+    {
+        return $user->can('reorder_cajero');
     }
 }

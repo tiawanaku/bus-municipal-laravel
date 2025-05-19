@@ -2,19 +2,20 @@
 
 namespace App\Policies;
 
-use Illuminate\Auth\Access\Response;
-use App\Models\Tecnico;
 use App\Models\User;
+use App\Models\Tecnico;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class TecnicoPolicy
 {
+    use HandlesAuthorization;
+
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
-        //return $user->checkPermissionTo('view-any Tecnico');
-        return $user->hasRole('Administrador');
+        return $user->can('view_any_tecnico');
     }
 
     /**
@@ -22,7 +23,7 @@ class TecnicoPolicy
      */
     public function view(User $user, Tecnico $tecnico): bool
     {
-        return $user->checkPermissionTo('view Tecnico');
+        return $user->can('view_tecnico');
     }
 
     /**
@@ -30,8 +31,7 @@ class TecnicoPolicy
      */
     public function create(User $user): bool
     {
-        //return $user->checkPermissionTo('create Tecnico');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('create Tecnico');
+        return $user->can('create_tecnico');
     }
 
     /**
@@ -39,8 +39,7 @@ class TecnicoPolicy
      */
     public function update(User $user, Tecnico $tecnico): bool
     {
-        //return $user->checkPermissionTo('update Tecnico');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('update Tecnico');
+        return $user->can('update_tecnico');
     }
 
     /**
@@ -48,23 +47,62 @@ class TecnicoPolicy
      */
     public function delete(User $user, Tecnico $tecnico): bool
     {
-        //return $user->checkPermissionTo('delete Tecnico');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('delete Tecnico');
+        return $user->can('delete_tecnico');
     }
 
     /**
-     * Determine whether the user can restore the model.
+     * Determine whether the user can bulk delete.
      */
-    public function restore(User $user, Tecnico $tecnico): bool
+    public function deleteAny(User $user): bool
     {
-        return $user->checkPermissionTo('restore Tecnico');
+        return $user->can('delete_any_tecnico');
     }
 
     /**
-     * Determine whether the user can permanently delete the model.
+     * Determine whether the user can permanently delete.
      */
     public function forceDelete(User $user, Tecnico $tecnico): bool
     {
-        return $user->checkPermissionTo('force-delete Tecnico');
+        return $user->can('force_delete_tecnico');
+    }
+
+    /**
+     * Determine whether the user can permanently bulk delete.
+     */
+    public function forceDeleteAny(User $user): bool
+    {
+        return $user->can('force_delete_any_tecnico');
+    }
+
+    /**
+     * Determine whether the user can restore.
+     */
+    public function restore(User $user, Tecnico $tecnico): bool
+    {
+        return $user->can('restore_tecnico');
+    }
+
+    /**
+     * Determine whether the user can bulk restore.
+     */
+    public function restoreAny(User $user): bool
+    {
+        return $user->can('restore_any_tecnico');
+    }
+
+    /**
+     * Determine whether the user can replicate.
+     */
+    public function replicate(User $user, Tecnico $tecnico): bool
+    {
+        return $user->can('replicate_tecnico');
+    }
+
+    /**
+     * Determine whether the user can reorder.
+     */
+    public function reorder(User $user): bool
+    {
+        return $user->can('reorder_tecnico');
     }
 }

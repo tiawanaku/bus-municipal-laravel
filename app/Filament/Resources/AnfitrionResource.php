@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Tables\Columns\DateColumn;
 
 class AnfitrionResource extends Resource
 {
@@ -26,44 +27,73 @@ class AnfitrionResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
-    public static function form(Form $form): Form
+    public static function form(Forms\Form $form): Forms\Form
     {
         return $form
             ->schema([
-                //
-                Forms\Components\TextInput::make('nombre')
-                ->label('Nombre(s)')
-                ->required()
-                ->maxLength(255),
+                Forms\Components\Section::make('Información Básica')
+                    ->schema([
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('nombre')
+                                    ->required()
+                                    ->label('Nombre'),
 
-                Forms\Components\TextInput::make('apellido_paterno')
-                ->label('Apellido Paterno')
-                ->required()
-                ->maxLength(255),
-    
-                Forms\Components\TextInput::make('apellido_materno')
-                ->label('Apellido Materno')
-                ->required()
-                ->maxLength(255),
-    
-                Forms\Components\DatePicker::make('fecha_nacimiento')
-                ->label('Fecha de Nacimiento')
-                ->required(),
-    
-                Forms\Components\TextInput::make('numero_contrato')
-                ->label('Número de Contrato')
-                ->required()
-                ->maxLength(255),
-    
-                Forms\Components\TextInput::make('numero_contacto')
-                ->label('Número de Celular')
-                ->required()
-                ->maxLength(255),
-    
-                Forms\Components\TextInput::make('numero_referencia')
-                ->label('Número de celular referencial')
-                ->required()
-                ->maxLength(255),
+                                Forms\Components\TextInput::make('apellido_paterno')
+                                    ->required()
+                                    ->label('Apellido Paterno'),
+
+                                Forms\Components\TextInput::make('apellido_materno')
+                                    ->required()
+                                    ->label('Apellido Materno'),
+                            ]),
+
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('ci')
+                                    ->required()
+                                    ->label('CI'),
+
+                                Forms\Components\TextInput::make('complemento')
+                                    ->nullable()
+                                    ->label('Complemento'),
+
+                                Forms\Components\TextInput::make('ci_expedido')
+                                    ->required()
+                                    ->label('CI Expedido'),
+                            ]),
+
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('celular')
+                                    ->required()
+                                    ->label('Celular'),
+
+                                Forms\Components\Select::make('genero')
+                                    ->required()
+                                    ->options([
+                                        'masculino' => 'Masculino',
+                                        'femenino' => 'Femenino',
+                                        'otro' => 'Otro',
+                                    ])
+                                    ->label('Género'),
+
+                                Forms\Components\TextInput::make('numero_contrato')
+                                    ->required()
+                                    ->label('Número de Contrato'),
+                            ]),
+
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\DatePicker::make('fecha_inicio_contrato')
+                                    ->required()
+                                    ->label('Fecha de Inicio de Contrato'),
+
+                                Forms\Components\DatePicker::make('fecha_fin_contrato')
+                                    ->required()
+                                    ->label('Fecha de Fin de Contrato'),
+                            ]),
+                    ]),
             ]);
     }
 
@@ -71,14 +101,31 @@ class AnfitrionResource extends Resource
     {
         return $table
             ->columns([
-                //
                 Tables\Columns\TextColumn::make('nombre')
-                ->searchable(),
-                Tables\Columns\TextColumn::make('apellido_paterno'),
-                Tables\Columns\TextColumn::make('apellido_materno'),
-                Tables\Columns\TextColumn::make('fecha_nacimiento'),
-                Tables\Columns\TextColumn::make('numero_contacto'),
-                
+                    ->label('Nombre'),
+
+                Tables\Columns\TextColumn::make('apellido_paterno')
+                    ->label('Apellido Paterno'),
+
+                Tables\Columns\TextColumn::make('apellido_materno')
+                    ->label('Apellido Materno'),
+
+                Tables\Columns\TextColumn::make('ci')
+                    ->label('CI'),
+
+                Tables\Columns\TextColumn::make('celular')
+                    ->label('Celular'),
+
+                Tables\Columns\TextColumn::make('numero_contrato')
+                    ->label('Número de Contrato'),
+
+                Tables\Columns\TextColumn::make('fecha_inicio_contrato')
+                    ->label('Fecha de Inicio')
+                    ->sortable()
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('fecha_fin_contrato')
+                    ->label('Fecha de Fin'),
             ])
             ->filters([
                 //

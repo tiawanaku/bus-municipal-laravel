@@ -12,6 +12,10 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\TextInput;
+use Filament\Tables\Columns\TextColumn;
 
 class BusResource extends Resource
 {
@@ -27,23 +31,19 @@ class BusResource extends Resource
             ->schema([
                 //
                 Forms\Components\TextInput::make('numero_placa')
-                ->label('Numero de Placa')
-                ->prefixIcon('heroicon-o-truck')
-                ->required()
-                ->maxLength(255),
+                    ->label('Numero de Placa')
+                    ->prefixIcon('heroicon-o-truck')
+                    ->required()
+                    ->maxLength(255),
 
                 Forms\Components\TextInput::make('numero_bus')
-                ->label('Numero de Bus')
-                ->prefixIcon('heroicon-o-truck')
-                ->required()
-                ->maxLength(255),
-    
-                Forms\Components\TextInput::make('numero_chasis')
-                ->label('Numero de Chasis')
-                ->prefixIcon('heroicon-o-truck')
-                ->required()
-                ->maxLength(255),
-        ]);
+                    ->label('Numero de Bus')
+                    ->prefixIcon('heroicon-o-truck')
+                    ->required()
+                    ->maxLength(255),
+
+                
+            ]);
     }
 
     public static function table(Table $table): Table
@@ -52,10 +52,12 @@ class BusResource extends Resource
             ->columns([
                 //
                 Tables\Columns\TextColumn::make('numero_placa')
-                ->searchable()
-                ->size('lg'),
-                Tables\Columns\TextColumn::make('numero_bus'),
-                Tables\Columns\TextColumn::make('numero_chasis'),
+                    ->searchable()
+                    ->size('lg'),
+                Tables\Columns\TextColumn::make('numero_bus')
+                ->sortable(),
+
+                
             ])
             ->filters([
                 //

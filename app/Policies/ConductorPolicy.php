@@ -2,19 +2,20 @@
 
 namespace App\Policies;
 
-use Illuminate\Auth\Access\Response;
-use App\Models\Conductor;
 use App\Models\User;
+use App\Models\Conductor;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class ConductorPolicy
 {
+    use HandlesAuthorization;
+
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
-        //return $user->checkPermissionTo('view-any Conductor');
-        return $user->hasRole('Administrador');
+        return $user->can('view_any_conductor');
     }
 
     /**
@@ -22,7 +23,7 @@ class ConductorPolicy
      */
     public function view(User $user, Conductor $conductor): bool
     {
-        return $user->checkPermissionTo('view Conductor');
+        return $user->can('view_conductor');
     }
 
     /**
@@ -30,8 +31,7 @@ class ConductorPolicy
      */
     public function create(User $user): bool
     {
-        //return $user->checkPermissionTo('create Conductor');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('create Conductor');
+        return $user->can('create_conductor');
     }
 
     /**
@@ -39,8 +39,7 @@ class ConductorPolicy
      */
     public function update(User $user, Conductor $conductor): bool
     {
-        //return $user->checkPermissionTo('update Conductor');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('update Conductor');
+        return $user->can('update_conductor');
     }
 
     /**
@@ -48,23 +47,62 @@ class ConductorPolicy
      */
     public function delete(User $user, Conductor $conductor): bool
     {
-        //return $user->checkPermissionTo('delete Conductor');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('delete Conductor');
+        return $user->can('delete_conductor');
     }
 
     /**
-     * Determine whether the user can restore the model.
+     * Determine whether the user can bulk delete.
      */
-    public function restore(User $user, Conductor $conductor): bool
+    public function deleteAny(User $user): bool
     {
-        return $user->checkPermissionTo('restore Conductor');
+        return $user->can('delete_any_conductor');
     }
 
     /**
-     * Determine whether the user can permanently delete the model.
+     * Determine whether the user can permanently delete.
      */
     public function forceDelete(User $user, Conductor $conductor): bool
     {
-        return $user->checkPermissionTo('force-delete Conductor');
+        return $user->can('force_delete_conductor');
+    }
+
+    /**
+     * Determine whether the user can permanently bulk delete.
+     */
+    public function forceDeleteAny(User $user): bool
+    {
+        return $user->can('force_delete_any_conductor');
+    }
+
+    /**
+     * Determine whether the user can restore.
+     */
+    public function restore(User $user, Conductor $conductor): bool
+    {
+        return $user->can('restore_conductor');
+    }
+
+    /**
+     * Determine whether the user can bulk restore.
+     */
+    public function restoreAny(User $user): bool
+    {
+        return $user->can('restore_any_conductor');
+    }
+
+    /**
+     * Determine whether the user can replicate.
+     */
+    public function replicate(User $user, Conductor $conductor): bool
+    {
+        return $user->can('replicate_conductor');
+    }
+
+    /**
+     * Determine whether the user can reorder.
+     */
+    public function reorder(User $user): bool
+    {
+        return $user->can('reorder_conductor');
     }
 }

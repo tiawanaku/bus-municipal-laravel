@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AsignacionDeBus extends Model
 {
     use HasFactory;
+    use SoftDeletes;
 
     // Nombre de la tabla
     protected $table = 'asignacion_de_bus';
@@ -23,6 +25,7 @@ class AsignacionDeBus extends Model
         'n_bus',
         'observaciones',
         'fecha_designacion',
+        'fin_asignacion',
         'n_ficha',
         'hora_salida'
     ];
@@ -49,4 +52,5 @@ class AsignacionDeBus extends Model
     {
         return $this->belongsTo(Anfitrion::class, 'id_anfitrion');
     }
+    
 }

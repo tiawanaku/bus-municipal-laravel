@@ -7,18 +7,20 @@
         </a>
       </div>
       <div>
-        <h3 class="text-xl font-semibold text-blue-500 mb-4">Quick Links</h3>
+        <h3 class="text-xl font-semibold text-blue-500 mb-4">Enlaces</h3>
         <ul>
-          <li><a href="#about" class="hover:text-blue-500">About</a></li>
-          <li><a href="#menu" class="hover:text-blue-500">Menu</a></li>
-          <li><a href="#contact" class="hover:text-yellow-500">Contact</a></li>
+        <li><a href="/" class="hover:text-blue-500">En Vivo</a></li>
+          <li><a href="/bus-municipal#about" class="hover:text-blue-500">Sobre Nosotros</a></li>
+          <li><a href="/bus-municipal#pasajes" class="hover:text-blue-500">Pasajes y Horarios</a></li>
+
+         
         </ul>
       </div>
       <div>
         <h3 class="text-xl font-semibold text-blue-500 mb-4">Contactos</h3>
         <p><span class="font-semibold">Telefono:</span> +1 234 567 890</p>
-        <p><span class="font-semibold">Dirección:</span> info@restaurantly.com</p>
-        <p><span class="font-semibold">Facebook:</span> info@restaurantly.com</p>
+        <p><span class="font-semibold">Dirección:</span> <a href="https://maps.app.goo.gl/4eho7JnuJ7P7NbSm9">Avenida Costanera, Nro: 5022 Urbanización Libertad, entre calle J.J. Torrez y calle Hernán Siles Zuaso (Jach´a Uta)</a></p>
+        <p><span class="font-semibold">Facebook:</span> <a href="https://www.facebook.com/profile.php?id=100071853563922">Bus Municipal</a></p>
 
       </div>
     </div>

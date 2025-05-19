@@ -3,17 +3,18 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use BezhanSalleh\FilamentShield\Traits\HasPanelShield;
 use Filament\Models\Contracts\FilamentUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
-use Althinect\FilamentSpatieRolesPermissions\Concerns\HasSuperAdmin;
+
 use Filament\Panel;
 
 class User extends Authenticatable implements FilamentUser
 {
-    use HasFactory, Notifiable, HasRoles, HasSuperAdmin;
+    use HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -22,6 +23,12 @@ class User extends Authenticatable implements FilamentUser
      */
     protected $fillable = [
         'name',
+        'apellido_paterno',
+        'apellido_materno',
+        'cargo',
+        'ci',
+        'complemento_ci',
+        'celular',
         'email',
         'password',
     ];
@@ -49,9 +56,9 @@ class User extends Authenticatable implements FilamentUser
         ];
     }
 
-    public function canAccessPanel(Panel $panel): bool
+    public function canAccessPanel(\Filament\Panel $panel): bool
     {
-        return $this->hasRole(['Administrador', 'Empleado']);
+        return true; // O una condición para limitar el acceso
     }
 
     public function avisos()

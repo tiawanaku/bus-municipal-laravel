@@ -2,19 +2,20 @@
 
 namespace App\Policies;
 
-use Illuminate\Auth\Access\Response;
-use App\Models\Ruta;
 use App\Models\User;
+use App\Models\Ruta;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class RutaPolicy
 {
+    use HandlesAuthorization;
+
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
-        //return $user->checkPermissionTo('view-any Ruta');
-        return $user->hasRole('Administrador');
+        return $user->can('view_any_ruta');
     }
 
     /**
@@ -22,7 +23,7 @@ class RutaPolicy
      */
     public function view(User $user, Ruta $ruta): bool
     {
-        return $user->checkPermissionTo('view Ruta');
+        return $user->can('view_ruta');
     }
 
     /**
@@ -30,8 +31,7 @@ class RutaPolicy
      */
     public function create(User $user): bool
     {
-        //return $user->checkPermissionTo('create Ruta');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('create Ruta');
+        return $user->can('create_ruta');
     }
 
     /**
@@ -39,8 +39,7 @@ class RutaPolicy
      */
     public function update(User $user, Ruta $ruta): bool
     {
-        //return $user->checkPermissionTo('update Ruta');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('update Ruta');
+        return $user->can('update_ruta');
     }
 
     /**
@@ -48,23 +47,62 @@ class RutaPolicy
      */
     public function delete(User $user, Ruta $ruta): bool
     {
-        //return $user->checkPermissionTo('delete Ruta');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('delete Ruta');
+        return $user->can('delete_ruta');
     }
 
     /**
-     * Determine whether the user can restore the model.
+     * Determine whether the user can bulk delete.
      */
-    public function restore(User $user, Ruta $ruta): bool
+    public function deleteAny(User $user): bool
     {
-        return $user->checkPermissionTo('restore Ruta');
+        return $user->can('delete_any_ruta');
     }
 
     /**
-     * Determine whether the user can permanently delete the model.
+     * Determine whether the user can permanently delete.
      */
     public function forceDelete(User $user, Ruta $ruta): bool
     {
-        return $user->checkPermissionTo('force-delete Ruta');
+        return $user->can('force_delete_ruta');
+    }
+
+    /**
+     * Determine whether the user can permanently bulk delete.
+     */
+    public function forceDeleteAny(User $user): bool
+    {
+        return $user->can('force_delete_any_ruta');
+    }
+
+    /**
+     * Determine whether the user can restore.
+     */
+    public function restore(User $user, Ruta $ruta): bool
+    {
+        return $user->can('restore_ruta');
+    }
+
+    /**
+     * Determine whether the user can bulk restore.
+     */
+    public function restoreAny(User $user): bool
+    {
+        return $user->can('restore_any_ruta');
+    }
+
+    /**
+     * Determine whether the user can replicate.
+     */
+    public function replicate(User $user, Ruta $ruta): bool
+    {
+        return $user->can('replicate_ruta');
+    }
+
+    /**
+     * Determine whether the user can reorder.
+     */
+    public function reorder(User $user): bool
+    {
+        return $user->can('reorder_ruta');
     }
 }

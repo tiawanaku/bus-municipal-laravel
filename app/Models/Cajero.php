@@ -9,19 +9,33 @@ class Cajero extends Model
 {
     use HasFactory;
 
+    protected $table = 'cajeros';
+
     protected $fillable = [
+        'tipo_cajero',
+        'cajero_padre_id',
         'nombre',
         'apellido_paterno',
         'apellido_materno',
-        'fecha_nacimiento',
+        'ci',
+        'complemento',
+        'ci_expedido',
+        'celular',
+        'genero',
         'numero_contrato',
-        'numero_contacto',
-        'numero_referencia',
+        'fecha_inicio_contrato',
+        'fecha_fin_contrato',
     ];
 
-    // Método para obtener el nombre completo del cajero
-    public function getFullNameAttribute()
+    // Relación con su cajero padre (si aplica)
+    public function cajeroPadre()
     {
-        return trim("{$this->nombre} {$this->apellido_paterno} {$this->apellido_materno}");
+        return $this->belongsTo(Cajero::class, 'cajero_padre_id');
+    }
+
+    // Relación con los cajeros hijos (si es principal)
+    public function cajerosHijos()
+    {
+        return $this->hasMany(Cajero::class, 'cajero_padre_id');
     }
 }

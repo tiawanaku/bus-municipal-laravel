@@ -13,13 +13,24 @@ return new class extends Migration
     {
         Schema::create('cajeros', function (Blueprint $table) {
             $table->id();
+
+            $table->enum('tipo_cajero', ['principal', 'secundario'])->default('secundario'); // nuevo campo
+            $table->unsignedBigInteger('cajero_padre_id')->nullable(); // para jerarquía
+            $table->foreign('cajero_padre_id')->references('id')->on('cajeros')->onDelete('set null');
+
             $table->string('nombre');
             $table->string('apellido_paterno');
             $table->string('apellido_materno');
-            $table->date('fecha_nacimiento');
+            $table->string('ci');
+            $table->string('complemento')->nullable();
+            $table->string('ci_expedido');
+            $table->string('celular', 20);
+            $table->enum('genero', ['masculino', 'femenino', 'otro']);
+
             $table->string('numero_contrato');
-            $table->string('numero_contacto');
-            $table->string('numero_referencia');
+            $table->date('fecha_inicio_contrato')->nullable();
+            $table->date('fecha_fin_contrato')->nullable();
+
             $table->timestamps();
         });
     }

@@ -2,19 +2,20 @@
 
 namespace App\Policies;
 
-use Illuminate\Auth\Access\Response;
-use App\Models\Bus;
 use App\Models\User;
+use App\Models\Bus;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class BusPolicy
 {
+    use HandlesAuthorization;
+
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
-        //return $user->checkPermissionTo('view-any Bus');
-        return $user->hasRole('Administrador');
+        return $user->can('view_any_bus');
     }
 
     /**
@@ -22,7 +23,7 @@ class BusPolicy
      */
     public function view(User $user, Bus $bus): bool
     {
-        return $user->checkPermissionTo('view Bus');
+        return $user->can('view_bus');
     }
 
     /**
@@ -30,8 +31,7 @@ class BusPolicy
      */
     public function create(User $user): bool
     {
-        //return $user->checkPermissionTo('create Bus');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('create Bus');
+        return $user->can('create_bus');
     }
 
     /**
@@ -39,8 +39,7 @@ class BusPolicy
      */
     public function update(User $user, Bus $bus): bool
     {
-        //return $user->checkPermissionTo('update Bus');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('update Bus');
+        return $user->can('update_bus');
     }
 
     /**
@@ -48,23 +47,62 @@ class BusPolicy
      */
     public function delete(User $user, Bus $bus): bool
     {
-        //return $user->checkPermissionTo('delete Bus');
-        return $user->hasRole('Administrador') || $user->checkPermissionTo('delete Bus');
+        return $user->can('delete_bus');
     }
 
     /**
-     * Determine whether the user can restore the model.
+     * Determine whether the user can bulk delete.
      */
-    public function restore(User $user, Bus $bus): bool
+    public function deleteAny(User $user): bool
     {
-        return $user->checkPermissionTo('restore Bus');
+        return $user->can('delete_any_bus');
     }
 
     /**
-     * Determine whether the user can permanently delete the model.
+     * Determine whether the user can permanently delete.
      */
     public function forceDelete(User $user, Bus $bus): bool
     {
-        return $user->checkPermissionTo('force-delete Bus');
+        return $user->can('force_delete_bus');
+    }
+
+    /**
+     * Determine whether the user can permanently bulk delete.
+     */
+    public function forceDeleteAny(User $user): bool
+    {
+        return $user->can('force_delete_any_bus');
+    }
+
+    /**
+     * Determine whether the user can restore.
+     */
+    public function restore(User $user, Bus $bus): bool
+    {
+        return $user->can('restore_bus');
+    }
+
+    /**
+     * Determine whether the user can bulk restore.
+     */
+    public function restoreAny(User $user): bool
+    {
+        return $user->can('restore_any_bus');
+    }
+
+    /**
+     * Determine whether the user can replicate.
+     */
+    public function replicate(User $user, Bus $bus): bool
+    {
+        return $user->can('replicate_bus');
+    }
+
+    /**
+     * Determine whether the user can reorder.
+     */
+    public function reorder(User $user): bool
+    {
+        return $user->can('reorder_bus');
     }
 }
