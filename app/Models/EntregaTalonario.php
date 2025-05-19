@@ -4,85 +4,59 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class EntregaTalonario extends Model
 {
     use HasFactory;
-
-    protected $table = 'entrega_talonarios';
-
-   protected $fillable = [
-    'cajero_id',
-    'inventario_id',
-
-    // Preferenciales
-    'cantidad_preferenciales',
-    'rango_inicial_preferencial',
-    'rango_final_preferencial',
-    'cantidad_restante_preferencial',
-    'total_boletos_preferenciales',
-    'total_aproximado_bolivianos_preferencial',
-
-    // Regulares
-    'cantidad_regulares',
-    'rango_inicial_regular',
-    'rango_final_regular',
-    'cantidad_restante_regular',
-    'total_boletos_regulares',
-    'total_aproximado_bolivianos_regular',
-
-    // Adicional
-    'estado_preferencial',
-    'estado_regular',
-    'tipo_talonarios',
-    'fecha_entrega',
-    'observaciones',
-    'total_recaudacion_bolivianos',
-
-
+    
+    protected $fillable = [
+        'responsable_entrega',
+        'cajero_id',
+        'numero_paquetes_entregados',
+        'cantidad_talonarios',
+        'cantidad_tickets',
+        'fecha_entrega',
+        'tipo_talonarios',
+        'observaciones',
+        'inventario_talonarios_ids', // Campo para gestionar los IDs seleccionados
     ];
-
-    /**
-     * Relación: Cajero secundario que recibe los talonarios
-     */
-    public function cajero()
-    {
-        return $this->belongsTo(Cajero::class, 'cajero_id');
-    }
-
-    /**
-     * Relación: Cajero principal que entrega los talonarios
-     */
-    public function entregadoPor()
-    {
-        return $this->belongsTo(Cajero::class, 'entregado_por');
-    }
-
-    /**
-     * Definir los tipos de datos de las relaciones
-     */
+    
     protected $casts = [
-        'cajero_id' => 'integer',
-        'entregado_por' => 'integer',
-        'cantidad_preferenciales' => 'integer',
-        'rango_inicial_preferencial' => 'integer',
-        'rango_final_preferencial' => 'integer',
-        'cantidad_restante_preferencial' => 'integer',
-        'total_boletos_preferenciales' => 'integer',
-        'total_aproximado_bolivianos' => 'float',
-
-        'cantidad_regulares' => 'integer',
-        'rango_inicial_regular' => 'integer',
-        'rango_final_regular' => 'integer',
-        'cantidad_restante_regular' => 'integer',
-        'total_boletos_regulares' => 'integer',
-        'total_aproximado_bolivianos_regular' => 'float',
-
-        'estado_preferencial' => 'boolean',
-        'estado_regular' => 'boolean',
+        'fecha_entrega' => 'date',
+        'inventario_talonarios_ids' => 'array',
     ];
-
-    /**
-     * Mutator para asegurar que el campo `fecha_entrega` siempre esté en el formato adecuado
-     */
+    
+    // Relación con el cajero
+    public function cajero(): BelongsTo
+    {
+        return $this->belongsTo(Cajero::class);
+    }
+    
+    // Relación con los talonarios de inventario asignados
+    public function inventarioTalonarios(): BelongsToMany
+    {
+        return $this->belongsToMany(InventarioTalonarios::class, 'entrega_talonario_inventario')
+            ->withTimestamps();
+    }
+    
+    // Método para ejecutar después de crear/actualizar la entrega
+    protected static function booted()
+    {
+        static::saved(function ($entregaTalonario) {
+            // Si tenemos IDs de talonarios, los asociamos a esta entrega
+            if (!empty($entregaTalonario->inventario_talonarios_ids)) {
+                // Primero sincronizamos las relaciones
+                $entregaTalonario->inventarioTalonarios()->sync($entregaTalonario->inventario_talonarios_ids);
+                
+                // Luego marcamos los talonarios como entregados
+                InventarioTalonarios::whereIn('id', $entregaTalonario->inventario_talonarios_ids)
+                    ->update([
+                        'entregado_at' => now(),
+                        'cajero_actual_id' => $entregaTalonario->cajero_id,
+                    ]);
+            }
+        });
+    }
 }

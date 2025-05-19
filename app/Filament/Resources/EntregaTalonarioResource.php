@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\EntregaTalonarioResource\Pages;
 use App\Filament\Resources\EntregaTalonarioResource\RelationManagers;
 use App\Models\EntregaTalonario;
+use App\Models\InventarioTalonarios;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -12,127 +13,78 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Textarea;
-use App\Models\InventarioTalonarios;
-
-use Illuminate\Support\Carbon;
-
-use Filament\Notifications\Notification;
-
-use Filament\Forms\Components\Section;
-
-use Filament\Forms\Components\Placeholder;
-use Illuminate\Validation\ValidationException;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
+use Illuminate\Support\Collection;
 
 class EntregaTalonarioResource extends Resource
 {
     protected static ?string $model = EntregaTalonario::class;
 
-    protected static ?string $navigationGroup = 'Gestión de Talonarios';
-
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationLabel = 'Entrega de Talonarios';
 
 
 public static function form(Forms\Form $form): Forms\Form
 {
     return $form
         ->schema([
-            // SELECT REACTIVO ARRIBA DE TODO
-            Forms\Components\Select::make('tipo_talonario')
-                ->label('¿Qué tipo de talonario entregará?')
-                ->options([
-                    'preferencial' => 'Preferencial',
-                    'regular' => 'Regular',
-                    'ambos' => 'Ambos',
-                ])
-                ->reactive() // <- ACTIVA la reactividad
-                ->required()
-                ->searchable()
-                ->native(false)
-                ->placeholder('Selecciona una opción')
-                ->columnSpanFull(),
-
             Forms\Components\Section::make('Datos Principales')
                 ->schema([
                     Forms\Components\Grid::make(3)->schema([
-                        Forms\Components\Select::make('inventario_id')
-                            ->label('Encargado de Cajer@s')
-                            ->prefixIcon('heroicon-o-user')
-                            ->options(function () {
-                                return \App\Models\Cajero::where('tipo_cajero', 'principal')
-                                    ->get()
-                                    ->mapWithKeys(function ($cajero) {
-                                        $fullName = "{$cajero->nombre} {$cajero->apellido_paterno} {$cajero->apellido_materno}";
-                                        return [$cajero->id => $fullName];
-                                    });
-                            })
-                            ->searchable()
-                            ->required(),
+                        Forms\Components\TextInput::make('cajero_id')
+                            ->label('Cajero ID')
+                            ->numeric()
+                            ->required()
+                            ->prefixIcon('heroicon-o-user'),
 
-                        Forms\Components\Select::make('cajero_id')
-                            ->label('Cajer@s')
-                            ->prefixIcon('heroicon-o-user')
-                            ->options(function () {
-                                return \App\Models\Cajero::where('tipo_cajero', 'secundario')
-                                    ->get()
-                                    ->mapWithKeys(function ($cajero) {
-                                        $fullName = "{$cajero->nombre} {$cajero->apellido_paterno} {$cajero->apellido_materno}";
-                                        return [$cajero->id => $fullName];
-                                    });
-                            })
-                            ->searchable()
-                            ->required(),
+                        Forms\Components\TextInput::make('inventario_id')
+                            ->label('Inventario ID')
+                            ->numeric()
+                            ->required()
+                            ->prefixIcon('heroicon-o-clipboard-document-list'),
 
+                             
                         Forms\Components\DatePicker::make('fecha_entrega')
                             ->label('Fecha Entrega')
-                            ->default(\Carbon\Carbon::now()->toDateString())
-                            ->disabled()
                             ->required()
                             ->prefixIcon('heroicon-o-calendar'),
                     ]),
                 ]),
 
-            // SECCIÓN PREFERENCIALES
             Forms\Components\Section::make('Preferenciales')
-                ->visible(fn ($get) => in_array($get('tipo_talonario'), ['preferencial', 'ambos']))
                 ->schema([
                     Forms\Components\Grid::make(2)->schema([
                         Forms\Components\TextInput::make('cantidad_preferenciales')
                             ->label('Cantidad Preferenciales')
                             ->numeric()
+                            ->required()
                             ->prefixIcon('heroicon-o-hashtag'),
 
                         Forms\Components\TextInput::make('rango_inicial_preferencial')
-                            ->label('Rango Inicial')
-                            ->prefixIcon('heroicon-o-arrow-down')
+                            ->label('Rango Inicial Preferencial')
                             ->numeric()
-                            ->default(function () {
-                                $ultimo = \App\Models\EntregaTalonario::orderByDesc('rango_final_preferencial')->first();
-                                return $ultimo ? $ultimo->rango_final_preferencial + 1 : 1;
-                            }),
+                            ->required()
+                            ->prefixIcon('heroicon-o-arrow-down'),
+                            
                     ]),
                 ]),
 
-            // SECCIÓN REGULARES
             Forms\Components\Section::make('Regulares')
-                ->visible(fn ($get) => in_array($get('tipo_talonario'), ['regular', 'ambos']))
                 ->schema([
                     Forms\Components\Grid::make(2)->schema([
                         Forms\Components\TextInput::make('cantidad_regulares')
                             ->label('Cantidad Regulares')
                             ->numeric()
+                            ->required()
                             ->prefixIcon('heroicon-o-hashtag'),
 
                         Forms\Components\TextInput::make('rango_inicial_regular')
-                            ->label('Rango Inicial')
-                            ->prefixIcon('heroicon-o-arrow-down')
+                            ->label('Rango Inicial Regular')
                             ->numeric()
-                            ->default(function () {
-                                $ultimo = \App\Models\EntregaTalonario::orderByDesc('rango_final_regular')->first();
-                                return $ultimo ? $ultimo->rango_final_regular + 1 : 1;
-                            }),
+                            ->required()
+                            ->prefixIcon('heroicon-o-arrow-down'),
                     ]),
                 ]),
 
@@ -148,6 +100,7 @@ public static function form(Forms\Form $form): Forms\Form
                 ]),
         ]);
 }
+
 
     public static function saving(EntregaTalonario $record)
     {
@@ -206,35 +159,31 @@ public static function form(Forms\Form $form): Forms\Form
     {
         return $table
             ->columns([
-                 Tables\Columns\TextColumn::make('inventario_id') // o ponle otro nombre si quieres, como 'cajero'
-                         ->label('Encargad@ de Cajer@s')
-                        ->toggleable(isToggledHiddenByDefault: true)
-                         ->getStateUsing(function ($record) {
-                                $cajero = \App\Models\Cajero::find($record->inventario_id);
-                                return $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
-                  }),
-
+                Tables\Columns\TextColumn::make('users_id')
+                    ->label('Responsable de Entrega')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->getStateUsing(function ($record) {
+                        $user = \App\Models\User::find($record->users_id);
+                        return $user ? $user->name . ' ' . $user->apellido_paterno . ' ' . $user->apellido_materno : 'No disponible';
+                    }),
 
                 Tables\Columns\TextColumn::make('cajero_id')
-                    ->label('Cajer@s')
+                    ->label('Cajero')
+                    ->searchable()
                     ->getStateUsing(function ($record) {
                         $cajero = \App\Models\Cajero::find($record->cajero_id);
                         return $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
                     }),
 
 
+
                 Tables\Columns\TextColumn::make('cantidad_preferenciales')
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
-
-                Tables\Columns\TextColumn::make('rango_inicial_preferencial')
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('rango_final_preferencial')
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('cantidad_restante_preferencial')
-                    ->label('Preferenciales Restantes')
+                    
+                Tables\Columns\TextColumn::make('tipo_talonarios')
+                    ->label('Tipo')
                     ->badge()
                     ->color(function ($state) {
                         if ($state < 400) {
@@ -249,12 +198,31 @@ public static function form(Forms\Form $form): Forms\Form
                 Tables\Columns\TextColumn::make('total_boletos_preferenciales')
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('total_aproximado_bolivianos_preferencial')
+                Tables\Columns\TextColumn::make('total_aproximado_bolivianos')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->formatStateUsing(fn($state) => 'Bs. ' . number_format($state, 2, '.', ','))
                     ->color('warning') // Color amaril
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                
+                Tables\Columns\TextColumn::make('estado_preferencial')
+                    ->label('Estado Preferencial')
+                    ->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            0 => 'asignado',
+                            1 => 'asignable',
+                            2 => 'no asignable',
+                            default => 'desconocido',
+                        };
+                    })
+                    ->color(function ($state) {
+                        return match ($state) {
+                            0 => 'danger',       // asignado → verde
+                            1 => 'success',       // asignable → azul
+                            2 => 'primary',         // no asignable → rojo
+                            default => 'gray',    // desconocido
+                        };
+                    }),
+
 
 
                 Tables\Columns\TextColumn::make('cantidad_regulares')
@@ -284,28 +252,87 @@ public static function form(Forms\Form $form): Forms\Form
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('total_aproximado_bolivianos_regular')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->formatStateUsing(fn($state) => 'Bs. ' . number_format($state, 2, '.', ','))
                     ->color('warning') // Color amaril
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('total_recaudacion_bolivianos')
-                    ->formatStateUsing(fn($state) => 'Bs. ' . number_format($state, 2, '.', ','))
-                    ->color('warning'), // Color amaril
-                 
+                Tables\Columns\TextColumn::make('estado_regular')
+                    ->label('Estado Preferencial')
+                    ->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            0 => 'asignado',
+                            1 => 'asignable',
+                            2 => 'no asignable',
+                            default => 'desconocido',
+                        };
+                    })
+                    ->color(function ($state) {
+                        return match ($state) {
+                            0 => 'danger',       // asignado → verde
+                            1 => 'success',       // asignable → azul
+                            2 => 'primary',        // no asignable → rojo
+                            default => 'gray',    // desconocido
+                        };
+                    }),
+
+
                 Tables\Columns\TextColumn::make('fecha_entrega')
-                    ->searchable(),
+                    ->label('Fecha')
+                    ->date('d/m/Y')
+                    ->sortable(),
+                    
+                Tables\Columns\TextColumn::make('numero_paquetes_entregados')
+                    ->label('Paquetes')
+                    ->numeric(),
+                    
+                Tables\Columns\TextColumn::make('cantidad_talonarios')
+                    ->label('Talonarios')
+                    ->numeric(),
+                    
+                Tables\Columns\TextColumn::make('cantidad_tickets')
+                    ->label('Tickets')
+                    ->numeric(),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('tipo_talonarios')
+                    ->options([
+                        'regular' => 'Regular',
+                        'preferencial' => 'Preferencial',
+                    ])
+                    ->label('Tipo de Talonarios'),
+                    
+                Tables\Filters\SelectFilter::make('cajero_id')
+                    ->relationship('cajero', 'full_name')
+                    ->label('Cajero'),
+                    
+                Tables\Filters\Filter::make('fecha_entrega')
+                    ->form([
+                        Forms\Components\DatePicker::make('desde')
+                            ->label('Desde'),
+                        Forms\Components\DatePicker::make('hasta')
+                            ->label('Hasta'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['desde'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('fecha_entrega', '>=', $date),
+                            )
+                            ->when(
+                                $data['hasta'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('fecha_entrega', '<=', $date),
+                            );
+                    }),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-
             ]);
     }
 

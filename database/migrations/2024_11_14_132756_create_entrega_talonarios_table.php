@@ -10,7 +10,7 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('entrega_talonarios', function (Blueprint $table) {
+        Schema::create('entrega_talonarios' , function (Blueprint $table) {
             $table->id();
 
             $table->foreignId('inventario_id')->nullable()->constrained('inventario_talonarios')->onDelete('set null');
@@ -33,8 +33,8 @@ return new class extends Migration {
             $table->integer('cantidad_restante_regular')->nullable();
 
             // Estado
-          $table->integer('estado_preferencial')->nullable();
-$table->integer('estado_regular')->nullable();
+            $table->integer('estado_preferencial')->nullable();
+            $table->integer('estado_regular')->nullable();
 
 
             // Información adicional
