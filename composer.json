@@ -6,8 +6,8 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
-        "althinect/filament-spatie-roles-permissions": "^2.2",
         "arbermustafa/filament-locationpickr-field": "2.0.0",
+        "bezhansalleh/filament-shield": "^3.3",
         "dotswan/filament-map-picker": "^1.4",
         "filament/filament": "^3.2",
         "fortawesome/font-awesome": "^6.5",

@@ -9,21 +9,21 @@ use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Crear el rol si no existe
+        $role = Role::firstOrCreate([
+            'name' => 'super_admin',
+            'guard_name' => 'web', // importante para coincidir con el guard
+        ]);
 
+        // Crear el usuario
         $user = User::factory()->create([
             'name' => 'Franz Alanez',
             'email' => 'alanezflores@gmail.com',
         ]);
-        /* $role = Role::create(['name' => 'Administrador']);
 
-        $user->assignRole($role); */
-
-        $user->assignRole('super_admin');
+        // Asignar el rol
+        $user->assignRole($role);
     }
 }
