@@ -19,7 +19,8 @@ return new class extends Migration
             $table->integer('cantidad_tickets');
             $table->integer('rango_inicial');
             $table->integer('rango_final');
-            $table->integer('numero_bloques');
+            $table->integer('numero_paquete');
+            $table->integer('talonarios_por_paquete');
             $table->decimal('valor_ticket_bs');
             $table->timestamps();
         });

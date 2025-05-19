@@ -18,6 +18,8 @@ use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Althinect\FilamentSpatieRolesPermissions\FilamentSpatieRolesPermissionsPlugin;
+use Swis\Filament\Backgrounds\FilamentBackgroundsPlugin;
+use Swis\Filament\Backgrounds\ImageProviders\MyImages;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -25,6 +27,7 @@ class AdminPanelProvider extends PanelProvider
     {
         return $panel
             ->default()
+            ->brandName('Bus Municipal')
             ->id('admin')
             ->path('admin')
             ->login()
@@ -53,6 +56,13 @@ class AdminPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
             ])
             ->plugin(FilamentSpatieRolesPermissionsPlugin::make())
+            ->plugins([
+                FilamentBackgroundsPlugin::make()
+                    ->imageProvider(
+                        MyImages::make()
+                            ->directory('images/backgrounds')
+                    ),
+            ])
             ->authMiddleware([
                 Authenticate::class,
             ]);

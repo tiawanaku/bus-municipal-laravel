@@ -4,14 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\InventarioTalonarios;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class EntregaTalonario extends Model
 {
     use HasFactory;
-
-    protected $table = 'entrega_talonarios';
-
+    
     protected $fillable = [
         'responsable_entrega',
         'cajero_id',
@@ -20,47 +19,43 @@ class EntregaTalonario extends Model
         'cantidad_tickets',
         'fecha_entrega',
         'tipo_talonarios',
+        'observaciones',
+        'inventario_talonarios_ids', // Campo para gestionar los IDs seleccionados
     ];
-
-    // Relación con el modelo Cajero
-    public function cajero()
+    
+    protected $casts = [
+        'fecha_entrega' => 'date',
+        'inventario_talonarios_ids' => 'array',
+    ];
+    
+    // Relación con el cajero
+    public function cajero(): BelongsTo
     {
         return $this->belongsTo(Cajero::class);
     }
-
-    // Sobrescribir el boot del modelo para ejecutar la lógica después de crear una entrega
-    protected static function boot()
+    
+    // Relación con los talonarios de inventario asignados
+    public function inventarioTalonarios(): BelongsToMany
     {
-        parent::boot();
-
-        // Lógica después de crear una entrega de talonarios
-        static::created(function ($entregaTalonario) {
-            // Buscar el registro en InventarioTalonarios que coincida con el tipo de talonario
-            $inventario = InventarioTalonarios::where('tipo_talonario', $entregaTalonario->tipo_talonarios)->first();
-
-            if ($inventario) {
-                // Verificar si hay suficientes paquetes en el inventario
-                if ($inventario->numero_paquete >= $entregaTalonario->numero_paquetes_entregados) {
-                    // Restar el número de paquetes entregados del inventario
-                    $inventario->numero_paquete -= $entregaTalonario->numero_paquetes_entregados;
-
-                    // Verificar si hay suficientes tickets en el inventario
-                    if ($inventario->cantidad_tickets >= $entregaTalonario->cantidad_tickets) {
-                        // Restar la cantidad de tickets entregados del inventario
-                        $inventario->cantidad_tickets -= $entregaTalonario->cantidad_tickets;
-                    } else {
-                        // Lógica si no hay suficientes tickets
-                        throw new \Exception('No hay suficientes tickets en el inventario para esta entrega.');
-                    }
-
-                    // Guardar el inventario actualizado
-                    $inventario->save();
-                } else {
-                    // Lógica si no hay suficientes paquetes
-                    throw new \Exception('No hay suficientes paquetes en el inventario para esta entrega.');
-                }
-            } else {
-                throw new \Exception('No se encontró un registro de inventario para este tipo de talonario.');
+        return $this->belongsToMany(InventarioTalonarios::class, 'entrega_talonario_inventario')
+            ->withTimestamps();
+    }
+    
+    // Método para ejecutar después de crear/actualizar la entrega
+    protected static function booted()
+    {
+        static::saved(function ($entregaTalonario) {
+            // Si tenemos IDs de talonarios, los asociamos a esta entrega
+            if (!empty($entregaTalonario->inventario_talonarios_ids)) {
+                // Primero sincronizamos las relaciones
+                $entregaTalonario->inventarioTalonarios()->sync($entregaTalonario->inventario_talonarios_ids);
+                
+                // Luego marcamos los talonarios como entregados
+                InventarioTalonarios::whereIn('id', $entregaTalonario->inventario_talonarios_ids)
+                    ->update([
+                        'entregado_at' => now(),
+                        'cajero_actual_id' => $entregaTalonario->cajero_id,
+                    ]);
             }
         });
     }
