@@ -42,6 +42,7 @@ class InventarioTalonariosResource extends Resource
                 ])
                 ->required()
                 ->reactive()
+                ->columnSpanFull()
                 ->afterStateUpdated(function ($state, $set) {
                     // Mostrar u ocultar secciones según la selección
                     if ($state === 'ambos') {
@@ -57,6 +58,7 @@ class InventarioTalonariosResource extends Resource
                 }),
 
             Grid::make(2)->schema([
+
                 Forms\Components\Select::make('cajero_id')
                     ->label('Cajero Principal')
                     ->prefixIcon('heroicon-o-user')
@@ -235,10 +237,12 @@ class InventarioTalonariosResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('cajero_id')
                     ->label('Cajero')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->getStateUsing(function ($record) {
                         $cajero = \App\Models\Cajero::find($record->cajero_id);
                         return $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
                     }),
+                    
                 Tables\Columns\TextColumn::make('cantidad_preferenciales')
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
@@ -314,7 +318,7 @@ class InventarioTalonariosResource extends Resource
             ->searchable() // Esta línea habilita la búsqueda
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                //Tables\Actions\DeleteAction::make(),
                 //Tables\Actions\ViewAction::make(),
             ])
             ->bulkActions([

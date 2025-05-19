@@ -25,8 +25,9 @@ class CreateEntregaTalonario extends CreateRecord
         $data['fecha_entrega'] = $data['fecha_entrega'] ?? now()->format('Y-m-d');
         $data['observaciones'] = $data['observaciones'] ?? '';
 
-        DB::statement('CALL entregar_talonarios(?, ?, ?, ?, ?, ?, ?)', [
+        DB::statement('CALL entregar_talonarios(?, ?, ?, ?, ?, ?, ?, ?)', [
             $data['cajero_id'],
+            $data['inventario_id'],
             $data['cantidad_preferenciales'],
             $data['rango_inicial_preferencial'],
             $data['cantidad_regulares'],
@@ -35,10 +36,6 @@ class CreateEntregaTalonario extends CreateRecord
             $data['observaciones'],
         ]);
 
-        Notification::make()
-            ->title('Entrega realizada correctamente')
-            ->success()
-            ->send();
 
         return EntregaTalonario::latest('id')->first();
 

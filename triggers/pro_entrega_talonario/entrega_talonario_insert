@@ -2,6 +2,7 @@ DELIMITER //
 
 CREATE PROCEDURE entregar_talonarios (
     IN p_cajero_id INT,
+    IN P_inventario_id INT,
     IN p_cantidad_preferenciales INT,
     IN p_rango_inicial_preferencial INT,
     IN p_cantidad_regulares INT,
@@ -93,54 +94,55 @@ BEGIN
     END LOOP;
     CLOSE cur;
 
-    -- Insertar registro en entrega_talonarios
-    INSERT INTO entrega_talonarios (
-        inventario_id,
-        cajero_id,
-        cantidad_preferenciales,
-        rango_inicial_preferencial,
-        rango_final_preferencial,
-        total_boletos_preferenciales,
-        total_aproximado_bolivianos_preferencial,
-        cantidad_restante_preferencial,
-        cantidad_regulares,
-        rango_inicial_regular,
-        rango_final_regular,
-        total_boletos_regulares,
-        total_aproximado_bolivianos_regular,
-        cantidad_restante_regular,
-        estado_preferencial,
-        estado_regular,
-        tipo_talonarios,
-        fecha_entrega,
-        observaciones,
-        total_recaudacion_bolivianos,
-        created_at,
-        updated_at
-    ) VALUES (
-        NULL, -- inventario_id no asignado
-        p_cajero_id,
-        p_cantidad_preferenciales,
-        p_rango_inicial_preferencial,
-        rango_final_preferencial,
-        total_boletos_preferenciales,
-        total_estimado_preferenciales,
-        p_cantidad_preferenciales - cantidad_total_preferenciales, -- cantidad entregada preferencial
-        p_cantidad_regulares,
-        p_rango_inicial_regular,
-        rango_final_regular,
-        total_boletos_regulares,
-        total_estimado_regulares,
-        p_cantidad_regulares - cantidad_total_regulares, -- cantidad entregada regular
-        'pendiente',
-        'pendiente',
-        'mixto',
-        p_fecha,
-        p_observaciones,
-        total_estimado_general,
-        NOW(),
-        NOW()
-    );
+   -- Insertar registro en entrega_talonarios
+INSERT INTO entrega_talonarios (
+    inventario_id,
+    cajero_id,
+    cantidad_preferenciales,
+    rango_inicial_preferencial,
+    rango_final_preferencial,
+    total_boletos_preferenciales,
+    total_aproximado_bolivianos_preferencial,
+    cantidad_restante_preferencial,
+    cantidad_regulares,
+    rango_inicial_regular,
+    rango_final_regular,
+    total_boletos_regulares,
+    total_aproximado_bolivianos_regular,
+    cantidad_restante_regular,
+    estado_preferencial,
+    estado_regular,
+    tipo_talonarios,
+    fecha_entrega,
+    observaciones,
+    total_recaudacion_bolivianos,
+    created_at,
+    updated_at
+) VALUES (
+    P_inventario_id, -- ← Corregido aquí
+    p_cajero_id,
+    p_cantidad_preferenciales,
+    p_rango_inicial_preferencial,
+    rango_final_preferencial,
+    total_boletos_preferenciales,
+    total_estimado_preferenciales,
+    p_cantidad_preferenciales - cantidad_total_preferenciales,
+    p_cantidad_regulares,
+    p_rango_inicial_regular,
+    rango_final_regular,
+    total_boletos_regulares,
+    total_estimado_regulares,
+    p_cantidad_regulares - cantidad_total_regulares,
+    'pendiente',
+    'pendiente',
+    'mixto',
+    p_fecha,
+    p_observaciones,
+    total_estimado_general,
+    NOW(),
+    NOW()
+);
+
 END //
 
 DELIMITER ;
