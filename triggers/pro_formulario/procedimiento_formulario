@@ -19,25 +19,40 @@ BEGIN
     DECLARE v_monto_recaudado_preferencial DECIMAL(10,2) DEFAULT 0.00;
     DECLARE v_total_recaudo_regular_preferencial DECIMAL(10,2) DEFAULT 0.00;
 
-    -- Calcular rangos y montos si hay ventas regulares
+    DECLARE v_id INT;
+    DECLARE v_regulares INT;
+    DECLARE v_preferenciales INT;
+    DECLARE v_regulares_tal INT;
+    DECLARE v_preferenciales_tal INT;
+
+    DECLARE done INT DEFAULT FALSE;
+
+    DECLARE cur CURSOR FOR
+        SELECT id, total_boletos_regulares, total_boletos_preferenciales
+        FROM entrega_talonarios_anfitrion
+        WHERE anfitrion_id = p_anfitrion_id
+        ORDER BY created_at ASC;
+
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+    -- Cálculos de rangos y montos
     IF p_cantidad_ventas_regulares > 0 THEN
         SET v_rango_final_regulares = p_rango_inicial_regulares + p_cantidad_ventas_regulares - 1;
         SET v_monto_recaudado_regular = p_cantidad_ventas_regulares * 1.50;
     END IF;
 
-    -- Calcular rangos y montos si hay ventas preferenciales
     IF p_cantidad_ventas_preferenciales > 0 THEN
         SET v_rango_final_preferencial = p_rango_inicial_preferencial + p_cantidad_ventas_preferenciales - 1;
         SET v_monto_recaudado_preferencial = p_cantidad_ventas_preferenciales * 1.00;
     END IF;
 
-    -- Calcular total
     SET v_total_recaudo_regular_preferencial = v_monto_recaudado_regular + v_monto_recaudado_preferencial;
 
-    -- Insertar datos en formulario_recaudo
+    -- Insertar en formulario_recaudo
     INSERT INTO formulario_recaudo (
         bus_id,
         conductor_id,
+        anfitrion_id,
         rutas,
         horario,
         cantidad_ventas_regulares,
@@ -55,6 +70,7 @@ BEGIN
     ) VALUES (
         p_bus_id,
         p_conductor_id,
+        p_anfitrion_id,
         p_rutas,
         p_horario,
         p_cantidad_ventas_regulares,
@@ -71,14 +87,57 @@ BEGIN
         NOW()
     );
 
-    -- Descontar boletos del anfitrión si hay ventas
-    IF p_cantidad_ventas_regulares > 0 OR p_cantidad_ventas_preferenciales > 0 THEN
-        UPDATE entrega_talonarios_anfitrion
-        SET
-            total_boletos_regulares = total_boletos_regulares - p_cantidad_ventas_regulares,
-            total_boletos_preferenciales = total_boletos_preferenciales - p_cantidad_ventas_preferenciales
-        WHERE anfitrion_id = p_anfitrion_id;
-    END IF;
+    -- FIFO: Descontar boletos por fecha de entrega (created_at)
+    SET v_regulares = p_cantidad_ventas_regulares;
+    SET v_preferenciales = p_cantidad_ventas_preferenciales;
+
+    OPEN cur;
+
+    read_loop: LOOP
+        FETCH cur INTO v_id, v_regulares_tal, v_preferenciales_tal;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+
+        -- Descuento boletos regulares
+        IF v_regulares > 0 THEN
+            IF v_regulares_tal >= v_regulares THEN
+                UPDATE entrega_talonarios_anfitrion
+                SET total_boletos_regulares = total_boletos_regulares - v_regulares
+                WHERE id = v_id;
+                SET v_regulares = 0;
+            ELSE
+                UPDATE entrega_talonarios_anfitrion
+                SET total_boletos_regulares = 0
+                WHERE id = v_id;
+                SET v_regulares = v_regulares - v_regulares_tal;
+            END IF;
+        END IF;
+
+        -- Descuento boletos preferenciales
+        IF v_preferenciales > 0 THEN
+            IF v_preferenciales_tal >= v_preferenciales THEN
+                UPDATE entrega_talonarios_anfitrion
+                SET total_boletos_preferenciales = total_boletos_preferenciales - v_preferenciales
+                WHERE id = v_id;
+                SET v_preferenciales = 0;
+            ELSE
+                UPDATE entrega_talonarios_anfitrion
+                SET total_boletos_preferenciales = 0
+                WHERE id = v_id;
+                SET v_preferenciales = v_preferenciales - v_preferenciales_tal;
+            END IF;
+        END IF;
+
+        -- Salir si ya no hay nada más que descontar
+        IF v_regulares = 0 AND v_preferenciales = 0 THEN
+            LEAVE read_loop;
+        END IF;
+
+    END LOOP;
+
+    CLOSE cur;
+
 END //
 
 DELIMITER ;

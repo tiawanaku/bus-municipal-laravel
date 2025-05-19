@@ -13,19 +13,23 @@ return new class extends Migration
     {
         Schema::create('formulario_recaudo', function (Blueprint $table) {
             $table->id();
-            // Relaciones y datos asociados
-            $table->string('bus_id');
-            $table->string('conductor_id');
+
+            // Llaves foráneas correctamente definidas
+            $table->foreignId('anfitrion_id')->constrained('anfitrions');
+            $table->foreignId('conductor_id')->constrained('conductors');
+            $table->foreignId('bus_id')->constrained('buses');
+
+            // Otros campos
             $table->string('rutas');
             $table->string('horario');
-            $table->string('N_ficha'); // Asumido como string, puede cambiar a foreignId si tienes una tabla 'asignacions'
+            $table->string('N_ficha'); // Podrías cambiarlo a foreignId si hay relación
 
             // Regulares
             $table->integer('cantidad_ventas_regulares')->nullable();
             $table->integer('rango_inicial_regulares')->nullable();
             $table->integer('rango_final_regulares')->nullable();
             $table->decimal('monto_recaudado_regular', 10, 2)->nullable();
-            
+
             // Preferenciales
             $table->integer('cantidad_ventas_preferenciales')->nullable();
             $table->integer('rango_inicial_preferencial')->nullable();
@@ -33,14 +37,6 @@ return new class extends Migration
             $table->decimal('monto_recaudado_preferencial', 10, 2)->nullable();
 
             $table->decimal('total_recaudo_regular_preferencial', 10, 2)->nullable();
-
-
-            // Recomendados adicionales
-
-           $table->foreign('anfitrion_id')->references('id')->on('anfitrions');
-           $table->foreign('conductor_id')->references('id')->on('conductors');
-           $table->foreign('bus_id')->references('id')->on('buses');
-
 
             $table->timestamps();
         });

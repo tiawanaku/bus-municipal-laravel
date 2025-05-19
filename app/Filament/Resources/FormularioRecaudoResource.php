@@ -14,11 +14,14 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Filament\Tables\Columns\BadgeColumn;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\Select;
 use App\Models\Ruta;
 use Filament\Forms\Components\Section;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+
+
 
 class FormularioRecaudoResource extends Resource
 {
@@ -142,45 +145,138 @@ class FormularioRecaudoResource extends Resource
         ]);
 }
 
-    public static function table(Table $table): Table
-    {
-        return $table
-            ->columns([
-                Tables\Columns\TextColumn::make('id')->sortable(),
-                Tables\Columns\TextColumn::make('bus_id'),
-                Tables\Columns\TextColumn::make('conductor_id'),
-                Tables\Columns\TextColumn::make('ruta_id'),
-                Tables\Columns\TextColumn::make('fecha_recaudo')->date(),
 
-               BadgeColumn::make('estado_preferencial')
-    ->label('Estado Preferencial')
-    ->formatStateUsing(fn ($state) => match ($state) {
-        0 => 'Vendido',
-        1 => 'En venta',
-        2 => 'Por vender',
-        default => 'Desconocido'
-    })
-    ->colors([
-        'danger' => 0,
-        'primary' => 1,
-        'success' => 2,
-    ]),
 
-            ])
-            ->defaultSort('id', 'desc')
-            ->filters([
-                //
-            ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
-    }
+public static function table(Table $table): Table
+{
+    return $table
+        ->columns([
+            TextColumn::make('id')
+            ->sortable()
+             ->toggleable(isToggledHiddenByDefault: true),
 
+          TextColumn::make('anfitrion')
+    ->label('Anfitrión')
+    ->searchable()
+    ->formatStateUsing(fn ($record) => 
+        $record->anfitrion->nombre . ' ' . 
+        $record->anfitrion->apellido_paterno . ' ' . 
+        $record->anfitrion->apellido_materno
+    ),
+
+          TextColumn::make('conductor')
+          ->toggleable(isToggledHiddenByDefault: true)
+    ->label('Conductor')
+    ->searchable()
+    ->formatStateUsing(fn ($record) => 
+        $record->conductor->nombre . ' ' . 
+        $record->conductor->apellido_paterno . ' ' . 
+        $record->conductor->apellido_materno
+    ),
+
+           TextColumn::make('bus.numero_bus')
+           ->toggleable(isToggledHiddenByDefault: true)
+           ->label('Número Bus')
+           ->searchable(),
+
+
+            TextColumn::make('rutas')
+             ->toggleable(isToggledHiddenByDefault: true)
+            ->label('Rutas'),
+
+            TextColumn::make('horario')
+            ->toggleable(isToggledHiddenByDefault: true)
+            ->label('Horario'),
+
+            TextColumn::make('n_ficha')
+             ->toggleable(isToggledHiddenByDefault: true)
+            ->label('N° Ficha'),
+
+            TextColumn::make('cantidad_ventas_regulares')
+            ->label('Cant. Ventas Regulares'),
+
+            TextColumn::make('rango_inicial_regulares')
+            ->toggleable(isToggledHiddenByDefault: true)
+            ->label('Rango Inicial Regulares'),
+
+            TextColumn::make('rango_final_regulares')
+            ->toggleable(isToggledHiddenByDefault: true)
+            ->label('Rango Final Regulares'),
+
+            TextColumn::make('monto_recaudado_regular')
+             ->toggleable(isToggledHiddenByDefault: false)
+                ->label('Monto Recaudado Regular')
+                ->formatStateUsing(fn ($state) => 'Bs ' . number_format($state, 2))
+                ->sortable()
+                ->color(fn ($state) => 
+                  $state < 50 ? 'danger' : 
+                 ($state >= 50 && $state < 90 ? 'warning' : 
+                 ($state >= 90 ? 'success' : 'primary'))
+                 ),
+
+
+
+            TextColumn::make('cantidad_ventas_preferenciales')
+            ->toggleable(isToggledHiddenByDefault: false)
+                ->label('Cant. Ventas Preferenciales'),
+
+            TextColumn::make('rango_inicial_preferencial')
+            ->toggleable(isToggledHiddenByDefault: true)
+            ->label('Rango Inicial Preferencial'),
+
+            TextColumn::make('rango_final_preferencial')
+            ->toggleable(isToggledHiddenByDefault: true)
+            ->label('Rango Final Preferencial'),
+            
+
+            TextColumn::make('monto_recaudado_preferencial')
+                ->label('Monto Recaudado Preferencial')
+                ->formatStateUsing(fn ($state) => 'Bs ' . number_format($state, 2))
+                ->sortable()
+                ->color(fn ($state) => 
+                     $state < 50 ? 'danger' : 
+                    ($state >= 50 && $state < 90 ? 'warning' : 
+                    ($state >= 90 ? 'success' : 'primary'))
+                      ),
+
+
+    
+
+            TextColumn::make('total_recaudo_regular_preferencial')
+                ->label('Total Recaudo')
+                 ->formatStateUsing(fn ($state) => 'Bs ' . number_format($state, 2))
+                ->colors([
+                'warning' => fn($state) => true, // Siempre amarillo
+                  ]),
+
+            TextColumn::make('created_at')
+            ->toggleable(isToggledHiddenByDefault: true)
+                ->label('Fecha Creación')
+                ->dateTime('d/m/Y H:i'),
+
+            TextColumn::make('updated_at')
+            ->toggleable(isToggledHiddenByDefault: true)
+                ->label('Última Actualización')
+                ->dateTime('d/m/Y H:i'),
+        ])
+        ->defaultSort('id', 'desc')
+
+       ->filters([
+    SelectFilter::make('anfitrion_id')
+    ->label('Anfitrión')
+    ->relationship('anfitrion', 'nombre', fn ($query) => $query->orderBy('nombre'))
+    ->searchable(),
+])
+
+        ->actions([
+            Tables\Actions\EditAction::make(),
+        ])
+        ->bulkActions([
+            Tables\Actions\BulkActionGroup::make([
+                Tables\Actions\DeleteBulkAction::make(),
+            ]),
+        ]);
+}
     public static function getRelations(): array
     {
         return [

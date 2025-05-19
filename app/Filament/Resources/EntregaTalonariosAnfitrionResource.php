@@ -18,7 +18,8 @@ class EntregaTalonariosAnfitrionResource extends Resource
     protected static ?string $model = EntregaTalonariosAnfitrion::class;
 
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-inbox';
+
     protected static ?string $navigationGroup = 'Gestión de Talonarios';
 
    public static function form(Form $form): Form
@@ -189,7 +190,7 @@ class EntregaTalonariosAnfitrionResource extends Resource
             ->label('Rango Final Reg.'),
 
            Tables\Columns\TextColumn::make('total_boletos_regulares')
-                ->label('Total Boletos Reg.')
+                ->label('Total Tickets Reg.')
                 ->color(function ($state) {
                      if ($state < 800) {
                          return 'danger';    // rojo

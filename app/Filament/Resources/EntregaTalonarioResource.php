@@ -32,7 +32,7 @@ class EntregaTalonarioResource extends Resource
 
     protected static ?string $navigationGroup = 'Gestión de Talonarios';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+protected static ?string $navigationIcon = 'heroicon-o-clock';
 
 
 public static function form(Forms\Form $form): Forms\Form

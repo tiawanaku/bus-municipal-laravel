@@ -44,9 +44,5 @@ class FormularioRecaudo extends Model
         return $this->belongsTo(Anfitrion::class, 'anfitrion_id');
     }
 
-    public function detallesRangos()
-{
-    return $this->hasMany(DetalleRecaudoRango::class);
-}
 
 }
