@@ -20,22 +20,57 @@ class InventarioTalonariosResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationLabel = 'Inventario de Talonarios';
 
-    public static function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                Forms\Components\Fieldset::make('Información del Responsable')
-                    ->schema([
-                        Forms\Components\Select::make('cajero_id')
-                            ->label('Cajero Responsable')
-                            ->options(function () {
-                                return \App\Models\Cajero::all()
-                                    ->pluck('full_name', 'id');
-                            })
-                            ->required()
-                            ->columnSpan(2),
-                    ])
-                    ->columns(2),
+  public static function form(Form $form): Form
+{
+    return $form
+        ->schema([
+            // Selección del tipo de talonario sin pregunta
+            Forms\Components\Select::make('tipo_talonarios')
+                ->label('Tipo de Talonario a Asignar')
+                ->options([
+                    'preferenciales' => 'Preferenciales',
+                    'regulares'      => 'Regulares',
+                    'ambos'          => 'Preferenciales y Regulares',
+                ])
+                ->required()
+                ->reactive()
+                ->afterStateUpdated(function ($state, $set) {
+                    // Mostrar u ocultar secciones según la selección
+                    if ($state === 'ambos') {
+                        $set('show_preferenciales', true);
+                        $set('show_regulares', true);
+                    } elseif ($state === 'preferenciales') {
+                        $set('show_preferenciales', true);
+                        $set('show_regulares', false);
+                    } else {
+                        $set('show_preferenciales', false);
+                        $set('show_regulares', true);
+                    }
+                }),
+
+            Grid::make(2)->schema([
+                Forms\Components\Select::make('cajero_id')
+                    ->label('Cajero Principal')
+                    ->prefixIcon('heroicon-o-user')
+                    ->options(function () {
+                        return \App\Models\Cajero::where('tipo_cajero', 'principal')
+                            ->get()
+                            ->mapWithKeys(function ($cajero) {
+                                $fullName = "{$cajero->nombre} {$cajero->apellido_paterno} {$cajero->apellido_materno}";
+                                return [$cajero->id => $fullName];
+                            });
+                    })
+                    ->searchable()
+                    ->required(),
+
+                Forms\Components\DatePicker::make('fecha_entrega')
+                    ->label('Fecha de Entrega')
+                    ->prefixIcon('heroicon-o-calendar')
+                    ->default(now())
+                    ->disabled()
+                    ->dehydrated(true)
+                    ->required(),
+            ]),
 
                 Forms\Components\Fieldset::make('Detalles del Talonario')
                     ->schema([

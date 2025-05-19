@@ -18,7 +18,7 @@ use Filament\Tables\Columns\BadgeColumn;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\Select;
 use App\Models\Ruta;
-use Filament\Forms\Components\Section;
+
 
 class FormularioRecaudoResource extends Resource
 {
@@ -26,121 +26,91 @@ class FormularioRecaudoResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document';
     protected static ?string $navigationLabel = 'Formulario Recaudo';
-     protected static ?string $navigationGroup = 'Gestión de Talonarios';
     protected static ?string $modelLabel = 'Formulario de Recaudo';
 
- public static function form(Form $form): Form
-{
-    return $form
-        ->schema([
-            // Sección Datos Generales
-            Forms\Components\Section::make('Datos Generales')
-                ->schema([
-                    Forms\Components\Grid::make(2)
-                        ->schema([
-                            Forms\Components\Select::make('anfitrion_id')
-                                ->label('Anfitrión')
-                                ->options(function () {
-                                    return \App\Models\Anfitrion::all()->mapWithKeys(function ($item) {
-                                        return [$item->id => $item->nombre . ' ' . $item->apellido_paterno . ' ' . $item->apellido_materno];
-                                    })->toArray();
-                                })
-                                ->required(),
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
 
-                            Forms\Components\Select::make('conductor_id')
-                                ->label('Conductor')
-                                ->options(
-                                    \App\Models\Conductor::all()->mapWithKeys(function ($conductor) {
-                                        return [
-                                            $conductor->id => $conductor->nombre . ' ' . $conductor->apellido_paterno . ' ' . $conductor->apellido_materno,
-                                        ];
-                                    })->toArray()
-                                )
-                                ->required(),
+              Forms\Components\Select::make('anfitrion_id')
+    ->label('Anfitrión')
+    ->options(function () {
+        return \App\Models\Anfitrion::all()->mapWithKeys(function ($item) {
+            return [$item->id => $item->nombre . ' ' . $item->apellido_paterno . ' ' . $item->apellido_materno];
+        })->toArray();
+    })
+    ->required(),
 
-                            Forms\Components\Select::make('rutas')
-                                ->label('Ruta')
-                                ->options([
-                                    'norte' => 'Ruta Norte',
-                                    'sur' => 'Ruta Sur',
-                                ])
-                                ->required(),
+       
 
-                            Forms\Components\Select::make('horario')
-                                ->label('Turno')
-                                ->options([
-                                    'mañana' => 'Mañana',
-                                    'tarde' => 'Tarde',
-                                ])
-                                ->required(),
 
-                           Forms\Components\Select::make('N_ficha')
-                               ->label('Nº de Ficha')
-                               ->options(array_combine(range(1, 15), range(1, 15)))
-                               ->required(),
+              Forms\Components\Select::make('bus_id')
+    ->label('Bus')
+    ->options(
+        Bus::all()->pluck('numero_bus', 'id')->toArray()
+    )
+    ->required(),
 
-                               Forms\Components\Select::make('bus_id')
-                                 ->label('Nº de Bus')
-                                 ->options(function () {
-                                    return \App\Models\Bus::all()->mapWithKeys(function ($item) {
-                                     return [$item->id => $item->numero_bus];
-                                    })->toArray();
-                                 })
-                                ->required(),
-                                
-                        ]),
-                ]),
 
-            // Sección Preferencial
-            Forms\Components\Section::make('Preferencial')
-                ->schema([
-                    Forms\Components\Grid::make(3)
-                        ->schema([
-                            Forms\Components\TextInput::make('cantidad_ventas_preferenciales')
-                                ->label('Tickets Vendidos Preferenciales')
-                                ->numeric(),
 
-                            Forms\Components\TextInput::make('rango_inicial_preferencial')
-                                ->label('Rango Inicial')
-                                ->numeric(),
 
-                            Forms\Components\TextInput::make('monto_recaudado_preferencial')
-                                ->label('Monto recaudado')
-                                ->prefix('Bs')
-                                ->numeric(),
-                        ]),
-                ]),
+              Forms\Components\Select::make('conductor_id')
+    ->label('Conductor')
+    ->options(
+        Conductor::all()->mapWithKeys(function ($conductor) {
+            return [
+                $conductor->id => $conductor->nombre . ' ' . $conductor->apellido_paterno . ' ' . $conductor->apellido_materno,
+            ];
+        })->toArray()
+    )
+    ->required(),
 
-            // Sección Regular
-            Forms\Components\Section::make('Regular')
-                ->schema([
-                    Forms\Components\Grid::make(3)
-                        ->schema([
-                            Forms\Components\TextInput::make('cantidad_ventas_regulares')
-                                ->label('Tickets vendidos')
-                                ->numeric(),
 
-                            Forms\Components\TextInput::make('rango_inicial_regulares')
-                                ->label('Rango Inicial')
-                                ->numeric(),
 
-                            Forms\Components\TextInput::make('monto_recaudado_regular')
-                                ->label('Monto recaudado')
-                                ->prefix('Bs')
-                                ->numeric(),
-                        ]),
-                ]),
+Forms\Components\Select::make('ruta_id')
+    ->label('Ruta')
+    ->options([
+        'norte' => 'Ruta Norte',
+        'sur' => 'Ruta Sur',
+    ])
+    ->required(),
 
-            // Sección Total
-            Forms\Components\Section::make('Totales')
-                ->schema([
-                    Forms\Components\TextInput::make('total_recaudo_regular_preferencial')
-                        ->label('Total Recaudo')
-                        ->prefix('Bs')
-                        ->numeric(),
-                ]),
-        ]);
-}
+
+                Forms\Components\TextInput::make('cantidad_ventas_regulares')->numeric(),
+                Forms\Components\TextInput::make('rango_inicial_regulares')->numeric(),
+                Forms\Components\TextInput::make('rango_final_regulares')->numeric(),
+                Forms\Components\TextInput::make('monto_recaudado_regular')->numeric()->prefix('Bs'),
+
+                Forms\Components\TextInput::make('cantidad_ventas_preferenciales')->numeric(),
+                Forms\Components\TextInput::make('rango_inicial_preferencial')->numeric(),
+                Forms\Components\TextInput::make('rango_final_preferencial')->numeric(),
+                Forms\Components\TextInput::make('monto_recaudado_preferencial')->numeric()->prefix('Bs'),
+
+                Forms\Components\TextInput::make('total_recaudo_regular_preferencial')->numeric()->prefix('Bs'),
+                
+                Forms\Components\Select::make('horario')
+                 ->label('Turno')
+    ->options([
+        'mañana' => 'Mañana',
+        'tarde' => 'Tarde',
+    ])
+    ->required(),
+
+                
+                Forms\Components\Select::make('estado')
+                    ->options([
+                        0 => 'Vendido',
+                        1 => 'En venta',
+                        2 => 'Por vender',
+                    ])
+                    ->required()
+                    ->label('Estado'),
+
+                Forms\Components\Textarea::make('observaciones')->rows(3),
+            ]);
+    }
+
 
     public static function table(Table $table): Table
     {

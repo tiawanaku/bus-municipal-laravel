@@ -13,10 +13,19 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
-use Illuminate\Support\Collection;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Textarea;
+
+
+
+use Filament\Notifications\Notification;
+
+use Filament\Forms\Components\Section;
+
+use Filament\Forms\Components\Placeholder;
+use App\Models\InventarioTalonario;
+use Illuminate\Validation\ValidationException;
 
 class EntregaTalonarioResource extends Resource
 {
@@ -328,6 +337,7 @@ public static function form(Forms\Form $form): Forms\Form
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

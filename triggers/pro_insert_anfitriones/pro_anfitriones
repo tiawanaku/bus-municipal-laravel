@@ -14,14 +14,14 @@ CREATE PROCEDURE entregar_talonarios_anfitrion (
 BEGIN
     DECLARE cantidad_total_preferenciales INT DEFAULT p_cantidad_preferenciales;
     DECLARE cantidad_total_regulares INT DEFAULT p_cantidad_regulares;
-    DECLARE rango_final_preferencial INT DEFAULT 0;
-    DECLARE rango_final_regular INT DEFAULT 0;
+    DECLARE rango_final_preferencial INT;
+    DECLARE rango_final_regular INT;
 
-    DECLARE total_boletos_preferenciales INT DEFAULT 0;
-    DECLARE total_boletos_regulares INT DEFAULT 0;
-    DECLARE total_estimado_preferenciales DECIMAL(10,2) DEFAULT 0.00;
-    DECLARE total_estimado_regulares DECIMAL(10,2) DEFAULT 0.00;
-    DECLARE total_estimado_general DECIMAL(10,2) DEFAULT 0.00;
+    DECLARE total_boletos_preferenciales INT;
+    DECLARE total_boletos_regulares INT;
+    DECLARE total_estimado_preferenciales DECIMAL(10,2);
+    DECLARE total_estimado_regulares DECIMAL(10,2);
+    DECLARE total_estimado_general DECIMAL(10,2);
 
     DECLARE done INT DEFAULT FALSE;
     DECLARE ent_id INT;
@@ -29,13 +29,14 @@ BEGIN
     DECLARE ent_cantidad_reg INT;
     DECLARE primer_entrega_id INT DEFAULT NULL;
 
-    -- Cursores
+    -- Cursor para preferenciales
     DECLARE cur_pref CURSOR FOR
         SELECT id, cantidad_restante_preferencial, cantidad_restante_regular
         FROM entrega_talonarios
         WHERE cantidad_restante_preferencial > 0
         ORDER BY id ASC;
 
+    -- Cursor para regulares
     DECLARE cur_reg CURSOR FOR
         SELECT id, cantidad_restante_preferencial, cantidad_restante_regular
         FROM entrega_talonarios
@@ -44,82 +45,75 @@ BEGIN
 
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
 
-    -- SOLO SI HAY TALONARIOS PREFERENCIALES
-    IF p_cantidad_preferenciales > 0 THEN
-        SET rango_final_preferencial = p_rango_inicial_preferencial + (p_cantidad_preferenciales * 50) - 1;
-        SET total_boletos_preferenciales = p_cantidad_preferenciales * 50;
-        SET total_estimado_preferenciales = total_boletos_preferenciales * 1.00;
+    SET rango_final_preferencial = p_rango_inicial_preferencial + (p_cantidad_preferenciales * 50) - 1;
+    SET rango_final_regular = p_rango_inicial_regular + (p_cantidad_regulares * 50) - 1;
 
-        -- Repartir talonarios preferenciales
-        SET done = FALSE;
-        OPEN cur_pref;
-        read_loop_pref: LOOP
-            FETCH cur_pref INTO ent_id, ent_cantidad_pref, ent_cantidad_reg;
-            IF done THEN
-                LEAVE read_loop_pref;
-            END IF;
+    SET total_boletos_preferenciales = p_cantidad_preferenciales * 50;
+    SET total_boletos_regulares = p_cantidad_regulares * 50;
 
-            IF cantidad_total_preferenciales > 0 AND ent_cantidad_pref > 0 THEN
-                IF primer_entrega_id IS NULL THEN
-                    SET primer_entrega_id = ent_id;
-                END IF;
-
-                IF ent_cantidad_pref >= cantidad_total_preferenciales THEN
-                    UPDATE entrega_talonarios
-                    SET cantidad_restante_preferencial = cantidad_restante_preferencial - cantidad_total_preferenciales
-                    WHERE id = ent_id;
-                    SET cantidad_total_preferenciales = 0;
-                ELSE
-                    UPDATE entrega_talonarios
-                    SET cantidad_restante_preferencial = 0
-                    WHERE id = ent_id;
-                    SET cantidad_total_preferenciales = cantidad_total_preferenciales - ent_cantidad_pref;
-                END IF;
-            END IF;
-        END LOOP;
-        CLOSE cur_pref;
-    END IF;
-
-    -- SOLO SI HAY TALONARIOS REGULARES
-    IF p_cantidad_regulares > 0 THEN
-        SET rango_final_regular = p_rango_inicial_regular + (p_cantidad_regulares * 50) - 1;
-        SET total_boletos_regulares = p_cantidad_regulares * 50;
-        SET total_estimado_regulares = total_boletos_regulares * 1.50;
-
-        -- Repartir talonarios regulares
-        SET done = FALSE;
-        OPEN cur_reg;
-        read_loop_reg: LOOP
-            FETCH cur_reg INTO ent_id, ent_cantidad_pref, ent_cantidad_reg;
-            IF done THEN
-                LEAVE read_loop_reg;
-            END IF;
-
-            IF cantidad_total_regulares > 0 AND ent_cantidad_reg > 0 THEN
-                IF primer_entrega_id IS NULL THEN
-                    SET primer_entrega_id = ent_id;
-                END IF;
-
-                IF ent_cantidad_reg >= cantidad_total_regulares THEN
-                    UPDATE entrega_talonarios
-                    SET cantidad_restante_regular = cantidad_restante_regular - cantidad_total_regulares
-                    WHERE id = ent_id;
-                    SET cantidad_total_regulares = 0;
-                ELSE
-                    UPDATE entrega_talonarios
-                    SET cantidad_restante_regular = 0
-                    WHERE id = ent_id;
-                    SET cantidad_total_regulares = cantidad_total_regulares - ent_cantidad_reg;
-                END IF;
-            END IF;
-        END LOOP;
-        CLOSE cur_reg;
-    END IF;
-
-    -- Total estimado general
+    SET total_estimado_preferenciales = total_boletos_preferenciales * 1.00;
+    SET total_estimado_regulares = total_boletos_regulares * 1.50;
     SET total_estimado_general = total_estimado_preferenciales + total_estimado_regulares;
 
-    -- Insert final
+    -- Repartir talonarios preferenciales
+    SET done = FALSE;
+    OPEN cur_pref;
+    read_loop_pref: LOOP
+        FETCH cur_pref INTO ent_id, ent_cantidad_pref, ent_cantidad_reg;
+        IF done THEN
+            LEAVE read_loop_pref;
+        END IF;
+
+        IF cantidad_total_preferenciales > 0 AND ent_cantidad_pref > 0 THEN
+            IF primer_entrega_id IS NULL THEN
+                SET primer_entrega_id = ent_id;
+            END IF;
+
+            IF ent_cantidad_pref >= cantidad_total_preferenciales THEN
+                UPDATE entrega_talonarios
+                SET cantidad_restante_preferencial = cantidad_restante_preferencial - cantidad_total_preferenciales
+                WHERE id = ent_id;
+                SET cantidad_total_preferenciales = 0;
+            ELSE
+                UPDATE entrega_talonarios
+                SET cantidad_restante_preferencial = 0
+                WHERE id = ent_id;
+                SET cantidad_total_preferenciales = cantidad_total_preferenciales - ent_cantidad_pref;
+            END IF;
+        END IF;
+    END LOOP;
+    CLOSE cur_pref;
+
+    -- Repartir talonarios regulares
+    SET done = FALSE;
+    OPEN cur_reg;
+    read_loop_reg: LOOP
+        FETCH cur_reg INTO ent_id, ent_cantidad_pref, ent_cantidad_reg;
+        IF done THEN
+            LEAVE read_loop_reg;
+        END IF;
+
+        IF cantidad_total_regulares > 0 AND ent_cantidad_reg > 0 THEN
+            IF primer_entrega_id IS NULL THEN
+                SET primer_entrega_id = ent_id;
+            END IF;
+
+            IF ent_cantidad_reg >= cantidad_total_regulares THEN
+                UPDATE entrega_talonarios
+                SET cantidad_restante_regular = cantidad_restante_regular - cantidad_total_regulares
+                WHERE id = ent_id;
+                SET cantidad_total_regulares = 0;
+            ELSE
+                UPDATE entrega_talonarios
+                SET cantidad_restante_regular = 0
+                WHERE id = ent_id;
+                SET cantidad_total_regulares = cantidad_total_regulares - ent_cantidad_reg;
+            END IF;
+        END IF;
+    END LOOP;
+    CLOSE cur_reg;
+
+    -- Insertar en entrega_talonarios_anfitrion
     INSERT INTO entrega_talonarios_anfitrion (
         entrega_talonario_id,
         anfitrion_id,

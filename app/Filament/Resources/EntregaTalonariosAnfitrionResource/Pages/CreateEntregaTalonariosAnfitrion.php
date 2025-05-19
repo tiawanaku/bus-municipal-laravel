@@ -39,6 +39,11 @@ class CreateEntregaTalonariosAnfitrion extends CreateRecord
             $data['observaciones'],
         ]);
 
+        Notification::make()
+            ->title('Entrega realizada correctamente')
+            ->success()
+            ->send();
+
         // Si quieres devolver el modelo creado, deberías crear una consulta correcta aquí:
         return EntregaTalonariosAnfitrion::latest('id')->first();
 
