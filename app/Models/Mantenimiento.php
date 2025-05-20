@@ -3,16 +3,22 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Mantenimiento extends Model
 {
+    use SoftDeletes;
     protected $fillable = [
         'bus_id',
+        'tecnico_id',
+        'salida_id',
         'fecha_mantenimiento',
         'km_anterior',
         'km_actual',
         'km_actual_recorrido',
         'tipo_mantenimiento',
+        'estado_mantenimiento',
+        'generado_por',
         'observaciones',
     ];
     protected static function rangosTipo(): array
@@ -113,5 +119,17 @@ class Mantenimiento extends Model
     public function bus()
     {
         return $this->belongsTo(Bus::class);
+    }
+
+    /* Relación con Tecnicos */
+    public function tecnico()
+    {
+        return $this->belongsTo(Tecnico::class);
+    }
+
+     /* Relación con Salida de Buses */
+    public function salida()
+    {
+        return $this->belongsTo(SalidaDeBuses::class);
     }
 }

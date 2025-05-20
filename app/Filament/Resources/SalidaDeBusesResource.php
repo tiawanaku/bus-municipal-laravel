@@ -10,13 +10,13 @@ use Filament\Resources\Form; // Directly import the Form class
 use Filament\Resources\Table;
 use Filament\Tables;
 use App\Models\Anfitrion;
+use App\Models\Tecnico;
 use App\Models\AsignacionDeBus;
 use App\Models\RangoMantenimiento;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Repeater;
+use App\Models\Mantenimiento;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\ToggleButtons;
+
 use Closure;
 
 
@@ -80,16 +80,17 @@ class SalidaDeBusesResource extends Resource
                         return function (string $attribute, $value, $fail) use ($get) {
                             $fecha = $get('fecha_salida');
                             $recordId = $get('id_salida_bus'); // ID del registro actual
-                    
-                            if (!$fecha) return;
-                    
+            
+                            if (!$fecha)
+                                return;
+
                             $existe = SalidaDeBuses::where('designacion_id', $value)
                                 ->where('fecha_salida', $fecha)
                                 ->when($recordId, function ($query) use ($recordId) {
                                     $query->where('id_salida_bus', '!=', $recordId);
                                 })
                                 ->exists();
-                    
+
                             if ($existe) {
                                 $fail("Ya existe una salida registrada para este bus en la fecha seleccionada.");
                             }
@@ -122,7 +123,19 @@ class SalidaDeBusesResource extends Resource
                 Forms\Components\Textarea::make('motivo_no_salida')->nullable(),
 
                 Forms\Components\DatePicker::make('fecha_salida')
-                    ->required(),
+                    ->required()
+                    ->lazy()
+                    ->afterStateUpdated(
+                        fn(callable $set, callable $get) =>
+                        $set(
+                            'kilometraje_salida',
+                            SalidaDeBuses::where('designacion_id', $get('designacion_id'))
+                                ->where('fecha_salida', '<', $get('fecha_salida'))
+                                ->orderByDesc('fecha_salida')
+                                ->orderByDesc('hora_salida')
+                                ->value('kilometraje_llegada') ?? 0
+                        )
+                    ),
                 Forms\Components\TimePicker::make('hora_salida')
                     ->required(),
 
@@ -131,7 +144,30 @@ class SalidaDeBusesResource extends Resource
                 TextInput::make('kilometraje_salida')
                     ->placeholder('Ingrese el kilometraje actual del bus')
                     ->numeric()
-                    ->required(),
+                    ->required()
+                    /* REGLA: El kilometraje de salida NO puede ser menor que el último kilometraje de llegada */
+                    ->rule(function (callable $get) {
+                        return function (string $attribute, $value, $fail) use ($get) {
+                            $designacionId = $get('designacion_id');
+                            $recordId = $get('id_salida_bus'); // ID actual si se está editando
+                            $fechaSalida = $get('fecha_salida'); // Fecha de la salida actual
+            
+                            if (!$designacionId || is_null($value) || !$fechaSalida) {
+                                return;
+                            }
+
+                            // Buscar la última salida ANTES de la fecha de esta salida
+                            $ultimoRegistro = SalidaDeBuses::where('designacion_id', $designacionId)
+                                ->where('fecha_salida', '<', $fechaSalida) // Filtra solo las salidas anteriores
+                                ->orderByDesc('fecha_salida')
+                                ->orderByDesc('hora_salida')
+                                ->first();
+
+                            if ($ultimoRegistro && $value < $ultimoRegistro->kilometraje_llegada) {
+                                $fail('El kilometraje de salida no puede ser menor que el último kilometraje de llegada registrado antes de esta fecha (' . $ultimoRegistro->kilometraje_llegada . ').');
+                            }
+                        };
+                    }),
                 TextInput::make('kilometraje_llegada')
                     ->label('Kilometraje de Llegada')
                     ->placeholder('Ingrese el kilometraje al finalizar el recorrido')
@@ -158,32 +194,15 @@ class SalidaDeBusesResource extends Resource
 
 
 
-                // Toggle Buttons para el estado de mantenimiento
-                ToggleButtons::make('status_mantenimiento')
 
-                    ->label('¿Mantenimiento realizado?')
-                    ->helperText('Marque esta opción si ya se realizó el mantenimiento correspondiente.')
-                    ->options([
-                        'pendiente' => 'Pendiente',
-                        'realizado' => 'Realizado',
-                    ])
-                    ->icons([
-                        'pendiente' => 'heroicon-o-clock',
-                        'realizado' => 'heroicon-o-check-circle',
-                    ])
-                    ->colors([
-                        'pendiente' => 'warning',
-                        'realizado' => 'success',
-                    ])
-                    ->default('pendiente') // Estado por defecto
-                    ->reactive(),
 
 
                 // Campo tipo de mantenimiento (solo lectura)
                 Forms\Components\TextInput::make('tipo_mantenimiento')
                     ->label('Tipo de Mantenimiento')
                     ->placeholder('Se calculará automáticamente con el kilometraje de llegada')
-                    ->readOnly()
+                    ->readOnly(),
+
 
             ]);
 
@@ -217,15 +236,16 @@ class SalidaDeBusesResource extends Resource
 
 
                 Tables\Columns\TextColumn::make('tipo_mantenimiento'),
-                Tables\Columns\TextColumn::make('status_mantenimiento')
-                    ->label('Mantenimiento')
+                Tables\Columns\TextColumn::make('estado_mantenimiento')
+                    ->label('Estado de Mantenimiento')
+                    ->getStateUsing(fn($record) => optional($record->mantenimiento)->estado_mantenimiento ?? 'No asignado')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
-
                         'pendiente' => 'warning',
+                        'en_proceso' => 'info',
                         'realizado' => 'success',
-
-                    })
+                        default => 'gray', // Color para "No asignado"
+                    }),
 
             ])
             ->filters([

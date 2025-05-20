@@ -28,7 +28,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Get;
 use Filament\Tables\Columns\IconColumn;
 use App\Models\Bus;
-
+use Carbon\Carbon;
 use Filament\Forms\Components\Container; // Asegúrate de que esta línea esté presente
 
 
@@ -53,9 +53,11 @@ class AsignacionDeBusResource extends Resource
                             ->options(function (callable $get, $livewire) {
                                 $fecha = $get('fecha_designacion');
                                 if (!$fecha)
-                                    return [];
+                                    return []; // No hay fecha, no se muestran opciones
+                    
+                                $mes = Carbon::parse($fecha)->format('Y-m');
 
-                                $ocupados = \App\Models\AsignacionDeBus::whereDate('fecha_designacion', '<=', $fecha)
+                                $ocupados = AsignacionDeBus::whereRaw("DATE_FORMAT(fecha_designacion, '%Y-%m') = ?", [$mes])
                                     ->where(function ($query) use ($fecha) {
                                         $query->whereNull('fin_asignacion')
                                             ->orWhereDate('fin_asignacion', '>=', $fecha);
@@ -67,12 +69,13 @@ class AsignacionDeBusResource extends Resource
 
                                 $idsOcupados = $ocupados->pluck('id_conductor');
 
-                                return \App\Models\Conductor::whereNotIn('id', $idsOcupados)
+                                return Conductor::whereNotIn('id', $idsOcupados)
                                     ->get()
                                     ->mapWithKeys(fn($c) => [
                                         $c->id => "{$c->nombre} {$c->apellido_paterno} {$c->apellido_materno}"
                                     ]);
                             })
+
                             ->reactive()
                             ->required()
                             ->placeholder('Selecciona un conductor'),
@@ -84,7 +87,7 @@ class AsignacionDeBusResource extends Resource
                                 if (!$fecha)
                                     return [];
 
-                                $ocupados = \App\Models\AsignacionDeBus::whereDate('fecha_designacion', '<=', $fecha)
+                                $ocupados = AsignacionDeBus::whereDate('fecha_designacion', '<=', $fecha)
                                     ->where(function ($query) use ($fecha) {
                                         $query->whereNull('fin_asignacion')
                                             ->orWhereDate('fin_asignacion', '>=', $fecha);
@@ -96,7 +99,7 @@ class AsignacionDeBusResource extends Resource
 
                                 $idsOcupados = $ocupados->pluck('id_anfitrion');
 
-                                return \App\Models\Anfitrion::whereNotIn('id', $idsOcupados)
+                                return Anfitrion::whereNotIn('id', $idsOcupados)
                                     ->get()
                                     ->mapWithKeys(fn($a) => [
                                         $a->id => "{$a->nombre} {$a->apellido_paterno} {$a->apellido_materno}"
@@ -113,7 +116,7 @@ class AsignacionDeBusResource extends Resource
                                 if (!$fecha)
                                     return [];
 
-                                $ocupados = \App\Models\AsignacionDeBus::whereDate('fecha_designacion', '<=', $fecha)
+                                $ocupados = AsignacionDeBus::whereDate('fecha_designacion', '<=', $fecha)
                                     ->where(function ($query) use ($fecha) {
                                         $query->whereNull('fin_asignacion')
                                             ->orWhereDate('fin_asignacion', '>=', $fecha);
@@ -125,7 +128,7 @@ class AsignacionDeBusResource extends Resource
 
                                 $idsOcupados = $ocupados->pluck('id_buses');
 
-                                return \App\Models\Bus::whereNotIn('id', $idsOcupados)
+                                return Bus::whereNotIn('id', $idsOcupados)
                                     ->pluck('numero_bus', 'id');
                             })
                             ->reactive()
@@ -163,9 +166,13 @@ class AsignacionDeBusResource extends Resource
                             ->placeholder('Selecciona la hora de salida'),
 
                         DatePicker::make('fecha_designacion')
-                            ->label('Fecha de Designación')
-                            ->required()
-                            ->placeholder('Selecciona la fecha de designación'),
+    ->label('Fecha de Designación')
+    ->required()
+    ->reactive()
+    ->afterStateUpdated(fn (callable $set) => $set('id_conductor', null)) // Reinicia opciones de conductor al cambiar fecha
+    ->afterStateUpdated(fn (callable $set) => $set('id_anfitrion', null)) // Reinicia opciones de anfitrión
+    ->afterStateUpdated(fn (callable $set) => $set('id_buses', null)) // Reinicia opciones de buses
+    ->placeholder('Selecciona la fecha de designación'),
                     ])
                     ->columnSpan(1)
                     ->extraAttributes(['class' => 'p-6 min-h-[250px] bg-gradient-to-r from-purple-500 to-purple-700 rounded-xl shadow-lg border border-transparent text-white']), // Fondo degradado y bordes redondeados

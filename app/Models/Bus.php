@@ -11,7 +11,7 @@ class Bus extends Model
     protected $fillable = [
         'numero_placa',
         'numero_bus',
-        'numero_chasis',
+        'uniqueId',
         ];
 
        
