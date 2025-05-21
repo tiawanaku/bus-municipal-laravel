@@ -3,47 +3,59 @@
 namespace App\Filament\Resources\EntregaTalonariosAnfitrionResource\Pages;
 
 use App\Filament\Resources\EntregaTalonariosAnfitrionResource;
-use Filament\Actions;
+use App\Models\EntregaTalonariosAnfitrion;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Model;
+use Filament\Notifications\Notification;
+use Illuminate\Database\QueryException;
 
 class CreateEntregaTalonariosAnfitrion extends CreateRecord
 {
     protected static string $resource = EntregaTalonariosAnfitrionResource::class;
 
-    protected function beforeCreate(): void
-    {
-        $data = $this->form->getState();
+   protected function handleRecordCreation(array $data): Model
+{
+    try {
+        $data['anfitrion_id'] = $data['anfitrion_id'] ?? null;
+        $data['entrega_talonario_id'] = $data['recibido_por'] ?? null;
+        $data['numero_autorizacion'] = $data['numero_autorizacion'] ?? '';
+        $data['cantidad_talonarios_preferenciales'] = $data['cantidad_talonarios_preferenciales'] ?? 0;
+        $data['rango_inicial_preferenciales'] = $data['rango_inicial_preferenciales'] ?? 0;
+        $data['cantidad_talonarios_regulares'] = $data['cantidad_talonarios_regulares'] ?? 0;
+        $data['rango_inicial_regulares'] = $data['rango_inicial_regulares'] ?? 0;
+        $data['fecha_entrega'] = $data['fecha_entrega'] ?? now()->format('Y-m-d');
+        $data['observaciones'] = $data['observaciones'] ?? '';
 
-        // Extraer y validar los campos necesarios
-        $anfitrion_id = $data['anfitrion_id'] ?? null;
-        $recibido_por = $data['recibido_por'] ?? null;
-        $numero_autorizacion = $data['numero_autorizacion'] ?? null;
-        $cantidad_pref = $data['cantidad_talonarios_preferenciales'] ?? null;
-        $rango_ini_pref = $data['rango_inicial_preferenciales'] ?? null;
-        $cantidad_reg = $data['cantidad_talonarios_regulares'] ?? null;
-        $rango_ini_reg = $data['rango_inicial_regulares'] ?? null;
-
-        if (
-            is_null($anfitrion_id) || is_null($recibido_por) || is_null($numero_autorizacion) ||
-            is_null($cantidad_pref) || is_null($rango_ini_pref) ||
-            is_null($cantidad_reg) || is_null($rango_ini_reg)
-        ) {
-            throw new \Exception('Faltan datos obligatorios para registrar la entrega.');
-        }
-
-        // Llamar al nuevo procedimiento almacenado con los 7 parámetros
-        DB::statement('CALL registrar_entrega_anfitrion(?, ?, ?, ?, ?, ?, ?)', [
-            $anfitrion_id,
-            $recibido_por,
-            $numero_autorizacion,
-            $cantidad_pref,
-            $rango_ini_pref,
-            $cantidad_reg,
-            $rango_ini_reg,
+        DB::statement('CALL entregar_talonarios_anfitrion(?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+            $data['entrega_talonario_id'],
+            $data['anfitrion_id'],
+            $data['numero_autorizacion'],
+            $data['cantidad_talonarios_preferenciales'],
+            $data['rango_inicial_preferenciales'],
+            $data['cantidad_talonarios_regulares'],
+            $data['rango_inicial_regulares'],
+            $data['fecha_entrega'],
+            $data['observaciones'],
         ]);
 
-        // Cancelar la creación automática ya que el procedimiento hace el insert
-        $this->halt();
+        Notification::make()
+            ->title('Entrega realizada correctamente')
+            ->success()
+            ->send();
+
+        // Si quieres devolver el modelo creado, deberías crear una consulta correcta aquí:
+        return EntregaTalonariosAnfitrion::latest('id')->first();
+
+    } catch (QueryException $e) {
+        Notification::make()
+            ->title('Error al realizar la entrega')
+            ->body($e->getMessage())
+            ->danger()
+            ->send();
+
+        throw $e;
     }
+}
+
 }

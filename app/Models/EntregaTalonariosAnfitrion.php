@@ -13,8 +13,8 @@ class EntregaTalonariosAnfitrion extends Model
 
     protected $fillable = [
         'anfitrion_id',
-        'cajero_id',
         'numero_autorizacion',
+        'entrega_talonario_id',
 
         // Preferenciales
         'cantidad_talonarios_preferenciales',

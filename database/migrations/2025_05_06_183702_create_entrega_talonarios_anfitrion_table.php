@@ -14,31 +14,34 @@ return new class extends Migration
         Schema::create('entrega_talonarios_anfitrion', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('anfitrion_id')->constrained('anfitrions')->onDelete('restrict');
-            $table->foreignId('recibido_por')->nullable()->constrained('cajeros'); // Cajero secundario que entrega
-            $table->date('fecha_entrega')->nullable();
+            $table->foreignId('entrega_talonario_id')->nullable()->constrained('entrega_talonarios')->onDelete('set null');
+            $table->foreignId('anfitrion_id')->nullable()->constrained('anfitrions')->onDelete('set null');
             $table->string('numero_autorizacion')->nullable();
-
             // Preferenciales
-            $table->integer('cantidad_talonarios_preferenciales')->nullable();
-            $table->integer('rango_inicial_preferenciales')->nullable();
-            $table->integer('rango_final_preferenciales')->nullable();
+            $table->integer('cantidad_preferenciales')->nullable();
+            $table->integer('rango_inicial_preferencial')->nullable();
+            $table->integer('rango_final_preferencial')->nullable();
+            $table->integer('total_boletos_preferenciales')->nullable();
+            $table->decimal('total_aproximado_bolivianos_preferencial', 10, 2)->nullable();
+            $table->integer('cantidad_restante_preferencial')->nullable();
 
             // Regulares
-            $table->integer('cantidad_talonarios_regulares')->nullable();
-            $table->integer('rango_inicial_regulares')->nullable();
-            $table->integer('rango_final_regulares')->nullable();
+            $table->integer('cantidad_regulares')->nullable();
+            $table->integer('rango_inicial_regular')->nullable();
+            $table->integer('rango_final_regular')->nullable();
+            $table->integer('total_boletos_regulares')->nullable();
+            $table->decimal('total_aproximado_bolivianos_regular', 10, 2)->nullable();
+            $table->integer('cantidad_restante_regular')->nullable();
 
-            // Totales
-            $table->integer('total_tickets_regulares')->nullable();
-            $table->integer('total_tickets_preferenciales')->nullable();
-            $table->decimal('total_recaudar_regulares', 10, 2)->nullable();
-            $table->decimal('total_recaudar_preferenciales', 10, 2)->nullable();
-            $table->decimal('total_recaudar', 10, 2)->nullable();
+            // Estado
+           $table->integer('estado_preferencial')->nullable();
+           $table->integer('estado_regular')->nullable();
 
-            // Nuevos estados
-            $table->tinyInteger('estado_preferencial')->default(2); // 0: Vendidos, 1: En venta, 2: Por vender
-            $table->tinyInteger('estado_regular')->default(2);      // 0: Vendidos, 1: En venta, 2: Por vender
+            // Información adicional
+            $table->string('tipo_talonarios')->nullable();
+            $table->date('fecha_entrega')->nullable();
+            $table->string('observaciones')->nullable();
+            $table->decimal('total_recaudacion_bolivianos', 10, 2)->nullable();
 
             $table->timestamps();
         });

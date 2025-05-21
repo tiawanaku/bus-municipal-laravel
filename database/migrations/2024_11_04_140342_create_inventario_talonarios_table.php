@@ -12,33 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('inventario_talonarios', function (Blueprint $table) {
-            $table->id();
-
-            $table->foreignId('cajero_id')->constrained('cajeros')->onDelete('cascade'); // Cajero principal
-
-            // Preferenciales
-            $table->integer('cantidad_preferenciales')->nullable();
-            $table->integer('rango_inicial_preferencial')->nullable();
-            $table->integer('rango_final_preferencial')->nullable();
-            $table->integer('cantidad_restante_preferencial')->nullable();
-            $table->integer('total_boletos_preferenciales')->nullable();
-            $table->decimal('total_aproximado_bolivianos', 10, 2)->nullable();
-
-            // Regulares
-            $table->integer('cantidad_regulares')->nullable();
-            $table->integer('rango_inicial_regular')->nullable();
-            $table->integer('rango_final_regular')->nullable();
-            $table->integer('cantidad_restante_regular')->nullable();
-            $table->integer('total_boletos_regulares')->nullable();
-            $table->decimal('total_aproximado_bolivianos_regular', 10, 2)->nullable();
-
-            // Info adicional
-            $table->integer('estado_preferencial')->default(0);
-            $table->integer('estado_regular')->default(0);
-            $table->string('tipo_talonarios')->nullable(); // puede ser mixto, preferencial, regular
-            $table->date('fecha_entrega')->nullable();
-            $table->string('observaciones')->nullable();
-
+            $table->bigIncrements('id');
+            $table->unsignedBigInteger('cajero_id')->index('inventario_talonarios_cajero_id_foreign');
+            $table->string('codigo_autorizacion');
+            $table->string('tipo_talonario');
+            $table->integer('cantidad_tickets');
+            $table->integer('rango_inicial');
+            $table->integer('rango_final');
+            $table->integer('numero_paquete');
+            $table->integer('talonarios_por_paquete');
+            $table->decimal('valor_ticket_bs');
             $table->timestamps();
         });
     }
