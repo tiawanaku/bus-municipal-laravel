@@ -2,7 +2,7 @@ DELIMITER //
 
 CREATE PROCEDURE entregar_talonarios (
     IN p_cajero_id INT,
-    IN P_inventario_id INT,
+    IN P_inventario_id INT, -- ya no se usará directamente, pero se mantiene por compatibilidad
     IN p_cantidad_preferenciales INT,
     IN p_rango_inicial_preferencial INT,
     IN p_cantidad_regulares INT,
@@ -27,6 +27,8 @@ BEGIN
     DECLARE inv_cantidad_pref INT;
     DECLARE inv_cantidad_reg INT;
 
+    DECLARE primer_inventario_id INT DEFAULT NULL;
+
     DECLARE cur CURSOR FOR
         SELECT id, cantidad_restante_preferencial, cantidad_restante_regular
         FROM inventario_talonarios
@@ -35,14 +37,14 @@ BEGIN
 
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
 
-    -- Solo calcular rangos y totales si hay cantidades preferenciales
+    -- Calcular rangos y totales si hay cantidades preferenciales
     IF p_cantidad_preferenciales > 0 THEN
         SET rango_final_preferencial = p_rango_inicial_preferencial + (p_cantidad_preferenciales * 50) - 1;
         SET total_boletos_preferenciales = p_cantidad_preferenciales * 50;
         SET total_estimado_preferenciales = total_boletos_preferenciales * 1.00;
     END IF;
 
-    -- Solo calcular rangos y totales si hay cantidades regulares
+    -- Calcular rangos y totales si hay cantidades regulares
     IF p_cantidad_regulares > 0 THEN
         SET rango_final_regular = p_rango_inicial_regular + (p_cantidad_regulares * 50) - 1;
         SET total_boletos_regulares = p_cantidad_regulares * 50;
@@ -51,8 +53,9 @@ BEGIN
 
     SET total_estimado_general = total_estimado_preferenciales + total_estimado_regulares;
 
-    -- Repartir talonarios preferenciales si cantidad > 0
+    -- Repartir talonarios preferenciales
     IF p_cantidad_preferenciales > 0 THEN
+        SET done = FALSE;
         OPEN cur;
         read_loop_pref: LOOP
             FETCH cur INTO inv_id, inv_cantidad_pref, inv_cantidad_reg;
@@ -61,6 +64,10 @@ BEGIN
             END IF;
 
             IF cantidad_total_preferenciales > 0 AND inv_cantidad_pref > 0 THEN
+                IF primer_inventario_id IS NULL THEN
+                    SET primer_inventario_id = inv_id;
+                END IF;
+
                 IF inv_cantidad_pref >= cantidad_total_preferenciales THEN
                     UPDATE inventario_talonarios
                     SET cantidad_restante_preferencial = cantidad_restante_preferencial - cantidad_total_preferenciales
@@ -77,7 +84,7 @@ BEGIN
         CLOSE cur;
     END IF;
 
-    -- Repartir talonarios regulares si cantidad > 0
+    -- Repartir talonarios regulares
     IF p_cantidad_regulares > 0 THEN
         SET done = FALSE;
         OPEN cur;
@@ -88,6 +95,10 @@ BEGIN
             END IF;
 
             IF cantidad_total_regulares > 0 AND inv_cantidad_reg > 0 THEN
+                IF primer_inventario_id IS NULL THEN
+                    SET primer_inventario_id = inv_id;
+                END IF;
+
                 IF inv_cantidad_reg >= cantidad_total_regulares THEN
                     UPDATE inventario_talonarios
                     SET cantidad_restante_regular = cantidad_restante_regular - cantidad_total_regulares
@@ -129,7 +140,7 @@ BEGIN
         created_at,
         updated_at
     ) VALUES (
-        P_inventario_id,
+        primer_inventario_id,
         p_cajero_id,
         p_cantidad_preferenciales,
         p_rango_inicial_preferencial,
@@ -143,9 +154,9 @@ BEGIN
         total_boletos_regulares,
         total_estimado_regulares,
         p_cantidad_regulares - cantidad_total_regulares,
-        'pendiente',
-        'pendiente',
-        'mixto',
+        '0',
+        '0',
+        '0',
         p_fecha,
         p_observaciones,
         total_estimado_general,
