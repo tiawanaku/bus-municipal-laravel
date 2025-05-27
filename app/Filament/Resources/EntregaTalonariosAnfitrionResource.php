@@ -43,7 +43,7 @@ class EntregaTalonariosAnfitrionResource extends Resource
                     ->schema([
 
                         Forms\Components\Select::make('entrega_talonario_id')  // Este campo luego se asigna a cajero_id
-                            ->label('Cajero secundario')
+                            ->label('Cajero Patio de Ops.')
                             ->prefixIcon('heroicon-o-user')
                             ->options(function () {
                                 return \App\Models\Cajero::where('tipo_cajero', 'secundario')
@@ -77,12 +77,54 @@ class EntregaTalonariosAnfitrionResource extends Resource
                     ]),
 
                 Forms\Components\Section::make('Preferenciales')
-                    ->columns(2)
+                    ->columns(4)
                     ->schema([
+
+
+                        // Campo 'Del'
+                        Forms\Components\TextInput::make('preferencial_del')
+                            ->label('Del')
+                            ->prefixIcon('heroicon-o-arrow-down')
+                            ->numeric()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                $del = (int) $state;
+                                $al = (int) $get('preferencial_al');
+
+                                if ($del && $al && $al >= $del) {
+                                    $set('cantidad_talonarios_preferenciales', $al - $del + 1);
+                                }
+                            }),
+
+                        // Campo 'Al'
+                        Forms\Components\TextInput::make('preferencial_al')
+                            ->label('Al')
+                            ->prefixIcon('heroicon-o-arrow-up')
+                            ->numeric()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                $al = (int) $state;
+                                $del = (int) $get('preferencial_del');
+
+                                if ($del && $al && $al >= $del) {
+                                    $set('cantidad_talonarios_preferenciales', $al - $del + 1);
+                                }
+                            }),
+
+                        // Campo 'Cantidad de Talonarios Preferenciales' (editable)
                         Forms\Components\TextInput::make('cantidad_talonarios_preferenciales')
                             ->label('Cantidad de Talonarios Preferenciales')
                             ->prefixIcon('heroicon-o-hashtag')
-                            ->numeric(),
+                            ->numeric()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                $cantidad = (int) $state;
+                                $del = (int) $get('preferencial_del');
+
+                                if ($del && $cantidad > 0) {
+                                    $set('preferencial_al', $del + $cantidad - 1);
+                                }
+                            }),
 
                         Forms\Components\TextInput::make('rango_inicial_preferenciales')
                             ->label('Rango Inicial Preferenciales')
@@ -91,13 +133,62 @@ class EntregaTalonariosAnfitrionResource extends Resource
                     ])
                     ->visible(fn(Forms\Get $get) => in_array($get('tipo_talonario'), ['preferencial', 'ambos'])),
 
+
+
+
+
                 Forms\Components\Section::make('Regulares')
-                    ->columns(2)
+                    ->columns(4)
                     ->schema([
+
+                        // Campo 'Del' (regulares)
+                        Forms\Components\TextInput::make('regular_del')
+                            ->label('Del')
+                            ->prefixIcon('heroicon-o-arrow-down')
+                            ->numeric()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                $del = (int) $state;
+                                $al = (int) $get('regular_al');
+
+                                if ($del && $al && $al >= $del) {
+                                    $set('cantidad_talonarios_regulares', $al - $del + 1);
+                                } else {
+                                    $set('cantidad_talonarios_regulares', null);
+                                }
+                            }),
+
+                        // Campo 'Al' (regulares)
+                        Forms\Components\TextInput::make('regular_al')
+                            ->label('Al')
+                            ->prefixIcon('heroicon-o-arrow-up')
+                            ->numeric()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                $al = (int) $state;
+                                $del = (int) $get('regular_del');
+
+                                if ($del && $al && $al >= $del) {
+                                    $set('cantidad_talonarios_regulares', $al - $del + 1);
+                                } else {
+                                    $set('cantidad_talonarios_regulares', null);
+                                }
+                            }),
+
+                        // Campo 'Cantidad de Talonarios Regulares' (editable y bidireccional)
                         Forms\Components\TextInput::make('cantidad_talonarios_regulares')
                             ->label('Cantidad de Talonarios Regulares')
                             ->prefixIcon('heroicon-o-hashtag')
-                            ->numeric(),
+                            ->numeric()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                $cantidad = (int) $state;
+                                $del      = (int) $get('regular_del');
+
+                                if ($del && $cantidad > 0) {
+                                    $set('regular_al', $del + $cantidad - 1);
+                                }
+                            }),
 
                         Forms\Components\TextInput::make('rango_inicial_regulares')
                             ->label('Rango Inicial Regulares')

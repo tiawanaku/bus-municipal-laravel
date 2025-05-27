@@ -20,6 +20,10 @@ use Filament\Forms\Components\Select;
 use App\Models\Cajero;
 use Filament\Forms\Components\TextInput;
 
+use IbrahimBougaoua\FilaProgress\Tables\Columns\CircleProgress;
+use IbrahimBougaoua\FilaProgress\Tables\Columns\ProgressBar;
+
+
 class InventarioTalonariosResource extends Resource
 {
     protected static ?string $model = InventarioTalonarios::class;
@@ -350,6 +354,7 @@ class InventarioTalonariosResource extends Resource
     {
         return $table
             ->columns([
+
                 Tables\Columns\TextColumn::make('cajero_id')
                     ->label('Cajero')
                     ->toggleable(isToggledHiddenByDefault: true)
@@ -369,17 +374,36 @@ class InventarioTalonariosResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('cantidad_restante_preferencial')
-                    ->label('Preferenciales Restantes')
-                    ->badge() // opcional: muestra como etiqueta de color
+                    ->label('Cantidad Restante')
+                    ->badge()
                     ->color(function ($state) {
                         if ($state < 800) {
                             return 'danger'; // rojo
-                        } elseif ($state < 1200) {
-                            return 'warning'; // amarillo
+                        } elseif ($state < 2000) {
+                            return 'success'; // amarillo
                         } else {
-                            return 'success'; // verde
+                            return 'primary'; // verde
                         }
                     }),
+
+                ProgressBar::make('preferenciales_progress_bar')
+                    ->getStateUsing(function ($record) {
+                        $total = $record->cantidad_preferenciales ?? 1;
+                        $restante = $record->cantidad_restante_preferencial ?? 0;
+
+                        if ($total == 0) $total = 1;
+
+                        $porcentaje = round(($restante / $total) * 100);
+
+                        return [
+                            'total' => 100,
+                            'progress' => $porcentaje,
+                        ];
+                    })
+                    ->label('% Restante Preferenciales'),
+
+
+
 
                 Tables\Columns\TextColumn::make('total_boletos_preferenciales')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -407,12 +431,29 @@ class InventarioTalonariosResource extends Resource
                     ->color(function ($state) {
                         if ($state < 800) {
                             return 'danger'; // rojo
-                        } elseif ($state < 1200) {
-                            return 'warning'; // amarillo
+                        } elseif ($state < 2000) {
+                            return 'success'; // amarillo
                         } else {
-                            return 'success'; // verde
+                            return 'primary'; // verde
                         }
                     }),
+
+                ProgressBar::make('regulares_progress_bar')
+                    ->getStateUsing(function ($record) {
+                        $total = $record->cantidad_regulares ?? 1;
+                        $restante = $record->cantidad_restante_regular ?? 0;
+
+                        if ($total == 0) $total = 1;
+
+                        $porcentaje = round(($restante / $total) * 100);
+
+                        return [
+                            'total' => 100,
+                            'progress' => $porcentaje,
+                        ];
+                    })
+                    ->label('% Restante Regulares'),
+
 
                 Tables\Columns\TextColumn::make('total_boletos_regulares')
                     ->toggleable(isToggledHiddenByDefault: true),
