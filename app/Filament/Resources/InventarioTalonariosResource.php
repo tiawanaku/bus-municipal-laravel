@@ -20,8 +20,12 @@ use Filament\Forms\Components\Select;
 use App\Models\Cajero;
 use Filament\Forms\Components\TextInput;
 
-use IbrahimBougaoua\FilaProgress\Tables\Columns\CircleProgress;
 use IbrahimBougaoua\FilaProgress\Tables\Columns\ProgressBar;
+
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\TernaryFilter;
+
 
 
 class InventarioTalonariosResource extends Resource
@@ -75,7 +79,7 @@ class InventarioTalonariosResource extends Resource
                                 ->prefixIcon('heroicon-o-calendar')
                                 ->label('Fecha de solicitud de dosificacion'),
 
-                            Forms\Components\DatePicker::make('fecha_uatorizacion')
+                            Forms\Components\DatePicker::make('fecha_autorizacion')
                                 ->prefixIcon('heroicon-o-calendar')
                                 ->label('Fecha de Autorizacion'),
 
@@ -123,12 +127,13 @@ class InventarioTalonariosResource extends Resource
                             return \App\Models\Cajero::where('tipo_cajero', 'principal')
                                 ->get()
                                 ->mapWithKeys(function ($cajero) {
-                                    $fullName = "{$cajero->nombre} {$cajero->apellido_paterno} {$cajero->apellido_materno}";
-                                    return [$cajero->id => $fullName];
+                                    return [$cajero->id => $cajero->nombre_completo ?: 'Nombre no disponible'];
                                 });
                         })
                         ->searchable()
                         ->required(),
+
+
 
                     Forms\Components\DatePicker::make('fecha_entrega')
                         ->label('Fecha de Entrega')
@@ -297,9 +302,6 @@ class InventarioTalonariosResource extends Resource
             ]);
     }
 
-
-
-
     public static function saving(InventarioTalonarios $record)
     {
         $inicioPref = request('rango_inicial_preferencial');
@@ -346,9 +348,16 @@ class InventarioTalonariosResource extends Resource
                 ->send();
         }
     }
+    public function getNombreCompletoAttribute(): string
+    {
+        $nombre = $this->nombre ?? '';
+        $apellidoPaterno = $this->apellido_paterno ?? '';
+        $apellidoMaterno = $this->apellido_materno ?? '';
 
+        $fullName = trim("{$nombre} {$apellidoPaterno} {$apellidoMaterno}");
 
-
+        return $fullName ?: 'Nombre no disponible';
+    }
 
     public static function table(Table $table): Table
     {
@@ -401,9 +410,6 @@ class InventarioTalonariosResource extends Resource
                         ];
                     })
                     ->label('% Restante Preferenciales'),
-
-
-
 
                 Tables\Columns\TextColumn::make('total_boletos_preferenciales')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -469,13 +475,72 @@ class InventarioTalonariosResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                // Agrega filtros aquí si es necesario
+
+                Tables\Filters\SelectFilter::make('cajero_id')
+                    ->label('Cajero')
+                    ->options(
+                        Cajero::where('tipo_cajero', 'principal')
+                            ->get()
+                            ->mapWithKeys(fn($cajero) => [
+                                $cajero->id => $cajero->nombre_completo ?: 'Nombre no disponible'
+                            ])
+                            ->toArray()
+                    )
+                    ->searchable(),
+
+                Tables\Filters\Filter::make('cantidad_restante_preferencial')
+                    ->label('Cantidad Restante Preferencial < 1000')
+                    ->query(fn($query) => $query->where('cantidad_restante_preferencial', '<', 1000)),
+
+                Tables\Filters\Filter::make('cantidad_restante_regular')
+                    ->label('Cantidad Restante Regular < 1000')
+                    ->query(fn($query) => $query->where('cantidad_restante_regular', '<', 1000)),
+
+                Tables\Filters\Filter::make('monto_preferencial_alto')
+                    ->label('Recaudo Preferencial > Bs. 5000')
+                    ->query(fn($query) => $query->where('total_aproximado_bolivianos_preferencial', '>', 5000)),
+
+                Tables\Filters\Filter::make('monto_regular_alto')
+                    ->label('Recaudo Regular > Bs. 5000')
+                    ->query(fn($query) => $query->where('total_aproximado_bolivianos_regular', '>', 5000)),
+
+                Tables\Filters\TernaryFilter::make('observaciones')
+                    ->label('Tiene Observaciones')
+                    ->trueLabel('Sí')
+                    ->falseLabel('No')
+                    ->queries(
+                        true: fn($query) => $query->whereNotNull('observaciones')->where('observaciones', '!=', ''),
+                        false: fn($query) => $query->whereNull('observaciones')->orWhere('observaciones', ''),
+                    ),
+
+                Tables\Filters\Filter::make('fecha_creacion')
+                    ->form([
+                        Forms\Components\DatePicker::make('from')->label('Desde'),
+                        Forms\Components\DatePicker::make('until')->label('Hasta'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query
+                            ->when($data['from'], fn($query) => $query->whereDate('created_at', '>=', $data['from']))
+                            ->when($data['until'], fn($query) => $query->whereDate('created_at', '<=', $data['until']));
+                    }),
             ])
             ->searchable() // Esta línea habilita la búsqueda
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('descargar_pdf')
+                    ->label('Hoja de Ruta en  PDF')
+                    ->url(fn($record) => asset('storage/' . $record->cite_nota_solicitud))
+                    ->openUrlInNewTab()
+                    ->visible(fn($record) => !empty($record->cite_nota_solicitud)),
                 //Tables\Actions\DeleteAction::make(),
                 //Tables\Actions\ViewAction::make(),
+            ])
+            ->headerActions([
+                Tables\Actions\Action::make('descargar_pdf')
+                    ->label('Descargar PDF')
+                    ->icon('heroicon-o-printer') // Ícono válido
+                    ->url(fn() => route('inventario.pdf'))
+                    ->openUrlInNewTab()
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -27,6 +27,13 @@ class Cajero extends Model
         'fecha_fin_contrato',
     ];
 
+
+    // Accesor para el nombre completo
+    public function getNombreCompletoAttribute()
+    {
+        return trim("{$this->nombre} {$this->apellido_paterno} {$this->apellido_materno}");
+    }
+
     // Relación con su cajero padre (si aplica)
     public function cajeroPadre()
     {

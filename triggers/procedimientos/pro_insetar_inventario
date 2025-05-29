@@ -7,15 +7,34 @@ CREATE PROCEDURE inventario_talonarios (
     IN p_cantidad_regulares INT,
     IN p_rango_inicial_regular INT,
     IN p_fecha_entrega DATE,
-    IN p_observaciones VARCHAR(255)
+    IN p_observaciones VARCHAR(255),
+
+    -- Nuevos campos PDF y cita
+    IN p_cite_nota_solicitud VARCHAR(255),
+    IN p_cite_nota_solicitud_filename VARCHAR(255),
+    IN p_n_cite VARCHAR(255),
+    IN p_gestion VARCHAR(255),
+    IN p_n_dosificacion VARCHAR(255),
+    IN p_numero_autorizacion VARCHAR(255),
+    IN p_fecha_solicitud_dosificacion DATE,
+    IN p_fecha_autorizacion DATE,
+    IN p_fecha_activacion DATE,
+
+    -- Nuevos rangos
+    IN p_regular_del INT,
+    IN p_regular_al INT,
+    IN p_preferencial_del INT,
+    IN p_preferencial_al INT
 )
 BEGIN
     DECLARE v_rango_final_preferencial INT DEFAULT 0;
-    DECLARE v_rango_final_regular INT DEFAULT 0;
     DECLARE v_total_boletos_preferenciales INT DEFAULT 0;
-    DECLARE v_total_boletos_regulares INT DEFAULT 0;
     DECLARE v_total_bs_preferenciales DECIMAL(10,2) DEFAULT 0.00;
+
+    DECLARE v_rango_final_regular INT DEFAULT 0;
+    DECLARE v_total_boletos_regulares INT DEFAULT 0;
     DECLARE v_total_bs_regulares DECIMAL(10,2) DEFAULT 0.00;
+
     DECLARE v_total_recaudar DECIMAL(10,2) DEFAULT 0.00;
 
     IF p_cantidad_preferenciales > 0 THEN
@@ -53,7 +72,24 @@ BEGIN
         observaciones,
         total_recaudacion_bolivianos,
         created_at,
-        updated_at
+        updated_at,
+
+        -- Nuevos campos PDF y cita
+        cite_nota_solicitud,
+        cite_nota_solicitud_filename,
+        n_cite,
+        gestion,
+        n_dosificacion,
+        numero_autorizacion,
+        fecha_solicitud_dosificacion,
+        fecha_autorizacion,
+        fecha_activacion,
+
+        -- Nuevos rangos
+        regular_del,
+        regular_al,
+        preferencial_del,
+        preferencial_al
     ) VALUES (
         p_cajero_id,
         p_cantidad_preferenciales,
@@ -75,7 +111,24 @@ BEGIN
         p_observaciones,
         v_total_recaudar,
         NOW(),
-        NOW()
+        NOW(),
+
+        -- Nuevos valores PDF y cita
+        p_cite_nota_solicitud,
+        p_cite_nota_solicitud_filename,
+        p_n_cite,
+        p_gestion,
+        p_n_dosificacion,
+        p_numero_autorizacion,
+        p_fecha_solicitud_dosificacion,
+        p_fecha_autorizacion,
+        p_fecha_activacion,
+
+        -- Nuevos valores rangos
+        p_regular_del,
+        p_regular_al,
+        p_preferencial_del,
+        p_preferencial_al
     );
 END$$
 

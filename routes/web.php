@@ -8,6 +8,7 @@ use App\Http\Controllers\SeguimientoController;
 use App\Http\Controllers\InicioController;
 use App\Http\Controllers\PdfController;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Http\Controllers\InventariController;
 
 
 
@@ -15,7 +16,7 @@ Route::get('/', function () {
     return view('partials.index');
 });
 
-Route::get('/', [InicioController::class, 'obtenerVista'], );
+Route::get('/', [InicioController::class, 'obtenerVista'],);
 Route::get('/ubicacion', [InicioController::class, 'obtenerUbicacion']);
 
 Route::get('/buscar', [InicioController::class, 'buscar']);
@@ -29,3 +30,8 @@ Route::get('/ruta-sur', [InicioController::class, 'showRutaSur'])->name('ruta-su
 
 
 Route::get('/pdf/generate/mantenimientos', [PdfController::class, 'MantenimientosRecords'])->name('pdf.example');
+
+
+
+
+Route::get('/exportar-pdf-inventario', [InventariController::class, 'exportarPDF'])->name('inventario.pdf');
