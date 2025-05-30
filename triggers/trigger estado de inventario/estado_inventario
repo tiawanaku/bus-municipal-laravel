@@ -1,0 +1,36 @@
+DELIMITER //
+
+CREATE TRIGGER tr_set_estado_inventario_talonarios
+BEFORE INSERT ON inventario_talonarios
+FOR EACH ROW
+BEGIN
+    DECLARE existe_asignable_preferencial INT DEFAULT 0;
+    DECLARE existe_asignable_regular INT DEFAULT 0;
+
+    -- Verifica si ya existe un estado_preferencial = 1
+    SELECT COUNT(*) INTO existe_asignable_preferencial
+    FROM inventario_talonarios
+    WHERE estado_preferencial = 1;
+
+    -- Verifica si ya existe un estado_regular = 1
+    SELECT COUNT(*) INTO existe_asignable_regular
+    FROM inventario_talonarios
+    WHERE estado_regular = 1;
+
+    -- Asigna el estado_preferencial
+    IF existe_asignable_preferencial = 0 THEN
+        SET NEW.estado_preferencial = 1; -- Asignable
+    ELSE
+        SET NEW.estado_preferencial = 2; -- En espera
+    END IF;
+
+    -- Asigna el estado_regular
+    IF existe_asignable_regular = 0 THEN
+        SET NEW.estado_regular = 1; -- Asignable
+    ELSE
+        SET NEW.estado_regular = 2; -- En espera
+    END IF;
+END;
+//
+
+DELIMITER ;

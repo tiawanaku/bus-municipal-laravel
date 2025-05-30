@@ -3,30 +3,18 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\InventarioTalonariosResource\Pages;
-use App\Filament\Resources\InventarioTalonariosResource\RelationManagers;
 use App\Models\InventarioTalonarios;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Forms\Components\Actions\Action;
-use Filament\Notifications\Notification;
-use Filament\Forms\Components\Button;
 use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Select;
 use App\Models\Cajero;
 use Filament\Forms\Components\TextInput;
-
 use IbrahimBougaoua\FilaProgress\Tables\Columns\ProgressBar;
-
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\Filter;
-use Filament\Tables\Filters\TernaryFilter;
-
-
+use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Actions\CreateAction;
 
 class InventarioTalonariosResource extends Resource
 {
@@ -35,7 +23,6 @@ class InventarioTalonariosResource extends Resource
     protected static ?string $navigationLabel = 'Inventarios de Talonarios';
     protected static ?string $navigationGroup = 'Gestión de Talonarios';
     protected static ?string $navigationIcon = 'heroicon-o-exclamation-circle';
-
 
     public static function form(Form $form): Form
     {
@@ -261,8 +248,6 @@ class InventarioTalonariosResource extends Resource
                                     };
                                 }),
 
-
-
                             Forms\Components\TextInput::make('cantidad_regulares')
                                 ->label('Cantidad Regulares')
                                 ->prefixIcon('heroicon-o-hashtag')
@@ -363,119 +348,106 @@ class InventarioTalonariosResource extends Resource
     {
         return $table
             ->columns([
-
                 Tables\Columns\TextColumn::make('cajero_id')
                     ->label('Cajero')
-                    ->toggleable(isToggledHiddenByDefault: true)
                     ->getStateUsing(function ($record) {
                         $cajero = \App\Models\Cajero::find($record->cajero_id);
                         return $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
-                    }),
-
-                Tables\Columns\TextColumn::make('cantidad_preferenciales')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('rango_inicial_preferencial')
+                    })
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('rango_final_preferencial')
+                // 🟪  resumen detos generales
+                Tables\Columns\TextColumn::make('resumen_general')
+                    ->label('Resumen General')
+                    ->html()
+                    ->getStateUsing(function ($record) {
+                        return "
+                        <strong>N° CITE:</strong> {$record->n_cite}<br>
+                        <strong>Gestión:</strong> {$record->gestion}<br>
+                        <strong>N° Dosificación:</strong> {$record->n_dosificacion}<br>
+                        <strong>Autorización:</strong> {$record->numero_autorizacion}<br>
+                        <strong>F.Solicitud:</strong> {$record->fecha_solicitud_dosificacion}<br>
+                        <strong>F.Autorización:</strong> {$record->fecha_autorizacion}<br>
+                        <strong>F.Activación:</strong> {$record->fecha_activacion}
+                        ";
+                    })
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('cantidad_restante_preferencial')
-                    ->label('Cantidad Restante')
-                    ->badge()
-                    ->color(function ($state) {
-                        if ($state < 800) {
-                            return 'danger'; // rojo
-                        } elseif ($state < 2000) {
-                            return 'success'; // amarillo
-                        } else {
-                            return 'primary'; // verde
-                        }
-                    }),
+                // 🟪 Preferenciales resumen
+                Tables\Columns\TextColumn::make('preferenciales_info')
+                    ->label('Resumen Preferenciales')
+                    ->html()
+                    ->getStateUsing(function ($record) {
+                        $estadoColor = match ($record->estado_preferencial) {
+                            0 => 'red',
+                            1 => 'green',
+                            2 => 'blue',
+                            default => 'black'
+                        };
 
+                        $estadoTexto = match ($record->estado_preferencial) {
+                            0 => 'Asignado',
+                            1 => 'Asignable',
+                            2 => 'En espera',
+                            default => 'Desconocido'
+                        };
+                        return "
+        <strong>Cantidad:</strong> {$record->cantidad_preferenciales}<br>
+        <strong>Restante:</strong> <span style='color:" . ($record->cantidad_restante_preferencial < 800 ? 'red' : ($record->cantidad_restante_preferencial < 2000 ? 'green' : 'blue')) . "'>
+        {$record->cantidad_restante_preferencial}</span><br>
+        <strong>Rango:</strong> {$record->rango_inicial_preferencial} - {$record->rango_final_preferencial}<br>
+        <strong>Tickets:</strong> {$record->total_boletos_preferenciales}<br>
+        <strong>Recaudo:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_preferencial, 2, '.', ',') . "<br>
+        <strong>Estado:</strong> <span style='color:{$estadoColor}'>{$estadoTexto}</span>";
+                    }),
                 ProgressBar::make('preferenciales_progress_bar')
+                    ->label('% Restante Preferenciales')
+                    ->getStateUsing(fn($record) => [
+                        'total' => 100,
+                        'progress' => round((($record->cantidad_restante_preferencial ?? 0) / ($record->cantidad_preferenciales ?: 1)) * 100)
+                    ]),
+
+                // 🟦 Regulares resumen
+                Tables\Columns\TextColumn::make('regulares_info')
+                    ->label('Resumen Regulares')
+                    ->html()
                     ->getStateUsing(function ($record) {
-                        $total = $record->cantidad_preferenciales ?? 1;
-                        $restante = $record->cantidad_restante_preferencial ?? 0;
+                        $estadoColor = match ($record->estado_regular) {
+                            0 => 'red',
+                            1 => 'green',
+                            2 => 'blue',
+                            default => 'black'
+                        };
 
-                        if ($total == 0) $total = 1;
-
-                        $porcentaje = round(($restante / $total) * 100);
-
-                        return [
-                            'total' => 100,
-                            'progress' => $porcentaje,
-                        ];
-                    })
-                    ->label('% Restante Preferenciales'),
-
-                Tables\Columns\TextColumn::make('total_boletos_preferenciales')
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('total_aproximado_bolivianos_preferencial')
-                    ->label('Total a Recaudar Pref. ')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->formatStateUsing(fn($state) => 'Bs. ' . number_format($state, 2, '.', ','))
-                    ->color('warning') // Color amaril
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('cantidad_regulares')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('rango_inicial_regular')
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('rango_final_regular')
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('cantidad_restante_regular')
-                    ->label('Regulares Restantes')
-                    ->badge()
-                    ->color(function ($state) {
-                        if ($state < 800) {
-                            return 'danger'; // rojo
-                        } elseif ($state < 2000) {
-                            return 'success'; // amarillo
-                        } else {
-                            return 'primary'; // verde
-                        }
+                        $estadoTexto = match ($record->estado_regular) {
+                            0 => 'Asignado',
+                            1 => 'Asignable',
+                            2 => 'En espera',
+                            default => 'Desconocido'
+                        };
+                        return "
+        <strong>Cantidad:</strong> {$record->cantidad_regulares}<br>
+        <strong>Restante:</strong> <span style='color:" . ($record->cantidad_restante_regular < 800 ? 'red' : ($record->cantidad_restante_regular < 2000 ? 'green' : 'blue')) . "'>
+        {$record->cantidad_restante_regular}</span><br>
+        <strong>Rango:</strong> {$record->rango_inicial_regular} - {$record->rango_final_regular}<br>
+        <strong>Tickets:</strong> {$record->total_boletos_regulares}<br>
+        <strong>Recaudo:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_regular, 2, '.', ',') . "<br>
+        <strong>Estado:</strong> <span style='color:{$estadoColor}'>{$estadoTexto}</span>";
                     }),
-
                 ProgressBar::make('regulares_progress_bar')
-                    ->getStateUsing(function ($record) {
-                        $total = $record->cantidad_regulares ?? 1;
-                        $restante = $record->cantidad_restante_regular ?? 0;
+                    ->label('% Restante Regulares')
+                    ->getStateUsing(fn($record) => [
+                        'total' => 100,
+                        'progress' => round((($record->cantidad_restante_regular ?? 0) / ($record->cantidad_regulares ?: 1)) * 100)
+                    ]),
 
-                        if ($total == 0) $total = 1;
-
-                        $porcentaje = round(($restante / $total) * 100);
-
-                        return [
-                            'total' => 100,
-                            'progress' => $porcentaje,
-                        ];
-                    })
-                    ->label('% Restante Regulares'),
-
-
-                Tables\Columns\TextColumn::make('total_boletos_regulares')
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('total_aproximado_bolivianos_regular')
-                    ->label('Total a Recaudar Regular')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->formatStateUsing(fn($state) => 'Bs. ' . number_format($state, 2, '.', ','))
-                    ->color('warning') // Color amaril
-                    ->toggleable(isToggledHiddenByDefault: true),
-
+                // Observaciones si existen
                 Tables\Columns\TextColumn::make('observaciones')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->label('Observaciones')
+                    ->wrap(), // Permite que se ajuste y no ensanche la tabla
             ])
-            ->filters([
 
+            ->filters([
                 Tables\Filters\SelectFilter::make('cajero_id')
                     ->label('Cajero')
                     ->options(
@@ -485,9 +457,15 @@ class InventarioTalonariosResource extends Resource
                                 $cajero->id => $cajero->nombre_completo ?: 'Nombre no disponible'
                             ])
                             ->toArray()
-                    )
-                    ->searchable(),
-
+                    ),
+                Tables\Filters\TernaryFilter::make('observaciones')
+                    ->label('Tiene Observaciones')
+                    ->trueLabel('Sí')
+                    ->falseLabel('No')
+                    ->queries(
+                        true: fn($query) => $query->whereNotNull('observaciones')->where('observaciones', '!=', ''),
+                        false: fn($query) => $query->whereNull('observaciones')->orWhere('observaciones', '')
+                    ),
                 Tables\Filters\Filter::make('cantidad_restante_preferencial')
                     ->label('Cantidad Restante Preferencial < 1000')
                     ->query(fn($query) => $query->where('cantidad_restante_preferencial', '<', 1000)),
@@ -504,19 +482,14 @@ class InventarioTalonariosResource extends Resource
                     ->label('Recaudo Regular > Bs. 5000')
                     ->query(fn($query) => $query->where('total_aproximado_bolivianos_regular', '>', 5000)),
 
-                Tables\Filters\TernaryFilter::make('observaciones')
-                    ->label('Tiene Observaciones')
-                    ->trueLabel('Sí')
-                    ->falseLabel('No')
-                    ->queries(
-                        true: fn($query) => $query->whereNotNull('observaciones')->where('observaciones', '!=', ''),
-                        false: fn($query) => $query->whereNull('observaciones')->orWhere('observaciones', ''),
-                    ),
-
+                // Solo este filtro tiene formulario (rango de fechas)
                 Tables\Filters\Filter::make('fecha_creacion')
+                    ->label('Rango de Fecha')
                     ->form([
-                        Forms\Components\DatePicker::make('from')->label('Desde'),
-                        Forms\Components\DatePicker::make('until')->label('Hasta'),
+                        Forms\Components\Grid::make(2)->schema([
+                            Forms\Components\DatePicker::make('from')->label('Desde'),
+                            Forms\Components\DatePicker::make('until')->label('Hasta'),
+                        ]),
                     ])
                     ->query(function ($query, array $data) {
                         return $query
@@ -524,23 +497,33 @@ class InventarioTalonariosResource extends Resource
                             ->when($data['until'], fn($query) => $query->whereDate('created_at', '<=', $data['until']));
                     }),
             ])
-            ->searchable() // Esta línea habilita la búsqueda
+            ->filtersFormColumns(2)
+
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('descargar_pdf')
-                    ->label('Hoja de Ruta en  PDF')
-                    ->url(fn($record) => asset('storage/' . $record->cite_nota_solicitud))
-                    ->openUrlInNewTab()
-                    ->visible(fn($record) => !empty($record->cite_nota_solicitud)),
-                //Tables\Actions\DeleteAction::make(),
-                //Tables\Actions\ViewAction::make(),
+                ActionGroup::make([
+                    Tables\Actions\EditAction::make()
+                        ->color('warning') // Amarillo para editar
+
+                    ,
+                    Tables\Actions\Action::make('descargar_pdf')
+                        ->label('Hoja de Ruta en PDF')
+                        ->url(fn($record) => asset('storage/' . $record->cite_nota_solicitud))
+                        ->openUrlInNewTab()
+                        ->icon('heroicon-o-document')
+                        ->color('primary') // Azul para descargar
+                        ->visible(fn($record) => !empty($record->cite_nota_solicitud)),
+                ])
+                    ->icon('heroicon-o-bars-3')
+                    ->label('Opciones') // Texto del botón del grupo
             ])
+
             ->headerActions([
+                CreateAction::make(),
                 Tables\Actions\Action::make('descargar_pdf')
                     ->label('Descargar PDF')
-                    ->icon('heroicon-o-printer') // Ícono válido
+                    ->icon('heroicon-o-printer')
                     ->url(fn() => route('inventario.pdf'))
-                    ->openUrlInNewTab()
+                    ->openUrlInNewTab(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

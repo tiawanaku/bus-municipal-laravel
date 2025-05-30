@@ -10,6 +10,7 @@
         "barryvdh/laravel-dompdf": "^3.1",
         "bezhansalleh/filament-shield": "^3.3",
         "dotswan/filament-map-picker": "^1.4",
+        "eightynine/filament-advanced-widgets": "*",
         "filament/filament": "^3.2",
         "fortawesome/font-awesome": "^6.5",
         "ibrahim-bougaoua/filaprogress": "^0.1.0",
