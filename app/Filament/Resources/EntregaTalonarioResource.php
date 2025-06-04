@@ -19,81 +19,139 @@ use App\Models\InventarioTalonarios;
 
 use Illuminate\Support\Carbon;
 
-use Filament\Notifications\Notification;
+
+
 
 use Filament\Forms\Components\Section;
-
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Placeholder;
-use Illuminate\Validation\ValidationException;
+
 use IbrahimBougaoua\FilaProgress\Tables\Columns\ProgressBar;
+use Filament\Forms\Components\Grid;
+use Illuminate\Support\Facades\DB;
+use Filament\Forms\Get;
+use Filament\Notifications\Notification;
 
 class EntregaTalonarioResource extends Resource
 {
     protected static ?string $model = EntregaTalonario::class;
-
     protected static ?string $navigationGroup = 'Gestión de Talonarios';
-
     protected static ?string $navigationIcon = 'heroicon-o-clock';
-
+    protected static ?string $navigationLabel  = 'Inventario del Cajero';
 
     public static function form(Forms\Form $form): Forms\Form
     {
         return $form
             ->schema([
                 // SELECT REACTIVO ARRIBA DE TODO
-                Forms\Components\Select::make('tipo_talonario')
-                    ->label('¿Qué tipo de talonario entregará?')
-                    ->options([
-                        'preferencial' => 'Preferencial',
-                        'regular' => 'Regular',
-                        'ambos' => 'Preferenciales y Regulares',
-                    ])
-                    ->reactive() // <- ACTIVA la reactividad
-                    ->required()
-                    ->searchable()
-                    ->native(false)
-                    ->placeholder('Selecciona una opción')
-                    ->columnSpanFull(),
+                Grid::make(2)->schema([
+                    Forms\Components\Select::make('tipo_talonario')
+                        ->label('¿Qué tipo de talonario entregará?')
+                        ->options([
+                            'preferencial' => 'Preferencial',
+                            'regular' => 'Regular',
+                            'ambos' => 'Preferenciales y Regulares',
+                        ])
+                        ->reactive()
+                        ->required()
+                        ->searchable()
+                        ->native(false)
+                        ->placeholder('Selecciona una opción')
+                        ->columnSpan(1),
 
-                Forms\Components\Section::make('Datos Principales')
-                    ->schema([
-                        Forms\Components\Grid::make(3)->schema([
-                            Forms\Components\Select::make('inventario_id')
-                                ->label('Encargado de Cajer@s')
-                                ->prefixIcon('heroicon-o-user')
-                                ->options(function () {
-                                    return \App\Models\Cajero::where('tipo_cajero', 'principal')
-                                        ->get()
-                                        ->mapWithKeys(function ($cajero) {
-                                            $fullName = "{$cajero->nombre} {$cajero->apellido_paterno} {$cajero->apellido_materno}";
-                                            return [$cajero->id => $fullName];
-                                        });
-                                })
-                                ->searchable()
-                                ->required(),
+                    Forms\Components\DatePicker::make('fecha_entrega')
+                        ->label('Fecha Entrega')
+                        ->default(\Carbon\Carbon::now()->toDateString())
+                        ->disabled()
+                        ->required()
+                        ->prefixIcon('heroicon-o-calendar')
+                        ->columnSpan(1),
+                ]),
 
-                            Forms\Components\Select::make('cajero_id')
-                                ->label('Cajer@s')
-                                ->prefixIcon('heroicon-o-user')
-                                ->options(function () {
-                                    return \App\Models\Cajero::where('tipo_cajero', 'secundario')
-                                        ->get()
-                                        ->mapWithKeys(function ($cajero) {
-                                            $fullName = "{$cajero->nombre} {$cajero->apellido_paterno} {$cajero->apellido_materno}";
-                                            return [$cajero->id => $fullName];
-                                        });
-                                })
-                                ->searchable()
-                                ->required(),
+                Grid::make(4)->schema([
+                    // Sección Datos Principales (también ocupa 2 columnas)
+                    Section::make('Datos Principales')
+                        ->schema([
+                            Grid::make(2)->schema([
+                                Select::make('inventario_id')
+                                    ->label('Encargado de Cajer@s')
+                                    ->prefixIcon('heroicon-o-user')
+                                    ->options(function () {
+                                        return \App\Models\Cajero::where('tipo_cajero', 'principal')
+                                            ->get()
+                                            ->mapWithKeys(function ($cajero) {
+                                                $fullName = "{$cajero->nombre} {$cajero->apellido_paterno} {$cajero->apellido_materno}";
+                                                return [$cajero->id => $fullName];
+                                            });
+                                    })
+                                    ->searchable()
+                                    ->required(),
 
-                            Forms\Components\DatePicker::make('fecha_entrega')
-                                ->label('Fecha Entrega')
-                                ->default(\Carbon\Carbon::now()->toDateString())
-                                ->disabled()
-                                ->required()
-                                ->prefixIcon('heroicon-o-calendar'),
-                        ]),
-                    ]),
+                                Select::make('cajero_id')
+                                    ->label('Cajer@s de Patio')
+                                    ->prefixIcon('heroicon-o-user')
+                                    ->options(function () {
+                                        return \App\Models\Cajero::where('tipo_cajero', 'secundario')
+                                            ->get()
+                                            ->mapWithKeys(function ($cajero) {
+                                                $fullName = "{$cajero->nombre} {$cajero->apellido_paterno} {$cajero->apellido_materno}";
+                                                return [$cajero->id => $fullName];
+                                            });
+                                    })
+                                    ->searchable()
+                                    ->required(),
+
+
+                            ]),
+                        ])
+                        ->columnSpan(2), // <-- clave para mostrar al lado
+
+                    // Sección Información (ocupa 2 columnas de las 4 disponibles)
+                    Section::make('Resumen Rápido')
+                        ->schema(function () {
+                            $preferencial = \App\Models\InventarioTalonarios::where('estado_preferencial', 1)->sum('cantidad_restante_preferencial');
+                            $regular = \App\Models\InventarioTalonarios::where('estado_regular', 1)->sum('cantidad_restante_regular');
+
+                            $nDosificacion = \App\Models\InventarioTalonarios::where(function ($query) {
+                                $query->where('estado_preferencial', 1)
+                                    ->orWhere('estado_regular', 1);
+                            })->value('n_dosificacion') ?? 'No disponible';
+
+                            // Estados
+                            $estadoPreferencial = match (true) {
+                                $preferencial <= 20 => ['❗ Crítico', 'text-red-600 font-bold'],
+                                $preferencial <= 50 => ['⚠️ Bajo', 'text-yellow-600 font-semibold'],
+                                default => ['✅ Óptimo', 'text-green-600 font-semibold'],
+                            };
+
+                            $estadoRegular = match (true) {
+                                $regular <= 20 => ['❗ Crítico', 'text-red-600 font-bold'],
+                                $regular <= 50 => ['⚠️ Bajo', 'text-yellow-600 font-semibold'],
+                                default => ['✅ Óptimo', 'text-green-600 font-semibold'],
+                            };
+
+                            return [
+                                Grid::make(3)->schema([
+                                    Placeholder::make('n_dosificacion')
+                                        ->label('🧾 N° Dosificación')
+                                        ->content($nDosificacion)
+                                        ->extraAttributes(['class' => 'text-blue-600 font-semibold']),
+
+                                    Placeholder::make('estado_preferencial')
+                                        ->label('🎟️ Preferencial')
+                                        ->content("{$preferencial} → {$estadoPreferencial[0]}")
+                                        ->extraAttributes(['class' => $estadoPreferencial[1]]),
+
+                                    Placeholder::make('estado_regular')
+                                        ->label('🎫 Regular')
+                                        ->content("{$regular} → {$estadoRegular[0]}")
+                                        ->extraAttributes(['class' => $estadoRegular[1]]),
+                                ]),
+                            ];
+                        })
+                        ->collapsible()
+                        ->columnSpan(2),
+                ]),
 
                 // SECCIÓN PREFERENCIALES
                 Forms\Components\Section::make('Preferenciales')
@@ -138,13 +196,26 @@ class EntregaTalonarioResource extends Resource
                                     };
                                 }),
 
-                            Forms\Components\TextInput::make('cantidad_preferenciales')
+
+                            TextInput::make('cantidad_preferenciales')
                                 ->label('Cantidad Preferenciales')
                                 ->prefixIcon('heroicon-o-hashtag')
                                 ->numeric()
-                                ->disabled() // ⛔ el usuario no puede editarlo
+                                ->disabled()
                                 ->dehydrated(true)
                                 ->reactive()
+                                ->rules(function () {
+                                    $cantidadDisponible = DB::table('inventario_talonarios')
+                                        ->value('cantidad_restante_preferencial');
+
+                                    return [
+                                        function ($attribute, $value, $fail) use ($cantidadDisponible) {
+                                            if ((int)$value > $cantidadDisponible) {
+                                                $fail('No hay suficientes talonarios preferenciales en inventario.');
+                                            }
+                                        },
+                                    ];
+                                })
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $cantidad = (int) $state;
                                     $del = (int) $get('preferencial_del');
@@ -153,6 +224,7 @@ class EntregaTalonarioResource extends Resource
                                         $set('preferencial_al', $del + $cantidad - 1);
                                     }
                                 }),
+
 
 
                             Forms\Components\TextInput::make('rango_inicial_preferencial')
@@ -210,14 +282,25 @@ class EntregaTalonarioResource extends Resource
                                     };
                                 }),
 
-
-                            Forms\Components\TextInput::make('cantidad_regulares')
+                            TextInput::make('cantidad_regulares')
                                 ->label('Cantidad Regulares')
                                 ->prefixIcon('heroicon-o-hashtag')
                                 ->numeric()
                                 ->disabled()              // ❌ No editable
                                 ->dehydrated(true)        // ✅ Se guarda en la base de datos
                                 ->reactive()
+                                ->rules(function () {
+                                    $cantidadDisponible = DB::table('inventario_talonarios')
+                                        ->value('cantidad_restante_regular');
+
+                                    return [
+                                        function ($attribute, $value, $fail) use ($cantidadDisponible) {
+                                            if ((int)$value > $cantidadDisponible) {
+                                                $fail('No hay suficientes talonarios regulares en inventario.');
+                                            }
+                                        },
+                                    ];
+                                })
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $cantidad = (int) $state;
                                     $del = (int) $get('regular_del');

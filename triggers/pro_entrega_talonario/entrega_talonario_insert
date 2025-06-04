@@ -164,6 +164,29 @@ BEGIN
         NOW()
     );
 
+    -- ACTUALIZAR ESTADOS EN inventario_talonarios
+    -- Preferenciales
+    UPDATE inventario_talonarios
+    SET estado_preferencial = 0
+    WHERE cantidad_restante_preferencial = 0;
+
+    UPDATE inventario_talonarios
+    SET estado_preferencial = 1
+    WHERE estado_preferencial = 2
+    ORDER BY id ASC
+    LIMIT 1;
+
+    -- Regulares
+    UPDATE inventario_talonarios
+    SET estado_regular = 0
+    WHERE cantidad_restante_regular = 0;
+
+    UPDATE inventario_talonarios
+    SET estado_regular = 1
+    WHERE estado_regular = 2
+    ORDER BY id ASC
+    LIMIT 1;
+
 END //
 
 DELIMITER ;

@@ -16,11 +16,12 @@ use IbrahimBougaoua\FilaProgress\Tables\Columns\ProgressBar;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\CreateAction;
 
+
 class InventarioTalonariosResource extends Resource
 {
     protected static ?string $model = InventarioTalonarios::class;
 
-    protected static ?string $navigationLabel = 'Inventarios de Talonarios';
+    protected static ?string $navigationLabel = 'Inventarios Principal';
     protected static ?string $navigationGroup = 'Gestión de Talonarios';
     protected static ?string $navigationIcon = 'heroicon-o-exclamation-circle';
 
