@@ -2,9 +2,13 @@ DELIMITER //
 
 CREATE PROCEDURE entregar_talonarios (
     IN p_cajero_id INT,
-    IN P_inventario_id INT, -- ya no se usará directamente, pero se mantiene por compatibilidad
+    IN P_inventario_id INT, -- ya no se usa directamente, pero se mantiene por compatibilidad
+    IN p_preferencial_del INT,
+    IN p_preferencial_al INT,
     IN p_cantidad_preferenciales INT,
     IN p_rango_inicial_preferencial INT,
+    IN p_regular_del INT,
+    IN p_regular_al INT,
     IN p_cantidad_regulares INT,
     IN p_rango_inicial_regular INT,
     IN p_fecha DATE,
@@ -32,7 +36,8 @@ BEGIN
     DECLARE cur CURSOR FOR
         SELECT id, cantidad_restante_preferencial, cantidad_restante_regular
         FROM inventario_talonarios
-        WHERE (cantidad_restante_preferencial > 0 OR cantidad_restante_regular > 0)
+        WHERE (cantidad_restante_preferencial > 0 AND estado_preferencial = 1)
+           OR (cantidad_restante_regular > 0 AND estado_regular = 1)
         ORDER BY id ASC;
 
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
@@ -119,12 +124,16 @@ BEGIN
     INSERT INTO entrega_talonarios (
         inventario_id,
         cajero_id,
+        preferencial_del,
+        preferencial_al,
         cantidad_preferenciales,
         rango_inicial_preferencial,
         rango_final_preferencial,
         total_boletos_preferenciales,
         total_aproximado_bolivianos_preferencial,
         cantidad_restante_preferencial,
+        regular_del,
+        regular_al,
         cantidad_regulares,
         rango_inicial_regular,
         rango_final_regular,
@@ -142,21 +151,25 @@ BEGIN
     ) VALUES (
         primer_inventario_id,
         p_cajero_id,
+        p_preferencial_del,
+        p_preferencial_al,
         p_cantidad_preferenciales,
         p_rango_inicial_preferencial,
         rango_final_preferencial,
         total_boletos_preferenciales,
         total_estimado_preferenciales,
         p_cantidad_preferenciales - cantidad_total_preferenciales,
+        p_regular_del,
+        p_regular_al,
         p_cantidad_regulares,
         p_rango_inicial_regular,
         rango_final_regular,
         total_boletos_regulares,
         total_estimado_regulares,
         p_cantidad_regulares - cantidad_total_regulares,
-        '0',
-        '0',
-        '0',
+        0,
+        0,
+        0,
         p_fecha,
         p_observaciones,
         total_estimado_general,
@@ -164,8 +177,7 @@ BEGIN
         NOW()
     );
 
-    -- ACTUALIZAR ESTADOS EN inventario_talonarios
-    -- Preferenciales
+    -- Actualizar estados preferenciales
     UPDATE inventario_talonarios
     SET estado_preferencial = 0
     WHERE cantidad_restante_preferencial = 0;
@@ -176,7 +188,7 @@ BEGIN
     ORDER BY id ASC
     LIMIT 1;
 
-    -- Regulares
+    -- Actualizar estados regulares
     UPDATE inventario_talonarios
     SET estado_regular = 0
     WHERE cantidad_restante_regular = 0;

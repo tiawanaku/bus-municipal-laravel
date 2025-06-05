@@ -17,6 +17,8 @@ return new class extends Migration {
             $table->foreignId('cajero_id')->nullable()->constrained('cajeros')->onDelete('set null');
 
             // Preferenciales
+            $table->integer('preferencial_del')->nullable();
+            $table->integer('preferencial_al')->nullable();
             $table->integer('cantidad_preferenciales')->nullable();
             $table->integer('rango_inicial_preferencial')->nullable();
             $table->integer('rango_final_preferencial')->nullable();
@@ -25,6 +27,8 @@ return new class extends Migration {
             $table->integer('cantidad_restante_preferencial')->nullable();
 
             // Regulares
+            $table->integer('regular_del')->nullable();
+            $table->integer('regular_al')->nullable();
             $table->integer('cantidad_regulares')->nullable();
             $table->integer('rango_inicial_regular')->nullable();
             $table->integer('rango_final_regular')->nullable();
@@ -33,12 +37,12 @@ return new class extends Migration {
             $table->integer('cantidad_restante_regular')->nullable();
 
             // Estado
-          $table->integer('estado_preferencial')->nullable();
-$table->integer('estado_regular')->nullable();
+            $table->integer('estado_preferencial')->nullable();
+            $table->integer('estado_regular')->nullable();
 
 
             // Información adicional
-            $table->string('tipo_talonarios')->nullable();
+            $table->string('tipo_talonario')->nullable();
             $table->date('fecha_entrega')->nullable();
             $table->string('observaciones')->nullable();
             $table->decimal('total_recaudacion_bolivianos', 10, 2)->nullable();

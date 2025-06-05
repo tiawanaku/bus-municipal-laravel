@@ -16,11 +16,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
 use App\Models\InventarioTalonarios;
-
+use App\Filament\Resources\EntregaTalonarioResource\Widgets\Cajeros;
 use Illuminate\Support\Carbon;
-
-
-
 
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
@@ -34,6 +31,7 @@ use Filament\Notifications\Notification;
 
 class EntregaTalonarioResource extends Resource
 {
+
     protected static ?string $model = EntregaTalonario::class;
     protected static ?string $navigationGroup = 'Gestión de Talonarios';
     protected static ?string $navigationIcon = 'heroicon-o-clock';
@@ -119,15 +117,15 @@ class EntregaTalonarioResource extends Resource
 
                             // Estados
                             $estadoPreferencial = match (true) {
-                                $preferencial <= 20 => ['❗ Crítico', 'text-red-600 font-bold'],
-                                $preferencial <= 50 => ['⚠️ Bajo', 'text-yellow-600 font-semibold'],
-                                default => ['✅ Óptimo', 'text-green-600 font-semibold'],
+                                $preferencial <= 50 => ['❗ Crítico', 'text-red-600 font-bold'],
+                                $preferencial <= 100 => ['⚠️ Bajo', 'text-yellow-600 font-semibold'],
+                                default => ['✅ Asignable', 'text-green-600 font-semibold'],
                             };
 
                             $estadoRegular = match (true) {
-                                $regular <= 20 => ['❗ Crítico', 'text-red-600 font-bold'],
-                                $regular <= 50 => ['⚠️ Bajo', 'text-yellow-600 font-semibold'],
-                                default => ['✅ Óptimo', 'text-green-600 font-semibold'],
+                                $regular <= 50 => ['❗ Crítico', 'text-red-600 font-bold'],
+                                $regular <= 100 => ['⚠️ Bajo', 'text-yellow-600 font-semibold'],
+                                default => ['✅ Asignable', 'text-green-600 font-semibold'],
                             };
 
                             return [
@@ -205,17 +203,20 @@ class EntregaTalonarioResource extends Resource
                                 ->dehydrated(true)
                                 ->reactive()
                                 ->rules(function () {
+                                    // Sumar todos los talonarios preferenciales disponibles de registros activos
                                     $cantidadDisponible = DB::table('inventario_talonarios')
-                                        ->value('cantidad_restante_preferencial');
+                                        ->where('estado_preferencial', 1)
+                                        ->sum('cantidad_restante_preferencial');
 
                                     return [
                                         function ($attribute, $value, $fail) use ($cantidadDisponible) {
                                             if ((int)$value > $cantidadDisponible) {
-                                                $fail('No hay suficientes talonarios preferenciales en inventario.');
+                                                $fail("No hay suficientes talonarios preferenciales en inventario. Disponibles: $cantidadDisponible");
                                             }
                                         },
                                     ];
                                 })
+
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $cantidad = (int) $state;
                                     $del = (int) $get('preferencial_del');
@@ -291,16 +292,18 @@ class EntregaTalonarioResource extends Resource
                                 ->reactive()
                                 ->rules(function () {
                                     $cantidadDisponible = DB::table('inventario_talonarios')
-                                        ->value('cantidad_restante_regular');
+                                        ->where('estado_regular', 1)
+                                        ->sum('cantidad_restante_regular');
 
                                     return [
                                         function ($attribute, $value, $fail) use ($cantidadDisponible) {
                                             if ((int)$value > $cantidadDisponible) {
-                                                $fail('No hay suficientes talonarios regulares en inventario.');
+                                                $fail("No hay suficientes talonarios regulares en inventario. Disponibles: $cantidadDisponible");
                                             }
                                         },
                                     ];
                                 })
+
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     $cantidad = (int) $state;
                                     $del = (int) $get('regular_del');
