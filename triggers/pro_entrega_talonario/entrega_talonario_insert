@@ -11,6 +11,7 @@ CREATE PROCEDURE entregar_talonarios (
     IN p_regular_al INT,
     IN p_cantidad_regulares INT,
     IN p_rango_inicial_regular INT,
+    IN p_tipo_talonario VARCHAR(50),   -- nuevo parámetro varchar
     IN p_fecha DATE,
     IN p_observaciones TEXT
 )
@@ -142,7 +143,7 @@ BEGIN
         cantidad_restante_regular,
         estado_preferencial,
         estado_regular,
-        tipo_talonarios,
+        tipo_talonario,
         fecha_entrega,
         observaciones,
         total_recaudacion_bolivianos,
@@ -169,7 +170,7 @@ BEGIN
         p_cantidad_regulares - cantidad_total_regulares,
         0,
         0,
-        0,
+        p_tipo_talonario,
         p_fecha,
         p_observaciones,
         total_estimado_general,

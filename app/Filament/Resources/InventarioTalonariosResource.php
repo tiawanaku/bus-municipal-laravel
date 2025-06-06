@@ -376,7 +376,7 @@ class InventarioTalonariosResource extends Resource
 
                 // 🟪 Preferenciales resumen
                 Tables\Columns\TextColumn::make('preferenciales_info')
-                    ->label('Resumen Preferenciales')
+                    ->label('🎫 Preferenciales')
                     ->html()
                     ->getStateUsing(function ($record) {
                         $estadoColor = match ($record->estado_preferencial) {
@@ -410,7 +410,7 @@ class InventarioTalonariosResource extends Resource
 
                 // 🟦 Regulares resumen
                 Tables\Columns\TextColumn::make('regulares_info')
-                    ->label('Resumen Regulares')
+                    ->label('🎟️ Regulares')
                     ->html()
                     ->getStateUsing(function ($record) {
                         $estadoColor = match ($record->estado_regular) {

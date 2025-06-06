@@ -18,6 +18,7 @@ use Filament\Forms\Components\Textarea;
 use App\Models\InventarioTalonarios;
 use App\Filament\Resources\EntregaTalonarioResource\Widgets\Cajeros;
 use Illuminate\Support\Carbon;
+use Filament\Tables\Actions\Action;
 
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
@@ -28,6 +29,8 @@ use Filament\Forms\Components\Grid;
 use Illuminate\Support\Facades\DB;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
+use Barryvdh\DomPDF\Facade\Pdf;
+
 
 class EntregaTalonarioResource extends Resource
 {
@@ -48,7 +51,7 @@ class EntregaTalonarioResource extends Resource
                         ->options([
                             'preferencial' => 'Preferencial',
                             'regular' => 'Regular',
-                            'ambos' => 'Preferenciales y Regulares',
+                            'Preferenciales y Regulares' => 'Preferenciales y Regulares',
                         ])
                         ->reactive()
                         ->required()
@@ -153,7 +156,7 @@ class EntregaTalonarioResource extends Resource
 
                 // SECCIÓN PREFERENCIALES
                 Forms\Components\Section::make('Preferenciales')
-                    ->visible(fn($get) => in_array($get('tipo_talonario'), ['preferencial', 'ambos']))
+                    ->visible(fn($get) => in_array($get('tipo_talonario'), ['preferencial', 'Preferenciales y Regulares']))
                     ->schema([
                         Forms\Components\Grid::make(4)->schema([
                             Forms\Components\TextInput::make('preferencial_del')
@@ -241,7 +244,7 @@ class EntregaTalonarioResource extends Resource
 
                 // SECCIÓN REGULARES
                 Forms\Components\Section::make('Regulares')
-                    ->visible(fn($get) => in_array($get('tipo_talonario'), ['regular', 'ambos']))
+                    ->visible(fn($get) => in_array($get('tipo_talonario'), ['regular', 'Preferenciales y Regulares']))
                     ->schema([
                         Forms\Components\Grid::make(4)->schema([
 
@@ -388,60 +391,68 @@ class EntregaTalonarioResource extends Resource
         }
     }
 
-
+    function cleanUtf8($string)
+    {
+        // Elimina caracteres no válidos
+        $string = mb_convert_encoding($string, 'UTF-8', 'UTF-8');
+        $string = preg_replace('//u', '', $string);
+        return $string;
+    }
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('inventario_id') // o ponle otro nombre si quieres, como 'cajero'
+                Tables\Columns\TextColumn::make('inventario_id')
                     ->label('Encargad@ de Cajer@s')
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->getStateUsing(function ($record) {
-                        $cajero = \App\Models\Cajero::find($record->inventario_id);
-                        return $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
+                        $inventario = \App\Models\InventarioTalonarios::find($record->inventario_id);
+
+                        if ($inventario && $inventario->cajero_id) {
+                            $cajero = \App\Models\Cajero::find($inventario->cajero_id);
+                            if ($cajero) {
+                                return $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno;
+                            }
+                        }
+                        return 'No disponible';
                     }),
 
 
                 Tables\Columns\TextColumn::make('cajero_id')
                     ->label('Cajer@s')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->getStateUsing(function ($record) {
                         $cajero = \App\Models\Cajero::find($record->cajero_id);
                         return $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
                     }),
 
 
-                Tables\Columns\TextColumn::make('cantidad_preferenciales')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->searchable(),
+                // Preferenciales resumen + progreso
+                Tables\Columns\TextColumn::make('resumen_preferenciales')
+                    ->label('🎫 Preferenciales')
+                    ->html()
+                    ->getStateUsing(function ($record) {
+                        $total = $record->cantidad_preferenciales ?? 1;
+                        $restante = $record->cantidad_restante_preferencial ?? 0;
+                        $porcentaje = $total > 0 ? round(($restante / $total) * 100) : 0;
 
-                Tables\Columns\TextColumn::make('rango_inicial_preferencial')
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('rango_final_preferencial')
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('cantidad_restante_preferencial')
-                    ->label('Preferenciales Restantes')
-                    ->badge()
-                    ->color(function ($state) {
-                        if ($state < 400) {
-                            return 'danger'; // rojo
-                        } elseif ($state < 800) {
-                            return 'warning'; // amarillo
-                        } else {
-                            return 'success'; // verde
-                        }
+                        return "
+            <strong>Cantidad:</strong> {$total}<br>
+            <strong>Rango Original:</strong> {$record->rango_inicial_preferencial} - {$record->rango_final_preferencial}<br>
+            <strong>Del-Al :</strong> {$record->preferencial_del} - {$record->preferencial_al}<br>
+            <strong>Restan:</strong> {$restante} ({$porcentaje}%)<br>
+            <strong>Total Bs.:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_preferencial, 2, '.', ',') . "
+        ";
                     }),
+
+
                 ProgressBar::make('preferenciales_progress_bar')
                     ->getStateUsing(function ($record) {
                         $total = $record->cantidad_preferenciales ?? 1;
                         $restante = $record->cantidad_restante_preferencial ?? 0;
-
                         if ($total == 0) $total = 1;
-
                         $porcentaje = round(($restante / $total) * 100);
-
                         return [
                             'total' => 100,
                             'progress' => $porcentaje,
@@ -449,84 +460,121 @@ class EntregaTalonarioResource extends Resource
                     })
                     ->label('% Restante Preferenciales'),
 
-                Tables\Columns\TextColumn::make('total_boletos_preferenciales')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                // Regulares resumen + progreso
+                Tables\Columns\TextColumn::make('resumen_regulares')
+                    ->label('🎟️ Regulares')
+                    ->html()
+                    ->getStateUsing(function ($record) {
+                        $total = $record->cantidad_regulares ?? 1;
+                        $restante = $record->cantidad_restante_regular ?? 0;
+                        $porcentaje = $total > 0 ? round(($restante / $total) * 100) : 0;
 
-                Tables\Columns\TextColumn::make('total_aproximado_bolivianos_preferencial')
-                    ->formatStateUsing(fn($state) => 'Bs. ' . number_format($state, 2, '.', ','))
-                    ->color('warning') // Color amaril
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-
-
-
-                Tables\Columns\TextColumn::make('cantidad_regulares')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('rango_inicial_regular')
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('rango_final_regular')
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('cantidad_restante_regular')
-                    ->label('Regulares Restantes')
-                    ->badge()
-                    ->color(function ($state) {
-                        if ($state < 400) {
-                            return 'danger'; // rojo
-                        } elseif ($state < 800) {
-                            return 'warning'; // amarillo
-                        } else {
-                            return 'success'; // verde
-                        }
+                        return "
+            <strong>Cantidad:</strong> {$total}<br>
+            <strong>Rango Original:</strong> {$record->rango_inicial_regular} - {$record->rango_final_regular}<br>
+            <strong>del-Al:</strong> {$record->regular_del} - {$record->regular_al}<br>
+            <strong>Restan:</strong> {$restante} ({$porcentaje}%)<br>
+            <strong>Total Bs.:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_regular, 2, '.', ',') . "
+        ";
                     }),
+
 
                 ProgressBar::make('regulares_progress_bar')
                     ->getStateUsing(function ($record) {
                         $total = $record->cantidad_regulares ?? 1;
                         $restante = $record->cantidad_restante_regular ?? 0;
-
                         if ($total == 0) $total = 1;
-
                         $porcentaje = round(($restante / $total) * 100);
-
                         return [
                             'total' => 100,
                             'progress' => $porcentaje,
                         ];
                     })
                     ->label('% Restante Regulares'),
-
-                Tables\Columns\TextColumn::make('total_boletos_regulares')
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('total_aproximado_bolivianos_regular')
-                    ->formatStateUsing(fn($state) => 'Bs. ' . number_format($state, 2, '.', ','))
-                    ->color('warning') // Color amaril
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('total_recaudacion_bolivianos')
-                    ->formatStateUsing(fn($state) => 'Bs. ' . number_format($state, 2, '.', ','))
-                    ->color('warning'), // Color amaril
-
-                Tables\Columns\TextColumn::make('fecha_entrega')
-                    ->searchable(),
             ])
             ->filters([
                 //
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
 
+                Action::make('generar_pdf')
+                    ->label('Generar PDF')
+                    ->icon('heroicon-o-document')
+                    ->color('success')
+                    ->action(function ($record) {
+                        $tipo_talonario = $record->tipo_talonario;
+                        $html = '
+    <html>
+    <head>
+        <style>
+            body { font-family: DejaVu Sans, sans-serif; font-size: 12px; }
+            h2 { text-align: center; text-decoration: underline; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            td, th { border: 1px solid #000; padding: 5px; text-align: center; }
+            .no-border { border: none; }
+            .firma { margin-top: 40px; text-align: right; }
+        </style>
+    </head>
+    <body>
+        <h2>ACTA DE ENTREGA DE TALONARIOS</h2>
+
+        <p>
+        Mediante la presente Acta, se efectúa la entrega de talonarios <strong>' . strtoupper($tipo_talonario) . '</strong> a la siguiente persona:
+        </p>
+
+        <table>
+            <tr>
+                <th>N°</th>
+                <th>CAJERO (A)</th>
+                <th>C.I.</th>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td>Miriam Ximena Condori Espejo</td>
+                <td>9107268</td>
+            </tr>
+        </table>
+
+        <p>
+            Al respecto, se aclara que los mismos se harán responsables por la asignación y recaudo de las FACTURAS PRE VALORADAS, siendo el rango de las facturas de acuerdo al siguiente detalle:
+        </p>
+
+        <table>
+            <tr>
+                <th>TICKET</th>
+                <th colspan="2">TALONARIO</th>
+                <th>RANGO DE FACTURAS</th>
+            </tr>
+            <tr>
+                <th class="no-border"></th>
+                <th>DE</th>
+                <th>A</th>
+                <th></th>
+            </tr>
+            <tr>
+                <td>REGULAR</td>
+                <td>1401</td>
+                <td>1500</td>
+                <td>330001 - 335000</td>
+            </tr>
+        </table>
+
+        <p>
+            El incumplimiento, si corresponde, será pasivo a sanciones administrativas. Dando el asentimiento al contenido de la presente Acta de Corresponsabilidad, es firmado en la ciudad de El Alto, a los 27 días del mes de enero del año 2025.
+        </p>
+    </body>
+    </html>
+    ';
+
+                        $pdf = Pdf::loadHTML($html);
+                        return response()->streamDownload(function () use ($pdf) {
+                            echo $pdf->stream();
+                        }, 'acta_entrega_talonarios.pdf');
+                    })
             ]);
     }
+
 
     public static function getRelations(): array
     {

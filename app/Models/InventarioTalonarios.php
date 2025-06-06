@@ -60,6 +60,7 @@ class InventarioTalonarios extends Model
         return trim("{$this->nombre} {$this->apellido_paterno} {$this->apellido_materno}");
     }
 
+
     /**
      * Relación: InventarioTalonario pertenece a un Cajero
      */

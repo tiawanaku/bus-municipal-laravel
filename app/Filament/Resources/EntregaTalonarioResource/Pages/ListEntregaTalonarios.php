@@ -6,6 +6,7 @@ use App\Filament\Resources\EntregaTalonarioResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use App\Filament\Resources\EntregaTalonarioResource\Widgets\Cajeros;
+use Filament\Actions\Action;  // Cambiado a Filament\Actions\Action
 
 class ListEntregaTalonarios extends ListRecords
 {
@@ -17,6 +18,7 @@ class ListEntregaTalonarios extends ListRecords
             Actions\CreateAction::make(),
         ];
     }
+
     protected function getHeaderWidgets(): array
     {
         return [
