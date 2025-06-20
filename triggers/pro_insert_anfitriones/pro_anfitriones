@@ -3,7 +3,6 @@ DELIMITER //
 CREATE PROCEDURE entregar_talonarios_anfitrion (
     IN p_entrega_talonario_id INT,
     IN p_anfitrion_id INT,
-    IN p_numero_autorizacion VARCHAR(100),
     IN p_cantidad_preferenciales INT,
     IN p_rango_inicial_preferencial INT,
     IN p_cantidad_regulares INT,
@@ -123,7 +122,6 @@ BEGIN
     INSERT INTO entrega_talonarios_anfitrion (
         entrega_talonario_id,
         anfitrion_id,
-        numero_autorizacion,
         cantidad_preferenciales,
         rango_inicial_preferencial,
         rango_final_preferencial,
@@ -147,7 +145,6 @@ BEGIN
     ) VALUES (
         primer_entrega_id,
         p_anfitrion_id,
-        p_numero_autorizacion,
         p_cantidad_preferenciales,
         p_rango_inicial_preferencial,
         rango_final_preferencial,

@@ -400,181 +400,351 @@ class EntregaTalonarioResource extends Resource
     }
 
     public static function table(Table $table): Table
-    {
-        return $table
-            ->columns([
-                Tables\Columns\TextColumn::make('inventario_id')
-                    ->label('Encargad@ de Cajer@s')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->getStateUsing(function ($record) {
-                        $inventario = \App\Models\InventarioTalonarios::find($record->inventario_id);
+{
+    return $table
+        ->columns([
+            Tables\Columns\TextColumn::make('inventario_id')
+                ->label('Encargad@ de Cajer@s')
+                ->toggleable(isToggledHiddenByDefault: true)
+                ->getStateUsing(function ($record) {
+                    $inventario = \App\Models\InventarioTalonarios::find($record->inventario_id);
 
-                        if ($inventario && $inventario->cajero_id) {
-                            $cajero = \App\Models\Cajero::find($inventario->cajero_id);
-                            if ($cajero) {
-                                return $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno;
-                            }
+                    if ($inventario && $inventario->cajero_id) {
+                        $cajero = \App\Models\Cajero::find($inventario->cajero_id);
+                        if ($cajero) {
+                            return $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno;
                         }
-                        return 'No disponible';
-                    }),
+                    }
+                    return 'No disponible';
+                }),
 
+            Tables\Columns\TextColumn::make('cajero_id')
+                ->label('Cajer@s')
+                ->toggleable(isToggledHiddenByDefault: true)
+                ->getStateUsing(function ($record) {
+                    $cajero = \App\Models\Cajero::find($record->cajero_id);
+                    return $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
+                }),
 
-                Tables\Columns\TextColumn::make('cajero_id')
-                    ->label('Cajer@s')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->getStateUsing(function ($record) {
-                        $cajero = \App\Models\Cajero::find($record->cajero_id);
-                        return $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
-                    }),
+            // Preferenciales resumen + progreso
+            Tables\Columns\TextColumn::make('resumen_preferenciales')
+                ->label('🎫 Preferenciales')
+                ->html()
+                ->getStateUsing(function ($record) {
+                    $total = $record->cantidad_preferenciales ?? 1;
+                    $restante = $record->cantidad_restante_preferencial ?? 0;
+                    $porcentaje = $total > 0 ? round(($restante / $total) * 100) : 0;
 
+                    return "
+        <strong>Cantidad:</strong> {$total}<br>
+        <strong>Rango Original:</strong> {$record->rango_inicial_preferencial} - {$record->rango_final_preferencial}<br>
+        <strong>Del-Al :</strong> {$record->preferencial_del} - {$record->preferencial_al}<br>
+        <strong>Restan:</strong> {$restante} ({$porcentaje}%)<br>
+        <strong>Total Bs.:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_preferencial, 2, '.', ',') . "
+    ";
+                }),
 
-                // Preferenciales resumen + progreso
-                Tables\Columns\TextColumn::make('resumen_preferenciales')
-                    ->label('🎫 Preferenciales')
-                    ->html()
-                    ->getStateUsing(function ($record) {
-                        $total = $record->cantidad_preferenciales ?? 1;
-                        $restante = $record->cantidad_restante_preferencial ?? 0;
-                        $porcentaje = $total > 0 ? round(($restante / $total) * 100) : 0;
+            ProgressBar::make('preferenciales_progress_bar')
+                ->getStateUsing(function ($record) {
+                    $total = $record->cantidad_preferenciales ?? 1;
+                    $restante = $record->cantidad_restante_preferencial ?? 0;
+                    if ($total == 0) $total = 1;
+                    $porcentaje = round(($restante / $total) * 100);
+                    return [
+                        'total' => 100,
+                        'progress' => $porcentaje,
+                    ];
+                })
+                ->label('% Restante Preferenciales'),
 
-                        return "
-            <strong>Cantidad:</strong> {$total}<br>
-            <strong>Rango Original:</strong> {$record->rango_inicial_preferencial} - {$record->rango_final_preferencial}<br>
-            <strong>Del-Al :</strong> {$record->preferencial_del} - {$record->preferencial_al}<br>
-            <strong>Restan:</strong> {$restante} ({$porcentaje}%)<br>
-            <strong>Total Bs.:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_preferencial, 2, '.', ',') . "
-        ";
-                    }),
+            // Regulares resumen + progreso
+            Tables\Columns\TextColumn::make('resumen_regulares')
+                ->label('🎟️ Regulares')
+                ->html()
+                ->getStateUsing(function ($record) {
+                    $total = $record->cantidad_regulares ?? 1;
+                    $restante = $record->cantidad_restante_regular ?? 0;
+                    $porcentaje = $total > 0 ? round(($restante / $total) * 100) : 0;
 
+                    return "
+        <strong>Cantidad:</strong> {$total}<br>
+        <strong>Rango Original:</strong> {$record->rango_inicial_regular} - {$record->rango_final_regular}<br>
+        <strong>del-Al:</strong> {$record->regular_del} - {$record->regular_al}<br>
+        <strong>Restan:</strong> {$restante} ({$porcentaje}%)<br>
+        <strong>Total Bs.:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_regular, 2, '.', ',') . "
+    ";
+                }),
 
-                ProgressBar::make('preferenciales_progress_bar')
-                    ->getStateUsing(function ($record) {
-                        $total = $record->cantidad_preferenciales ?? 1;
-                        $restante = $record->cantidad_restante_preferencial ?? 0;
-                        if ($total == 0) $total = 1;
-                        $porcentaje = round(($restante / $total) * 100);
-                        return [
-                            'total' => 100,
-                            'progress' => $porcentaje,
-                        ];
-                    })
-                    ->label('% Restante Preferenciales'),
+            ProgressBar::make('regulares_progress_bar')
+                ->getStateUsing(function ($record) {
+                    $total = $record->cantidad_regulares ?? 1;
+                    $restante = $record->cantidad_restante_regular ?? 0;
+                    if ($total == 0) $total = 1;
+                    $porcentaje = round(($restante / $total) * 100);
+                    return [
+                        'total' => 100,
+                        'progress' => $porcentaje,
+                    ];
+                })
+                ->label('% Restante Regulares'),
+        ])
+        ->filters([
+            //
+        ])
+        ->actions([
+            Tables\Actions\EditAction::make(),
 
-                // Regulares resumen + progreso
-                Tables\Columns\TextColumn::make('resumen_regulares')
-                    ->label('🎟️ Regulares')
-                    ->html()
-                    ->getStateUsing(function ($record) {
-                        $total = $record->cantidad_regulares ?? 1;
-                        $restante = $record->cantidad_restante_regular ?? 0;
-                        $porcentaje = $total > 0 ? round(($restante / $total) * 100) : 0;
-
-                        return "
-            <strong>Cantidad:</strong> {$total}<br>
-            <strong>Rango Original:</strong> {$record->rango_inicial_regular} - {$record->rango_final_regular}<br>
-            <strong>del-Al:</strong> {$record->regular_del} - {$record->regular_al}<br>
-            <strong>Restan:</strong> {$restante} ({$porcentaje}%)<br>
-            <strong>Total Bs.:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_regular, 2, '.', ',') . "
-        ";
-                    }),
-
-
-                ProgressBar::make('regulares_progress_bar')
-                    ->getStateUsing(function ($record) {
-                        $total = $record->cantidad_regulares ?? 1;
-                        $restante = $record->cantidad_restante_regular ?? 0;
-                        if ($total == 0) $total = 1;
-                        $porcentaje = round(($restante / $total) * 100);
-                        return [
-                            'total' => 100,
-                            'progress' => $porcentaje,
-                        ];
-                    })
-                    ->label('% Restante Regulares'),
-            ])
-            ->filters([
-                //
-            ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-
-                Action::make('generar_pdf')
-                    ->label('Generar PDF')
-                    ->icon('heroicon-o-document')
-                    ->color('success')
-                    ->action(function ($record) {
-                        $tipo_talonario = $record->tipo_talonario;
-                        $html = '
-    <html>
-    <head>
-        <style>
-            body { font-family: DejaVu Sans, sans-serif; font-size: 12px; }
-            h2 { text-align: center; text-decoration: underline; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            td, th { border: 1px solid #000; padding: 5px; text-align: center; }
-            .no-border { border: none; }
-            .firma { margin-top: 40px; text-align: right; }
-        </style>
-    </head>
-    <body>
-        <h2>ACTA DE ENTREGA DE TALONARIOS</h2>
-
-        <p>
-        Mediante la presente Acta, se efectúa la entrega de talonarios <strong>' . strtoupper($tipo_talonario) . '</strong> a la siguiente persona:
-        </p>
-
-        <table>
+     Action::make('generar_pdf')
+    ->label('Generar PDF')
+    ->icon('heroicon-o-document')
+    ->color('success')
+    ->action(function ($record) {
+        // Obtener datos del cajero dinámicamente
+        $cajero = \App\Models\Cajero::find($record->cajero_id);
+        $nombreCompleto = $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
+        $ci = $cajero ? $cajero->ci : 'No disponible';
+        
+        $tipo_talonario = $record->tipo_talonario;
+        
+        // Generar filas de la tabla dinámicamente según el tipo de talonario
+        $filasTabla = '';
+        
+        // Si es preferencial o ambos, agregar fila preferencial
+        if (in_array($tipo_talonario, ['preferencial', 'Preferenciales y Regulares']) && $record->cantidad_preferenciales > 0) {
+            $rangoFacturas = $record->rango_inicial_preferencial . ' - ' . ($record->rango_inicial_preferencial + $record->cantidad_preferenciales - 1);
+            $filasTabla .= '
             <tr>
-                <th>N°</th>
-                <th>CAJERO (A)</th>
-                <th>C.I.</th>
-            </tr>
-            <tr>
-                <td>1</td>
-                <td>Miriam Ximena Condori Espejo</td>
-                <td>9107268</td>
-            </tr>
-        </table>
-
-        <p>
-            Al respecto, se aclara que los mismos se harán responsables por la asignación y recaudo de las FACTURAS PRE VALORADAS, siendo el rango de las facturas de acuerdo al siguiente detalle:
-        </p>
-
-        <table>
-            <tr>
-                <th>TICKET</th>
-                <th colspan="2">TALONARIO</th>
-                <th>RANGO DE FACTURAS</th>
-            </tr>
-            <tr>
-                <th class="no-border"></th>
-                <th>DE</th>
-                <th>A</th>
-                <th></th>
-            </tr>
+                <td>PREFERENCIAL</td>
+                <td>' . $record->preferencial_del . '</td>
+                <td>' . $record->preferencial_al . '</td>
+                <td>' . $rangoFacturas . '</td>
+            </tr>';
+        }
+        
+        // Si es regular o ambos, agregar fila regular
+        if (in_array($tipo_talonario, ['regular', 'Preferenciales y Regulares']) && $record->cantidad_regulares > 0) {
+            $rangoFacturas = $record->rango_inicial_regular . ' - ' . ($record->rango_inicial_regular + $record->cantidad_regulares - 1);
+            $filasTabla .= '
             <tr>
                 <td>REGULAR</td>
-                <td>1401</td>
-                <td>1500</td>
-                <td>330001 - 335000</td>
-            </tr>
-        </table>
+                <td>' . $record->regular_del . '</td>
+                <td>' . $record->regular_al . '</td>
+                <td>' . $rangoFacturas . '</td>
+            </tr>';
+        }
+        
+        // Fecha actual formateada
+        $fechaActual = \Carbon\Carbon::now()->locale('es')->isoFormat('D [días del mes de] MMMM [del año] YYYY');
+        
+        // Convertir imágenes a base64 de forma segura
+        $encabezadoPath = public_path('img/Galeria/encabezado.png');
+        $piePath = public_path('img/Galeria/pie de pagina.png');
+        
+        $encabezadoBase64 = '';
+        $pieBase64 = '';
+        
+        if (file_exists($encabezadoPath)) {
+            $encabezadoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($encabezadoPath));
+        }
+        
+        if (file_exists($piePath)) {
+            $pieBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($piePath));
+        }
+        
+        $html = '
+        <html>
+        <head>
+            <style>
+                @page {
+                    size: letter;
+                    margin: 1in;
+                }
+                body { 
+                    font-family: DejaVu Sans, sans-serif; 
+                    font-size: 12px; 
+                    margin: 0;
+                    padding: 0;
+                    position: relative;
+                    min-height: 100vh;
+                    padding-bottom: 120px;
+                }
+                .encabezado {
+                    text-align: center;
+                    margin-bottom: 20px;
+                }
+                .encabezado img {
+                    max-width: 100%;
+                    height: auto;
+                }
+                h2 { 
+                    text-align: center; 
+                    text-decoration: underline; 
+                    margin-bottom: 20px;
+                }
+                table { 
+                    width: 70%; 
+                    border-collapse: collapse; 
+                    margin-top: 15px; 
+                    margin-bottom: 15px;
+                    margin-left: auto;
+                    margin-right: auto;
+                    font-size: 10px;
+                }
+                td, th { 
+                    border: 1px solid #000; 
+                    padding: 4px; 
+                    text-align: center;
+                    vertical-align: middle;
+                }
+                th {
+                    background-color: #f0f0f0;
+                    font-weight: bold;
+                }
+                .no-border { 
+                    border: none; 
+                    background-color: transparent;
+                }
+                .firmas-finales {
+                    margin-top: 60px;
+                    width: 60%;
+                    margin-left: auto;
+                    margin-right: auto;
+                    clear: both;
+                }
+                .firma-izquierda {
+                    float: left;
+                    width: 45%;
+                    text-align: center;
+                }
+                .firma-derecha {
+                    float: right;
+                    width: 45%;
+                    text-align: center;
+                }
+                .firma-izquierda p, .firma-derecha p {
+                    margin: 3px 0;
+                    line-height: 1.2;
+                }
+                .pie-pagina {
+                    margin-top: 80px;
+                    text-align: center;
+                    clear: both;
+                    position: relative;
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                }
+                .pie-pagina img {
+                    max-width: 100%;
+                    height: auto;
+                }
+                .fecha-generacion {
+                    position: absolute;
+                    top: -20px;
+                    right: 10px;
+                    font-size: 8px;
+                    color: #333;
+                    font-weight: bold;
+                    background-color: rgba(255, 255, 255, 0.9);
+                    padding: 3px 8px;
+                    border-radius: 3px;
+                    border: 1px solid #ccc;
+                }
+                p {
+                    text-align: justify;
+                    line-height: 1.4;
+                    margin: 15px 0;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="encabezado">
+                ' . ($encabezadoBase64 ? '<img src="' . $encabezadoBase64 . '" alt="Encabezado">' : '<h3>EMPRESA - ENCABEZADO</h3>') . '
+            </div>
 
-        <p>
-            El incumplimiento, si corresponde, será pasivo a sanciones administrativas. Dando el asentimiento al contenido de la presente Acta de Corresponsabilidad, es firmado en la ciudad de El Alto, a los 27 días del mes de enero del año 2025.
-        </p>
-    </body>
-    </html>
-    ';
+            <h2>ACTA DE ENTREGA DE TALONARIOS</h2>
 
-                        $pdf = Pdf::loadHTML($html);
-                        return response()->streamDownload(function () use ($pdf) {
-                            echo $pdf->stream();
-                        }, 'acta_entrega_talonarios.pdf');
-                    })
+            <p>
+                Mediante la presente Acta, se efectúa la entrega de talonarios <strong>' . strtoupper($tipo_talonario) . '</strong> a la siguiente persona:
+            </p>
+
+            <table>
+                <tr>
+                    <th>N°</th>
+                    <th>CAJERO (A)</th>
+                    <th>C.I.</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>' . htmlspecialchars($nombreCompleto) . '</td>
+                    <td>' . htmlspecialchars($ci) . '</td>
+                </tr>
+            </table>
+
+            <p>
+                Al respecto, se aclara que los mismos se harán responsables por la asignación y recaudo de las FACTURAS PRE VALORADAS, siendo el rango de las facturas de acuerdo al siguiente detalle:
+            </p>
+
+            <table>
+                <tr>
+                    <th>TIPO DE TICKET</th>
+                    <th colspan="2">TALONARIO</th>
+                    <th>RANGO DE FACTURAS</th>
+                </tr>
+                <tr>
+                    <th class="no-border"></th>
+                    <th>DE</th>
+                    <th>A</th>
+                    <th></th>
+                </tr>
+                ' . $filasTabla . '
+            </table>
+
+            <p>
+                El incumplimiento, si corresponde, será pasivo a sanciones administrativas. Dando el asentimiento al contenido de la presente Acta de Corresponsabilidad, es firmado en la ciudad de El Alto, a los ' . $fechaActual . '.
+            </p>
+            
+            <div class="firmas-finales">
+                <div class="firma-izquierda">
+                    <br><br><br>
+                    <p>_________________________</p>
+                    <p><strong>Firma del Cajero</strong></p>
+                    <p>' . htmlspecialchars($nombreCompleto) . '</p>
+                    <p>C.I.: ' . htmlspecialchars($ci) . '</p>
+                </div>
+                <div class="firma-derecha">
+                    <br><br><br>
+                    <p>_________________________</p>
+                    <p><strong>Encargado de Cajeros</strong></p>
+                    <p><strong>Firma y Sello</strong></p>
+                </div>
+            </div>
+
+            <div class="pie-pagina">
+                ' . ($pieBase64 ? '<img src="' . $pieBase64 . '" alt="Pie de página">' : '<p><strong>Dirección de la empresa | Teléfono | Email</strong></p>') . '
+                <div class="fecha-generacion">
+                    PDF generado el: ' . \Carbon\Carbon::now()->format('d/m/Y H:i:s') . '
+                </div>
+            </div>
+        </body>
+        </html>';
+
+        // Configurar el PDF con tamaño carta
+        $pdf = Pdf::loadHTML($html)
+            ->setPaper('letter', 'portrait')  // Tamaño carta en orientación vertical
+            ->setOptions([
+                'defaultFont' => 'DejaVu Sans',
+                'isRemoteEnabled' => true,
+                'isHtml5ParserEnabled' => true,
             ]);
-    }
-
+            
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->stream();
+        }, 'acta_entrega_talonarios_' . $record->id . '.pdf');
+    })
+]);
+        }
 
     public static function getRelations(): array
     {

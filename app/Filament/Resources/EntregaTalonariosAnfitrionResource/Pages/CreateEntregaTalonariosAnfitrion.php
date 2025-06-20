@@ -19,7 +19,6 @@ class CreateEntregaTalonariosAnfitrion extends CreateRecord
     try {
         $data['anfitrion_id'] = $data['anfitrion_id'] ?? null;
         $data['entrega_talonario_id'] = $data['recibido_por'] ?? null;
-        $data['numero_autorizacion'] = $data['numero_autorizacion'] ?? '';
         $data['cantidad_talonarios_preferenciales'] = $data['cantidad_talonarios_preferenciales'] ?? 0;
         $data['rango_inicial_preferenciales'] = $data['rango_inicial_preferenciales'] ?? 0;
         $data['cantidad_talonarios_regulares'] = $data['cantidad_talonarios_regulares'] ?? 0;
@@ -27,10 +26,9 @@ class CreateEntregaTalonariosAnfitrion extends CreateRecord
         $data['fecha_entrega'] = $data['fecha_entrega'] ?? now()->format('Y-m-d');
         $data['observaciones'] = $data['observaciones'] ?? '';
 
-        DB::statement('CALL entregar_talonarios_anfitrion(?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        DB::statement('CALL entregar_talonarios_anfitrion(?, ?, ?, ?, ?, ?, ?, ?)', [
             $data['entrega_talonario_id'],
             $data['anfitrion_id'],
-            $data['numero_autorizacion'],
             $data['cantidad_talonarios_preferenciales'],
             $data['rango_inicial_preferenciales'],
             $data['cantidad_talonarios_regulares'],

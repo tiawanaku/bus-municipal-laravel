@@ -16,7 +16,6 @@ return new class extends Migration
 
             $table->foreignId('entrega_talonario_id')->nullable()->constrained('entrega_talonarios')->onDelete('set null');
             $table->foreignId('anfitrion_id')->nullable()->constrained('anfitrions')->onDelete('set null');
-            $table->string('numero_autorizacion')->nullable();
             // Preferenciales
             $table->integer('cantidad_preferenciales')->nullable();
             $table->integer('rango_inicial_preferencial')->nullable();

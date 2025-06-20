@@ -12,7 +12,7 @@
         "dotswan/filament-map-picker": "^1.4",
         "eightynine/filament-advanced-widgets": "*",
         "filament/filament": "^3.2",
-        "fortawesome/font-awesome": "^6.5",
+        "fortawesome/font-awesome": "*",
         "ibrahim-bougaoua/filaprogress": "^0.1.0",
         "laravel/framework": "^11.0",
         "laravel/tinker": "^2.9",
