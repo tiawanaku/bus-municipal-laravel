@@ -491,261 +491,229 @@ class EntregaTalonarioResource extends Resource
         ->filters([
             //
         ])
+      
+      
         ->actions([
-            Tables\Actions\EditAction::make(),
+    Tables\Actions\EditAction::make(),
 
-     Action::make('generar_pdf')
-    ->label('Generar PDF')
-    ->icon('heroicon-o-document')
-    ->color('success')
-    ->action(function ($record) {
-        // Obtener datos del cajero dinámicamente
-        $cajero = \App\Models\Cajero::find($record->cajero_id);
-        $nombreCompleto = $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
-        $ci = $cajero ? $cajero->ci : 'No disponible';
-        
-        $tipo_talonario = $record->tipo_talonario;
-        
-        // Generar filas de la tabla dinámicamente según el tipo de talonario
-        $filasTabla = '';
-        
-        // Si es preferencial o ambos, agregar fila preferencial
-        if (in_array($tipo_talonario, ['preferencial', 'Preferenciales y Regulares']) && $record->cantidad_preferenciales > 0) {
-            $rangoFacturas = $record->rango_inicial_preferencial . ' - ' . ($record->rango_inicial_preferencial + $record->cantidad_preferenciales - 1);
-            $filasTabla .= '
-            <tr>
-                <td>PREFERENCIAL</td>
-                <td>' . $record->preferencial_del . '</td>
-                <td>' . $record->preferencial_al . '</td>
-                <td>' . $rangoFacturas . '</td>
-            </tr>';
-        }
-        
-        // Si es regular o ambos, agregar fila regular
-        if (in_array($tipo_talonario, ['regular', 'Preferenciales y Regulares']) && $record->cantidad_regulares > 0) {
-            $rangoFacturas = $record->rango_inicial_regular . ' - ' . ($record->rango_inicial_regular + $record->cantidad_regulares - 1);
-            $filasTabla .= '
-            <tr>
-                <td>REGULAR</td>
-                <td>' . $record->regular_del . '</td>
-                <td>' . $record->regular_al . '</td>
-                <td>' . $rangoFacturas . '</td>
-            </tr>';
-        }
-        
-        // Fecha actual formateada
-        $fechaActual = \Carbon\Carbon::now()->locale('es')->isoFormat('D [días del mes de] MMMM [del año] YYYY');
-        
-        // Convertir imágenes a base64 de forma segura
-        $encabezadoPath = public_path('img/Galeria/encabezado.png');
-        $piePath = public_path('img/Galeria/pie de pagina.png');
-        
-        $encabezadoBase64 = '';
-        $pieBase64 = '';
-        
-        if (file_exists($encabezadoPath)) {
-            $encabezadoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($encabezadoPath));
-        }
-        
-        if (file_exists($piePath)) {
-            $pieBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($piePath));
-        }
-        
-        $html = '
-        <html>
-        <head>
-            <style>
-                @page {
-                    size: letter;
-                    margin: 1in;
-                }
-                body { 
-                    font-family: DejaVu Sans, sans-serif; 
-                    font-size: 12px; 
-                    margin: 0;
-                    padding: 0;
-                    position: relative;
-                    min-height: 100vh;
-                    padding-bottom: 120px;
-                }
-                .encabezado {
-                    text-align: center;
-                    margin-bottom: 20px;
-                }
-                .encabezado img {
-                    max-width: 100%;
-                    height: auto;
-                }
-                h2 { 
-                    text-align: center; 
-                    text-decoration: underline; 
-                    margin-bottom: 20px;
-                }
-                table { 
-                    width: 70%; 
-                    border-collapse: collapse; 
-                    margin-top: 15px; 
-                    margin-bottom: 15px;
-                    margin-left: auto;
-                    margin-right: auto;
-                    font-size: 10px;
-                }
-                td, th { 
-                    border: 1px solid #000; 
-                    padding: 4px; 
-                    text-align: center;
-                    vertical-align: middle;
-                }
-                th {
-                    background-color: #f0f0f0;
-                    font-weight: bold;
-                }
-                .no-border { 
-                    border: none; 
-                    background-color: transparent;
-                }
-                .firmas-finales {
-                    margin-top: 60px;
-                    width: 60%;
-                    margin-left: auto;
-                    margin-right: auto;
-                    clear: both;
-                }
-                .firma-izquierda {
-                    float: left;
-                    width: 45%;
-                    text-align: center;
-                }
-                .firma-derecha {
-                    float: right;
-                    width: 45%;
-                    text-align: center;
-                }
-                .firma-izquierda p, .firma-derecha p {
-                    margin: 3px 0;
-                    line-height: 1.2;
-                }
-                .pie-pagina {
-                    margin-top: 80px;
-                    text-align: center;
-                    clear: both;
-                    position: relative;
-                    position: absolute;
-                    bottom: 0;
-                    left: 0;
-                    right: 0;
-                }
-                .pie-pagina img {
-                    max-width: 100%;
-                    height: auto;
-                }
-                .fecha-generacion {
-                    position: absolute;
-                    top: -20px;
-                    right: 10px;
-                    font-size: 8px;
-                    color: #333;
-                    font-weight: bold;
-                    background-color: rgba(255, 255, 255, 0.9);
-                    padding: 3px 8px;
-                    border-radius: 3px;
-                    border: 1px solid #ccc;
-                }
-                p {
-                    text-align: justify;
-                    line-height: 1.4;
-                    margin: 15px 0;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="encabezado">
-                ' . ($encabezadoBase64 ? '<img src="' . $encabezadoBase64 . '" alt="Encabezado">' : '<h3>EMPRESA - ENCABEZADO</h3>') . '
-            </div>
+    Action::make('generar_pdf')
+        ->label('Generar PDF')
+        ->icon('heroicon-o-document')
+        ->color('success')
+        ->action(function ($record) {
+            $cajero = \App\Models\Cajero::find($record->cajero_id);
+            $nombreCompleto = $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
+            $ci = $cajero ? $cajero->ci : 'No disponible';
 
-            <h2>ACTA DE ENTREGA DE TALONARIOS</h2>
+            $tipo_talonario = $record->tipo_talonario;
+            $filasTabla = '';
 
-            <p>
-                Mediante la presente Acta, se efectúa la entrega de talonarios <strong>' . strtoupper($tipo_talonario) . '</strong> a la siguiente persona:
-            </p>
+            if (in_array($tipo_talonario, ['preferencial', 'Preferenciales y Regulares']) && $record->cantidad_preferenciales > 0) {
+                $rangoTicketsInicial = $record->preferencial_del ?? $record->rango_inicial_preferencial;
+                $rangoTicketsFinal = $record->preferencial_al ?? ($record->rango_inicial_preferencial + ($record->cantidad_preferenciales * 50) - 1);
 
-            <table>
+                $rangoFacturasInicial = $record->rango_inicial_preferencial;
+                $rangoFacturasFinal = $record->rango_final_preferencial ?? ($record->rango_inicial_preferencial + $record->cantidad_preferenciales - 1);
+
+                $filasTabla .= '
                 <tr>
-                    <th>N°</th>
-                    <th>CAJERO (A)</th>
-                    <th>C.I.</th>
-                </tr>
-                <tr>
-                    <td>1</td>
-                    <td>' . htmlspecialchars($nombreCompleto) . '</td>
-                    <td>' . htmlspecialchars($ci) . '</td>
-                </tr>
-            </table>
+                    <td>PREFERENCIAL</td>
+                    <td>' . number_format($rangoTicketsInicial, 0, '', ',') . '</td>
+                    <td>' . number_format($rangoTicketsFinal, 0, '', ',') . '</td>
+                    <td>' . $record->cantidad_preferenciales . ' talonarios</td>
+                    <td>' . number_format($rangoFacturasInicial, 0, '', ',') . ' - ' . number_format($rangoFacturasFinal, 0, '', ',') . '</td>
+                </tr>';
+            }
 
-            <p>
-                Al respecto, se aclara que los mismos se harán responsables por la asignación y recaudo de las FACTURAS PRE VALORADAS, siendo el rango de las facturas de acuerdo al siguiente detalle:
-            </p>
+            if (in_array($tipo_talonario, ['regular', 'Preferenciales y Regulares']) && $record->cantidad_regulares > 0) {
+                $rangoTicketsInicial = $record->regular_del ?? $record->rango_inicial_regular;
+                $rangoTicketsFinal = $record->regular_al ?? ($record->rango_inicial_regular + ($record->cantidad_regulares * 50) - 1);
 
-            <table>
-                <tr>
-                    <th>TIPO DE TICKET</th>
-                    <th colspan="2">TALONARIO</th>
-                    <th>RANGO DE FACTURAS</th>
-                </tr>
-                <tr>
-                    <th class="no-border"></th>
-                    <th>DE</th>
-                    <th>A</th>
-                    <th></th>
-                </tr>
-                ' . $filasTabla . '
-            </table>
+                $rangoFacturasInicial = $record->rango_inicial_regular;
+                $rangoFacturasFinal = $record->rango_final_regular ?? ($record->rango_inicial_regular + $record->cantidad_regulares - 1);
 
-            <p>
-                El incumplimiento, si corresponde, será pasivo a sanciones administrativas. Dando el asentimiento al contenido de la presente Acta de Corresponsabilidad, es firmado en la ciudad de El Alto, a los ' . $fechaActual . '.
-            </p>
-            
-            <div class="firmas-finales">
-                <div class="firma-izquierda">
-                    <br><br><br>
-                    <p>_________________________</p>
-                    <p><strong>Firma del Cajero</strong></p>
-                    <p>' . htmlspecialchars($nombreCompleto) . '</p>
-                    <p>C.I.: ' . htmlspecialchars($ci) . '</p>
+                $filasTabla .= '
+                <tr>
+                    <td>REGULAR</td>
+                    <td>' . number_format($rangoTicketsInicial, 0, '', ',') . '</td>
+                    <td>' . number_format($rangoTicketsFinal, 0, '', ',') . '</td>
+                    <td>' . $record->cantidad_regulares . ' talonarios</td>
+                    <td>' . number_format($rangoFacturasInicial, 0, '', ',') . ' - ' . number_format($rangoFacturasFinal, 0, '', ',') . '</td>
+                </tr>';
+            }
+
+            $fechaActual = \Carbon\Carbon::now()->locale('es')->isoFormat('D [días del mes de] MMMM [del año] YYYY');
+
+            $encabezadoPath = public_path('img/Galeria/encabezado.png');
+            $piePath = public_path('img/Galeria/pie de pagina.png');
+            $encabezadoBase64 = file_exists($encabezadoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($encabezadoPath)) : '';
+            $pieBase64 = file_exists($piePath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($piePath)) : '';
+
+            $html = '
+            <html>
+            <head>
+                <style>
+                    @page { size: letter; margin: 1in; }
+                    body {
+                        font-family: DejaVu Sans, sans-serif;
+                        font-size: 12px;
+                        margin: 0;
+                        padding: 0;
+                        position: relative;
+                        min-height: 100vh;
+                        padding-bottom: 120px;
+                    }
+                    .encabezado { text-align: center; margin-bottom: 20px; }
+                    .encabezado img { max-width: 100%; height: auto; }
+                    h2 {
+                        text-align: center;
+                        text-decoration: underline;
+                        margin-bottom: 20px;
+                    }
+                    table {
+                        width: 90%;
+                        border-collapse: collapse;
+                        margin: 15px auto;
+                        font-size: 10px;
+                    }
+                    td, th {
+                        border: 1px solid #000;
+                        padding: 6px;
+                        text-align: center;
+                        vertical-align: middle;
+                    }
+                    th {
+                        background-color: #f0f0f0;
+                        font-weight: bold;
+                    }
+                    .firmas-finales {
+                        margin-top: 60px;
+                        width: 60%;
+                        margin-left: auto;
+                        margin-right: auto;
+                        clear: both;
+                    }
+                    .firma-izquierda, .firma-derecha {
+                        width: 45%;
+                        text-align: center;
+                    }
+                    .firma-izquierda { float: left; }
+                    .firma-derecha { float: right; }
+                    .pie-pagina {
+                        margin-top: 80px;
+                        text-align: center;
+                        clear: both;
+                        position: absolute;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                    }
+                    .fecha-generacion {
+                        position: absolute;
+                        top: -20px;
+                        right: 10px;
+                        font-size: 8px;
+                        color: #333;
+                        font-weight: bold;
+                        background-color: rgba(255, 255, 255, 0.9);
+                        padding: 3px 8px;
+                        border-radius: 3px;
+                        border: 1px solid #ccc;
+                    }
+                    p {
+                        text-align: justify;
+                        line-height: 1.4;
+                        margin: 15px 0;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="encabezado">' .
+                    ($encabezadoBase64 ? '<img src="' . $encabezadoBase64 . '">' : '<h3>EMPRESA - ENCABEZADO</h3>') . '
                 </div>
-                <div class="firma-derecha">
-                    <br><br><br>
-                    <p>_________________________</p>
-                    <p><strong>Encargado de Cajeros</strong></p>
-                    <p><strong>Firma y Sello</strong></p>
-                </div>
-            </div>
 
-            <div class="pie-pagina">
-                ' . ($pieBase64 ? '<img src="' . $pieBase64 . '" alt="Pie de página">' : '<p><strong>Dirección de la empresa | Teléfono | Email</strong></p>') . '
-                <div class="fecha-generacion">
-                    PDF generado el: ' . \Carbon\Carbon::now()->format('d/m/Y H:i:s') . '
-                </div>
-            </div>
-        </body>
-        </html>';
+                <h2>ACTA DE ENTREGA DE TALONARIOS</h2>
 
-        // Configurar el PDF con tamaño carta
-        $pdf = Pdf::loadHTML($html)
-            ->setPaper('letter', 'portrait')  // Tamaño carta en orientación vertical
-            ->setOptions([
-                'defaultFont' => 'DejaVu Sans',
-                'isRemoteEnabled' => true,
-                'isHtml5ParserEnabled' => true,
-            ]);
-            
-        return response()->streamDownload(function () use ($pdf) {
-            echo $pdf->stream();
-        }, 'acta_entrega_talonarios_' . $record->id . '.pdf');
-    })
-]);
-        }
+                <p>Mediante la presente Acta, se efectúa la entrega de talonarios <strong>' . strtoupper($tipo_talonario) . '</strong> a la siguiente persona:</p>
 
+                <table>
+                    <tr><th>N°</th><th>CAJERO (A)</th><th>C.I.</th></tr>
+                    <tr>
+                        <td>1</td>
+                        <td>' . htmlspecialchars($nombreCompleto) . '</td>
+                        <td>' . htmlspecialchars($ci) . '</td>
+                    </tr>
+                </table>
+
+                <p>Al respecto, se aclara que los mismos se harán responsables por la asignación y recaudo de las FACTURAS PRE VALORADAS, siendo el rango de tickets y facturas de acuerdo al siguiente detalle:</p>
+
+                <table>
+                    <tr>
+                        <th rowspan="2">TIPO DE TICKET</th>
+                        <th colspan="2">RANGO DE TICKETS</th>
+                        <th rowspan="2">CANTIDAD</th>
+                        <th rowspan="2">RANGO DE FACTURAS</th>
+                    </tr>
+                    <tr>
+                        <th>DESDE</th>
+                        <th>HASTA</th>
+                    </tr>
+                    ' . $filasTabla . '
+                </table>
+
+                <p><strong>Nota:</strong> Cada talonario contiene 50 tickets.</p>
+
+                <p>El incumplimiento, si corresponde, será pasivo a sanciones administrativas. Dando el asentimiento al contenido de la presente Acta de Corresponsabilidad, es firmado en la ciudad de El Alto, a los ' . $fechaActual . '.</p>
+
+           <table style="width: 100%; border-collapse: collapse; border: none;">
+  <tr>
+    <!-- Firma Izquierda (centrada en su columna) -->
+    <td style="width: 50%; padding: 0; border: none; vertical-align: top;">
+      <div style="margin-top: 15px; text-align: center; margin-left: 20px;">
+        <p style="margin: 2px 0; line-height: 1.2;">_________________________</p>
+        <p style="margin: 2px 0; line-height: 1.2;"><strong>Firma del Cajero</strong></p>
+        <p style="margin: 2px 0; line-height: 1.2;">'.htmlspecialchars($nombreCompleto).'</p>
+        <p style="margin: 2px 0; line-height: 1.2;">C.I.: '.htmlspecialchars($ci).'</p>
+      </div>
+    </td>
+    
+    <!-- Firma Derecha (alineada al borde derecho) -->
+    <td style="width: 50%; padding: 0; border: none; vertical-align: top; text-align: right;">
+      <div style="margin-top: 15px; display: inline-block; text-align: center; margin-right: 20px;">
+        <p style="margin: 2px 0; line-height: 1.2;">_________________________</p>
+        <p style="margin: 2px 0; line-height: 1.2;"><strong>Encargado de Cajeros</strong></p>
+        <p style="margin: 2px 0; line-height: 1.2;"><strong>Firma y Sello</strong></p>
+      </div>
+    </td>
+  </tr>
+</table>
+ 
+             <div class="pie-pagina">
+              
+        PDF generado el: '.\Carbon\Carbon::now()->format('d/m/Y H:i:s').'
+    
+        '.($pieBase64 ? '<img src="' . $pieBase64 . '">' : 'Dirección de la empresa | Teléfono | Email').'
+    </div>
+            </body>
+            </html>';
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)
+                ->setPaper('letter', 'portrait')
+                ->setOptions([
+                    'defaultFont' => 'DejaVu Sans',
+                    'isRemoteEnabled' => true,
+                    'isHtml5ParserEnabled' => true,
+                ]);
+
+            return response()->streamDownload(function () use ($pdf) {
+                echo $pdf->stream();
+            }, 'acta_entrega_talonarios_' . $record->id . '.pdf');
+        }),
+    ]);
+
+}
+
+        
     public static function getRelations(): array
     {
         return [

@@ -42,12 +42,80 @@ class AsignacionDeBusResource extends Resource
     protected static ?string $navigationLabel = 'Asignación de Buses';
     protected static ?string $pluralModelLabel = 'Asignaciones de Bus';
 
-    public static function form(Forms\Form $form): Forms\Form
-    {
-        return $form->schema([
-            Grid::make()->columns(3)->schema([
-                Group::make()
-                    ->schema([
+ public static function form(Forms\Form $form): Forms\Form
+{
+    return $form->schema([
+        Grid::make()->columns(3)->schema([
+            // SECCIÓN 2: Datos de Ficha y Fechas
+            Group::make()
+                ->schema([
+                    Grid::make()->columns(2)->schema([
+                        TextInput::make('n_ficha')
+                            ->label('Número de Ficha')
+                            ->numeric()
+                            ->required()
+                            ->placeholder('Ingrese el número de ficha')
+                            ->columnSpan(1),
+
+                        TimePicker::make('hora_salida')
+                            ->label('Hora de Salida')
+                            ->required()
+                            ->placeholder('Selecciona la hora de salida')
+                            ->columnSpan(1),
+
+                        DatePicker::make('fecha_designacion')
+                            ->label('Fecha de Designación')
+                            ->required()
+                            ->placeholder('Selecciona la fecha de designación')
+                            ->columnSpan(1),
+
+                        DatePicker::make('fin_asignacion')
+                            ->label('Fecha Fin de Asignación')
+                            ->reactive()
+                            ->afterStateUpdated(function (\Filament\Forms\Set $set, $state) {
+                                $set('id_conductor', null);
+                                $set('id_anfitrion', null);
+                                $set('id_buses', null);
+                            })
+                            ->columnSpan(1),
+                    ]),
+                ])
+                ->columnSpan(2)
+                ->extraAttributes([
+                    'class' => 'p-6 min-h-[300px] bg-green-50 dark:bg-green-900/20 rounded-xl shadow-lg border-2 border-green-300 dark:border-green-600'
+                ]),
+
+            // SECCIÓN 3: Observaciones y Estado
+            Group::make()
+                ->schema([
+                    Textarea::make('observaciones')
+                        ->label('Observaciones')
+                        ->rows(4)
+                        ->nullable()
+                        ->placeholder('Ingrese observaciones adicionales...'),
+
+                    Toggle::make('asignacion_activa')
+                        ->label('Asignación activa')
+                        ->default(true)
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            // Setea la fecha si se desactiva, la limpia si se activa
+                            if (!$state) {
+                                $set('fin_asignacion', now()->toDateString());
+                            } else {
+                                $set('fin_asignacion', null);
+                            }
+                        }),
+                ])
+                ->columnSpan(1)
+                ->extraAttributes([
+                    'class' => 'p-6 min-h-[300px] bg-purple-50 dark:bg-purple-900/20 rounded-xl shadow-lg border-2 border-purple-300 dark:border-purple-600'
+                ]),
+
+            // SECCIÓN 1: Selección de Conductor, Anfitrión y Bus (FULL WIDTH)
+            Group::make()
+                ->schema([
+                    Grid::make()->columns(3)->schema([
                         FilamentSelect::make('id_conductor')
                             ->label('Conductor')
                             ->options(function (callable $get, $livewire) {
@@ -75,7 +143,8 @@ class AsignacionDeBusResource extends Resource
                             })
                             ->reactive()
                             ->required()
-                            ->placeholder('Selecciona un conductor'),
+                            ->placeholder('Selecciona un conductor')
+                            ->columnSpan(1),
 
                         FilamentSelect::make('id_anfitrion')
                             ->label('Anfitrión')
@@ -104,7 +173,8 @@ class AsignacionDeBusResource extends Resource
                             })
                             ->reactive()
                             ->required()
-                            ->placeholder('Selecciona un anfitrión'),
+                            ->placeholder('Selecciona un anfitrión')
+                            ->columnSpan(1),
 
                         FilamentSelect::make('id_buses')
                             ->label('Bus')
@@ -130,76 +200,17 @@ class AsignacionDeBusResource extends Resource
                             })
                             ->reactive()
                             ->required()
-                            ->placeholder('Selecciona un bus'),
-                    ])
-                    ->columnSpan(1)
-                    ->extraAttributes([
-                        'class' => 'p-6 min-h-[250px] bg-gradient-to-r from-blue-500 to-blue-700 rounded-xl shadow-lg border border-transparent text-white'
+                            ->placeholder('Selecciona un bus')
+                            ->columnSpan(1),
                     ]),
-
-
-                Group::make()
-                    ->schema([
-                        TextInput::make('n_ficha')
-                            ->label('Número de Ficha')
-                            ->numeric()
-                            ->required()
-                            ->placeholder('Ingrese el número de ficha'),
-
-                        Textarea::make('observaciones')
-                            ->label('Observaciones')
-                            ->rows(3)
-                            ->nullable()
-                            ->placeholder('Ingrese observaciones adicionales...'),
-                    ])
-                    ->columnSpan(1)
-                    ->extraAttributes(['class' => 'p-6 min-h-[250px] bg-gradient-to-r from-green-500 to-green-700 rounded-xl shadow-lg border border-transparent text-white']), // Fondo degradado y bordes redondeados
-
-                Group::make()
-                    ->schema([
-                        TimePicker::make('hora_salida')
-                            ->label('Hora de Salida')
-                            ->required()
-                            ->placeholder('Selecciona la hora de salida'),
-
-                        DatePicker::make('fecha_designacion')
-                            ->label('Fecha de Designación')
-                            ->required()
-                            ->placeholder('Selecciona la fecha de designación'),
-                    ])
-                    ->columnSpan(1)
-                    ->extraAttributes(['class' => 'p-6 min-h-[250px] bg-gradient-to-r from-purple-500 to-purple-700 rounded-xl shadow-lg border border-transparent text-white']), // Fondo degradado y bordes redondeados
-
-                Group::make()
-                    ->schema([
-                        Toggle::make('asignacion_activa')
-                            ->label('Asignación activa')
-                            ->default(true)
-                            ->reactive() // 
-                            ->afterStateUpdated(function ($state, callable $set) {
-                                // Setea la fecha si se desactiva, la limpia si se activa
-                                if (!$state) {
-                                    $set('fin_asignacion', now()->toDateString());
-                                } else {
-                                    $set('fin_asignacion', null);
-                                }
-                            }),
-
-                        DatePicker::make('fin_asignacion')
-                            ->label('Fecha Fin de Asignación')
-                            ->required()
-                            ->reactive()
-                            ->afterStateUpdated(function (\Filament\Forms\Set $set, $state) {
-                                $set('id_conductor', null);
-                                $set('id_anfitrion', null);
-                                $set('id_buses', null);
-                            }),
-                    ])
-                    ->columns(1),
-            ]),
-
-        ]);
-    }
+                ])
+                ->columnSpan(3) // Full width
+                ->extraAttributes([
+                    'class' => 'p-6 min-h-[200px] bg-blue-50 dark:bg-blue-900/20 rounded-xl shadow-lg border-2 border-blue-300 dark:border-blue-600 mb-6'
+                ]),
+        ]),
+    ]);
+}
     public static function table(Tables\Table $table): Tables\Table
     {
         return $table
@@ -214,19 +225,25 @@ class AsignacionDeBusResource extends Resource
                     ->sortable()
                     ->searchable(),
 
-                TextColumn::make('observaciones')
-                    ->label('Observaciones')
-                    ->limit(50),
-
-                IconColumn::make('asignacion_activa')
-                    ->label('Asignación activa')
-                    ->boolean()
-                    ->getStateUsing(fn($record) => is_null($record->fin_asignacion)) // si no hay fin, está activa
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('danger'),
-
+               IconColumn::make('asignacion_activa')
+    ->label('Asignación activa')
+    ->boolean()
+    ->getStateUsing(function($record) {
+        // Si no hay fecha de fin O la fecha de fin es futura = ACTIVA
+        if (is_null($record->fin_asignacion)) {
+            return true; // Activa porque no tiene fecha de fin
+        }
+        
+        // Si tiene fecha de fin, comparar con hoy
+        $fechaFin = \Carbon\Carbon::parse($record->fin_asignacion);
+        $hoy = \Carbon\Carbon::today();
+        
+        return $fechaFin->greaterThanOrEqualTo($hoy); // Activa si la fecha de fin es hoy o futura
+    })
+    ->trueIcon('heroicon-o-check-circle')
+    ->falseIcon('heroicon-o-x-circle')
+    ->trueColor('success')
+    ->falseColor('danger'),
 
                 TextColumn::make('fecha_designacion') // Usando DateTimeColumn
                     ->label('Fecha de Designación')
@@ -236,6 +253,10 @@ class AsignacionDeBusResource extends Resource
                     ->label('Fecha Fin Designación')
                     ->date('Y-m-d')
                     ->sortable(),
+
+                    TextColumn::make('observaciones')
+                    ->label('Observaciones')
+                    ->limit(50),
             ])
             ->filters([
                 //
