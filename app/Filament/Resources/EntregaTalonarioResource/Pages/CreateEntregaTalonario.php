@@ -12,6 +12,7 @@ use Illuminate\Database\QueryException;
 use Carbon\Carbon;
 
 
+
 class CreateEntregaTalonario extends CreateRecord
 {
     protected static string $resource = EntregaTalonarioResource::class;
@@ -63,7 +64,6 @@ class CreateEntregaTalonario extends CreateRecord
                 ->body($e->getMessage())
                 ->danger()
                 ->send();
-
             throw $e;
         }
     }

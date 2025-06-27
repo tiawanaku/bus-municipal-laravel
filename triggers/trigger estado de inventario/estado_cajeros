@@ -1,37 +1,37 @@
 DELIMITER //
 
-CREATE TRIGGER tr_set_estado_inventario_talonarios
-BEFORE INSERT ON inventario_talonarios
+CREATE TRIGGER verificar_estados_talonarios_fifo
+BEFORE INSERT ON entrega_talonarios
 FOR EACH ROW
 BEGIN
-    DECLARE existe_asignable_preferencial INT DEFAULT 0;
-    DECLARE existe_asignable_regular INT DEFAULT 0;
-    DECLARE id_antiguo_preferencial INT DEFAULT NULL;
-    DECLARE id_antiguo_regular INT DEFAULT NULL;
+    DECLARE existe_activo_pref INT DEFAULT 0;
+    DECLARE existe_activo_reg INT DEFAULT 0;
+    DECLARE id_mas_antiguo_pref INT DEFAULT NULL;
+    DECLARE id_mas_antiguo_reg INT DEFAULT NULL;
     
-    -- Verifica registros asignables preferenciales con disponibilidad
-    SELECT COUNT(*) INTO existe_asignable_preferencial
-    FROM inventario_talonarios
+    -- Verificar registros activos preferenciales con disponibilidad
+    SELECT COUNT(*) INTO existe_activo_pref 
+    FROM entrega_talonarios 
     WHERE estado_preferencial = 1 
     AND cantidad_restante_preferencial > 0;
     
-    -- Verifica registros asignables regulares con disponibilidad
-    SELECT COUNT(*) INTO existe_asignable_regular
-    FROM inventario_talonarios
+    -- Verificar registros activos regulares con disponibilidad
+    SELECT COUNT(*) INTO existe_activo_reg 
+    FROM entrega_talonarios 
     WHERE estado_regular = 1 
     AND cantidad_restante_regular > 0;
     
-    -- Busca el más antiguo preferencial en espera con disponibilidad
-    SELECT id INTO id_antiguo_preferencial
-    FROM inventario_talonarios
+    -- Buscar el más antiguo con disponibilidad preferencial (FIFO por created_at)
+    SELECT id INTO id_mas_antiguo_pref
+    FROM entrega_talonarios
     WHERE cantidad_restante_preferencial > 0 
     AND estado_preferencial != 1
     ORDER BY created_at ASC
     LIMIT 1;
     
-    -- Busca el más antiguo regular en espera con disponibilidad
-    SELECT id INTO id_antiguo_regular
-    FROM inventario_talonarios
+    -- Buscar el más antiguo con disponibilidad regular (FIFO por created_at)
+    SELECT id INTO id_mas_antiguo_reg
+    FROM entrega_talonarios
     WHERE cantidad_restante_regular > 0 
     AND estado_regular != 1
     ORDER BY created_at ASC
@@ -42,14 +42,14 @@ BEGIN
         SET NEW.estado_preferencial = 0;
         SET NEW.estado_regular = 0;
     ELSE
-        -- Lógica para estado_preferencial
+        -- Lógica FIFO para talonarios preferenciales
         IF NEW.cantidad_restante_preferencial > 0 THEN
-            IF existe_asignable_preferencial = 0 THEN
-                IF id_antiguo_preferencial IS NOT NULL THEN
-                    -- Activa el más antiguo primero (FIFO)
-                    UPDATE inventario_talonarios 
+            IF existe_activo_pref = 0 THEN
+                IF id_mas_antiguo_pref IS NOT NULL THEN
+                    -- Activar el más antiguo primero (FIFO)
+                    UPDATE entrega_talonarios 
                     SET estado_preferencial = 1 
-                    WHERE id = id_antiguo_preferencial;
+                    WHERE id = id_mas_antiguo_pref;
                     
                     SET NEW.estado_preferencial = 2; -- Nuevo en espera
                 ELSE
@@ -62,14 +62,14 @@ BEGIN
             SET NEW.estado_preferencial = 0; -- Sin disponibilidad
         END IF;
         
-        -- Lógica para estado_regular
+        -- Lógica FIFO para talonarios regulares
         IF NEW.cantidad_restante_regular > 0 THEN
-            IF existe_asignable_regular = 0 THEN
-                IF id_antiguo_regular IS NOT NULL THEN
-                    -- Activa el más antiguo primero (FIFO)
-                    UPDATE inventario_talonarios 
+            IF existe_activo_reg = 0 THEN
+                IF id_mas_antiguo_reg IS NOT NULL THEN
+                    -- Activar el más antiguo primero (FIFO)
+                    UPDATE entrega_talonarios 
                     SET estado_regular = 1 
-                    WHERE id = id_antiguo_regular;
+                    WHERE id = id_mas_antiguo_reg;
                     
                     SET NEW.estado_regular = 2; -- Nuevo en espera
                 ELSE

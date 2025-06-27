@@ -30,6 +30,7 @@ use Illuminate\Support\Facades\DB;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Filament\Tables\Actions\CreateAction;
 
 
 class EntregaTalonarioResource extends Resource
@@ -709,11 +710,21 @@ class EntregaTalonarioResource extends Resource
                 echo $pdf->stream();
             }, 'acta_entrega_talonarios_' . $record->id . '.pdf');
         }),
-    ]);
+    ])
+    
+    
+    ->headerActions([
+         CreateAction::make(),
+    ])
+    
+     ->bulkActions([
+                    Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ]);
 
 }
 
-        
     public static function getRelations(): array
     {
         return [
