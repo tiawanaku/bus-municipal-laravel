@@ -46,29 +46,45 @@ class FormularioRecaudoResource extends Resource
                     ->schema([
 
                         Forms\Components\TextInput::make('buscar_carnet')
-                            ->label('Buscar Carnet de Anfitrión')
-                            ->placeholder('Ej: 12345678')
-                            ->reactive()
-                            ->debounce(500)
-                            ->afterStateUpdated(function ($state, callable $set) {
-                                $asignacion = \App\Models\AsignacionDeBus::whereHas('anfitrion', function ($query) use ($state) {
-                                    $query->where('ci', $state); // Asegúrate de que 'ci' sea el campo correcto en la relación anfitrion
-                                })->latest()->first();
+    ->label('Buscar Carnet de Anfitrión')
+    ->placeholder('Ej: 12345678')
+    ->reactive()
+    ->debounce(500)
+    ->afterStateUpdated(function ($state, callable $set) {
+        $asignacion = \App\Models\AsignacionDeBus::whereHas('anfitrion', function ($query) use ($state) {
+            $query->where('ci', $state); // Campo CI del anfitrión
+        })->latest()->first();
 
-                                if ($asignacion) {
-                                    $set('anfitrion_id', $asignacion->id_anfitrion);
-                                    $set('conductor_id', $asignacion->id_conductor);
-                                    $set('bus_id', $asignacion->id_buses);
-                                    $set('N_ficha', $asignacion->n_ficha);
-                                } else {
-                                    Notification::make()
-                                        ->title('Carnet no encontrado')
-                                        ->body('No se encontró una asignación para el carnet ingresado.')
-                                        ->danger()
-                                        ->duration(5000) // Aquí probamos con 5000 milisegundos
-                                        ->send();
-                                }
-                            }),
+        // Verificar si hay asignación y si está activa
+        if ($asignacion) {
+            $fechaFin = $asignacion->fin_asignacion ? \Carbon\Carbon::parse($asignacion->fin_asignacion) : null;
+            $hoy = \Carbon\Carbon::today();
+
+            $asignacionActiva = is_null($fechaFin) || $fechaFin->greaterThanOrEqualTo($hoy);
+
+            if ($asignacionActiva) {
+                $set('anfitrion_id', $asignacion->id_anfitrion);
+                $set('conductor_id', $asignacion->id_conductor);
+                $set('bus_id', $asignacion->id_buses);
+                $set('N_ficha', $asignacion->n_ficha);
+            } else {
+                \Filament\Notifications\Notification::make()
+                    ->title('Asignación caducada')
+                    ->body('La asignación encontrada está caducada.')
+                    ->danger()
+                    ->duration(5000)
+                    ->send();
+            }
+        } else {
+            \Filament\Notifications\Notification::make()
+                ->title('Carnet no encontrado')
+                ->body('No se encontró una asignación para el carnet ingresado.')
+                ->danger()
+                ->duration(5000)
+                ->send();
+        }
+    }),
+
 
                         Forms\Components\Grid::make(6)
                             ->schema([
@@ -184,117 +200,145 @@ class FormularioRecaudoResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
+       return $table
+        ->modifyQueryUsing(function (Builder $query) {
+            $user = auth()->user();
+            
+            // Si es super_admin, puede ver todos los registros
+            if ($user->hasRole('super_admin')) {
+                return $query; // No aplica ningún filtro
+            }
+            
+            // Para cualquier otro usuario, solo ve sus propios registros
+            return $query->where('anfitrion_id', $user->id);
+        })
             ->columns([
-                TextColumn::make('id')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                // 👥 Información de Personal
+                Tables\Columns\TextColumn::make('personal_info')
+                ->label('👥 Personal')
+                ->html()
+                ->getStateUsing(function ($record) {
+                    $anfitrion = $record->anfitrion;
+                    $conductor = $record->conductor;
+                    return "
+                        <strong>Anfitrión:</strong> {$anfitrion->nombre} {$anfitrion->apellido_paterno} {$anfitrion->apellido_materno}<br>
+                        <strong>Conductor:</strong> {$conductor->nombre} {$conductor->apellido_paterno} {$conductor->apellido_materno}<br>
+                        <strong>Bus:</strong> {$record->bus->numero_bus}
+                    ";
+                }),
 
-                TextColumn::make('anfitrion')
-                    ->label('Anfitrión')
-                    ->searchable()
-                    ->formatStateUsing(
-                        fn($record) =>
-                        $record->anfitrion->nombre . ' ' .
-                            $record->anfitrion->apellido_paterno . ' ' .
-                            $record->anfitrion->apellido_materno
-                    ),
+            // 📋 Información de Asignación
+            Tables\Columns\TextColumn::make('asignacion_info')
+                ->label('📋 Asignación')
+                ->html()
+                ->getStateUsing(function ($record) {
+                    return "
+                        <strong>N° Ficha:</strong> {$record->N_ficha}<br>
+                        <strong>Rutas:</strong> {$record->rutas}<br>
+                        <strong>Horario:</strong> {$record->horario}
+                    ";
+                }),
 
-                TextColumn::make('conductor')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Conductor')
-                    ->searchable()
-                    ->formatStateUsing(
-                        fn($record) =>
-                        $record->conductor->nombre . ' ' .
-                            $record->conductor->apellido_paterno . ' ' .
-                            $record->conductor->apellido_materno
-                    ),
+ // 🎫 Recaudo Regular
+Tables\Columns\TextColumn::make('regular_info')
+    ->label('🎟️ Regulares')
+    ->html()
+    ->getStateUsing(function ($record) {
+        $ventas = $record->cantidad_ventas_regulares ?? 0;
+        $montoRaw = $record->monto_recaudado_regular ?? 0;
+        $monto = number_format($montoRaw, 2, '.', ',');
 
-                TextColumn::make('bus.numero_bus')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Número Bus')
-                    ->searchable(),
+        // Lógica de colores de 3 estados (sin gris)
+        if ($montoRaw <= 30) {
+            $color = '#dc2626'; // rojo - bajo recaudo
+        } elseif ($montoRaw <= 70) {
+            $color = '#eab308'; // amarillo - recaudo regular
+        } else {
+            $color = '#16a34a'; // verde - alto recaudo
+        }
 
+        $completos = intdiv($ventas, 50);
+        $restantes = $ventas % 50;
 
-                TextColumn::make('rutas')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Rutas'),
+        $textoTalonarios = $completos > 0 ? "{$completos} completo" : "";
+        if ($restantes > 0) {
+            $textoTalonarios .= ($textoTalonarios ? " + " : "") . "1 en uso";
+        }
 
-                TextColumn::make('horario')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Horario'),
+        return "
+            <strong>Ventas de Tickets:</strong> {$ventas}<br>
+            <strong>Talonarios:</strong> {$textoTalonarios}<br>
+            <strong>Rango:</strong> {$record->rango_inicial_regulares} - {$record->rango_final_regulares}<br>
+            <strong>Recaudo:</strong> <span style='color: {$color}; font-weight: bold;'>Bs {$monto}</span>
+        ";
+    }),
 
-                TextColumn::make('n_ficha')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('N° Ficha'),
+// 🎫 Recaudo Preferencial 
+Tables\Columns\TextColumn::make('preferencial_info')
+    ->label('🎫 Preferenciales')
+    ->html()
+    ->getStateUsing(function ($record) {
+        $ventas = $record->cantidad_ventas_preferenciales ?? 0;
+        $montoRaw = $record->monto_recaudado_preferencial ?? 0;
+        $monto = number_format($montoRaw, 2, '.', ',');
 
-                TextColumn::make('cantidad_ventas_regulares')
-                    ->label('Cant. Ventas Regulares'),
+        // Lógica de colores de 3 estados (sin gris)
+        if ($montoRaw <= 30) {
+            $color = '#dc2626'; // rojo - bajo recaudo
+        } elseif ($montoRaw <= 70) {
+            $color = '#eab308'; // amarillo - recaudo regular
+        } else {
+            $color = '#16a34a'; // verde - alto recaudo
+        }
 
-                TextColumn::make('rango_inicial_regulares')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Rango Inicial Regulares'),
+        $completos = intdiv($ventas, 50);
+        $restantes = $ventas % 50;
 
-                TextColumn::make('rango_final_regulares')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Rango Final Regulares'),
+        $textoTalonarios = $completos > 0 ? "{$completos} completo" : "";
+        if ($restantes > 0) {
+            $textoTalonarios .= ($textoTalonarios ? " + " : "") . "1 en uso";
+        }
 
-                TextColumn::make('monto_recaudado_regular')
-                    ->toggleable(isToggledHiddenByDefault: false)
-                    ->label('Monto Recaudado Regular')
-                    ->formatStateUsing(fn($state) => 'Bs ' . number_format($state, 2))
-                    ->sortable()
-                    ->color(
-                        fn($state) =>
-                        $state < 50 ? 'danger' : ($state >= 50 && $state < 90 ? 'warning' : ($state >= 90 ? 'success' : 'primary'))
-                    ),
+        return "
+            <strong>Ventas de Tickets:</strong> {$ventas}<br>
+            <strong>Talonarios:</strong> {$textoTalonarios}<br>
+            <strong>Rango:</strong> {$record->rango_inicial_preferencial} - {$record->rango_final_preferencial}<br>
+            <strong>Recaudo:</strong> <span style='color: {$color}; font-weight: bold;'>Bs {$monto}</span>
+        ";
+    }),
 
+           // 💰 Total Recaudo
+Tables\Columns\TextColumn::make('total_recaudo')
+    ->label('💰 Total')
+    ->html()
+    ->getStateUsing(function ($record) {
+        $totalRaw = $record->total_recaudo_regular_preferencial ?? 0;
+        $total = number_format($totalRaw, 2, '.', ',');
+        
+        // Lógica de colores de 3 estados (sin gris)
+        if ($totalRaw <= 60) {
+            $color = '#dc2626'; // rojo - bajo recaudo total
+        } elseif ($totalRaw <= 140) {
+            $color = '#eab308'; // amarillo - recaudo total regular
+        } else {
+            $color = '#16a34a'; // verde - alto recaudo total
+        }
+        
+        return "<span style='font-size: 18px; color: {$color}; font-weight: bold;'>Bs {$total}</span>";
+    }),
 
-
-                TextColumn::make('cantidad_ventas_preferenciales')
-                    ->toggleable(isToggledHiddenByDefault: false)
-                    ->label('Cant. Ventas Preferenciales'),
-
-                TextColumn::make('rango_inicial_preferencial')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Rango Inicial Preferencial'),
-
-                TextColumn::make('rango_final_preferencial')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Rango Final Preferencial'),
-
-
-                TextColumn::make('monto_recaudado_preferencial')
-                    ->label('Monto Recaudado Preferencial')
-                    ->formatStateUsing(fn($state) => 'Bs ' . number_format($state, 2))
-                    ->sortable()
-                    ->color(
-                        fn($state) =>
-                        $state < 50 ? 'danger' : ($state >= 50 && $state < 90 ? 'warning' : ($state >= 90 ? 'success' : 'primary'))
-                    ),
-
-
-
-
-                TextColumn::make('total_recaudo_regular_preferencial')
-                    ->label('Total Recaudo')
-                    ->formatStateUsing(fn($state) => 'Bs ' . number_format($state, 2))
-                    ->colors([
-                        'warning' => fn($state) => true, // Siempre amarillo
-                    ]),
-
-                TextColumn::make('created_at')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Fecha de envio')
-                    ->dateTime('d/m/Y H:i'),
-
-                TextColumn::make('updated_at')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Última Actualización')
-                    ->dateTime('d/m/Y H:i'),
-            ])
-            ->defaultSort('id', 'desc')
+            // 🕒 Fechas
+            Tables\Columns\TextColumn::make('fechas')
+                ->label('🕒 Fechas')
+                ->html()
+                ->getStateUsing(function ($record) {
+                    return "
+                        <strong>Enviado:</strong> " . date('d/m/Y H:i', strtotime($record->created_at)) . "<br>
+                    ";
+                })
+                ->toggleable(isToggledHiddenByDefault: true),
+        ])
+        ->defaultSort('id', 'desc')
 
             ->filters([
                 SelectFilter::make('anfitrion_id')
@@ -324,189 +368,401 @@ class FormularioRecaudoResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
 
-                Tables\Actions\Action::make('descargar_pdf')
-                    ->label('Descargar PDF')
-                    ->icon('heroicon-o-document-arrow-down')
-                    ->color('success')
-                    ->action(function ($record) {
-                        $totalTarjetas = $record->cantidad_ventas_preferenciales + $record->cantidad_ventas_regulares;
+     Tables\Actions\Action::make('descargar_pdf')
+    ->label('Descargar PDF')
+    ->icon('heroicon-o-document-arrow-down')
+    ->color('success')
+    ->action(function ($record) {
+        $totalGiros = \DB::table('control_de_reguladors')
+            ->where('bus_id', $record->bus_id)
+            ->latest('created_at')
+            ->value('total_giros') ?? 0;
 
-                        $html = '
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        color: #333;
-        font-size: 12px;
-    }
-    .header {
-        text-align: center;
-        font-size: 14px;
-        line-height: 1.5;
-        margin-bottom: 20px;
-    }
-    .header .form-id {
-        margin-top: 5px;
-        font-weight: bold;
-    }
-    h1 {
-        text-align: center;
-        font-size: 22px;
-        margin-bottom: 20px;
-        color: #004085;
-    }
-    h3 {
-        text-align: center;
-        font-size: 16px;
-        margin-top: 30px;
-        margin-bottom: 10px;
-        color: #0056b3;
-        border-bottom: 1px solid #ccc;
-        padding-bottom: 5px;
-    }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-        margin-bottom: 20px;
-    }
-    th, td {
-        border: 1px solid #dee2e6;
-        padding: 8px 12px;
-        text-align: left;
-    }
-    th {
-        background-color: #e9ecef;
-        font-weight: bold;
-    }
-    .total {
-        font-size: 14px;
-        font-weight: bold;
-        color: #155724;
-        background-color: #d4edda;
-        text-align: right;
-    }
-    .text-center {
-        text-align: center;
-    }
-</style>
+        $girosRealizadosAnfitrion = $record->cantidad_ventas_preferenciales + $record->cantidad_ventas_regulares;
+        $diferencia = $totalGiros - $girosRealizadosAnfitrion;
 
-<div class="header">
-    <div><strong>SERVICIO DE TRANSPORTE BUS MUNICIPAL</strong></div>
-    <div><strong>UNIDAD DE ADMINISTRACIÓN Y RECAUDO</strong></div>
-    <div><strong>FORMULARIO DE REGISTRO DE EFECTIVO - VALORES E INSTRUMENTOS</strong></div>
-    <div class="form-id">FORM - 001</div>
-    <div><strong>FECHA DE REGISTRO:</strong> ' . date("d/m/Y", strtotime($record->created_at)) . '</div>
-</div>
-<h3>I. DATOS GENERALES</h3>
-<table>
-    <tr>
-        <td style="width: 50%; vertical-align: top;">
-            <table>
-                <tr><th>ANFITRIÓN</th><td>' . strtoupper($record->anfitrion->nombre . ' ' . $record->anfitrion->apellido_paterno . ' ' . $record->anfitrion->apellido_materno) . '</td></tr>
-                <tr><th>CONDUCTOR</th><td>' . strtoupper($record->conductor->nombre . ' ' . $record->conductor->apellido_paterno . ' ' . $record->conductor->apellido_materno) . '</td></tr>
-                <tr><th>RUTA</th><td>' . strtoupper($record->rutas) . '</td></tr>
-            </table>
-        </td>
-        <td style="width: 50%; vertical-align: top;">
-            <table>
-                <tr><th>TURNO</th><td>' . strtoupper($record->horario) . '</td></tr>
-                <tr><th>BUS Nº</th><td>' . strtoupper($record->bus->numero_bus) . '</td></tr>
-                <tr><th>FICHA Nº</th><td>' . strtoupper($record->N_ficha) . '</td></tr>
-            </table>
-        </td>
-    </tr>
-</table>
+        $datosRegulador = \DB::table('control_de_reguladors')
+            ->where('bus_id', $record->bus_id)
+            ->latest('created_at')
+            ->first();
 
-<h3>RECAUDO PREFERENCIALES</h3>
-<table>
-    <tr>
-        <th>CANTIDAD</th>
-        <th>RANGO INICIAL</th>
-        <th>MONTO (BS)</th>
-    </tr>
-    <tr>
-        <td>' . strtoupper($record->cantidad_ventas_preferenciales) . '</td>
-        <td>' . strtoupper($record->rango_inicial_preferencial) . '</td>
-        <td>' . number_format($record->monto_recaudado_preferencial, 2) . '</td>
-    </tr>
-</table>
+        if ($diferencia == 0) {
+            $variacionTexto = "✓ COINCIDENCIA EXACTA - Sin diferencias";
+            $variacionColor = "#28a745";
+            $estadoCruce = "CONFORME";
+        } elseif ($diferencia > 0) {
+            $variacionTexto = "⚠️ DIFERENCIA - Regulador reporta $diferencia giros más";
+            $variacionColor = "#ffc107";
+            $estadoCruce = "REVISAR";
+        } else {
+            $variacionTexto = "❌ DIFERENCIA - Anfitrión reporta " . abs($diferencia) . " giros más";
+            $variacionColor = "#dc3545";
+            $estadoCruce = "REVISAR";
+        }
 
-<h3>RECAUDO REGULARES</h3>
-<table>
-    <tr>
-        <th>CANTIDAD</th>
-        <th>RANGO INICIAL</th>
-        <th>MONTO (BS)</th>
-    </tr>
-    <tr>
-        <td>' . strtoupper($record->cantidad_ventas_regulares) . '</td>
-        <td>' . strtoupper($record->rango_inicial_regulares) . '</td>
-        <td>' . number_format($record->monto_recaudado_regular, 2) . '</td>
-    </tr>
-</table>
-
-<h3>TOTAL RECAUDADO</h3>
-<table>
-    <tr>
-        <!-- TOTAL (BS) -->
-        <td style="width: 50%; vertical-align: top;">
-            <table style="width: 100%;">
-                <tr>
-                    <th class="total">TOTAL (BS)</th>
-                </tr>
-                <tr>
-                    <td class="total">' . number_format($record->total_recaudo_regular_preferencial, 2) . '</td>
-                </tr>
-            </table>
-        </td>
-
-        <!-- GIROS REALIZADOS POR MOLINETE -->
-        <td style="width: 50%; vertical-align: top;">
-            <table style="width: 100%;">
-                <tr>
-                    <th class="total">GIROS REALIZADOS POR MOLINETE</th>
-                </tr>
-                <tr>
-                    <td class="total">' . ($record->cantidad_ventas_preferenciales + $record->cantidad_ventas_regulares) . ' GIROS</td>
-                </tr>
-            </table>
-        </td>
-    </tr>
-</table>
-<!-- Espacios para firmas: Conductor, Anfitrión, Cajero -->
-<table style="width: 100%; margin-top: 40px; text-align: center; border-collapse: collapse;" border="0">
-    <tr>
-        <td style="width: 33.33%; padding: 0 10px; border: none;">
-            <div style="display: flex; flex-direction: column; align-items: center;">
-                <div style="border-top: 1px solid #000; width: 80%; margin-top: 60px;"></div>
-                <p style="margin-top: 8px;"><strong>FIRMA Y SELLO CONDUCTOR<br>OBSERVADOR</strong></p>
+        $html = '
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Formulario de Registro de Recaudo</title>
+    <style>
+        @page { 
+            margin: 15mm 10mm; 
+            size: A4; 
+        }
+        body { 
+            font-family: "Times New Roman", serif; 
+            font-size: 10px; 
+            line-height: 1.3; 
+            margin: 0; 
+            padding: 0; 
+            color: #000;
+            background: #fff;
+        }
+        .document-container { 
+            max-width: 100%; 
+            margin: 0 auto; 
+            padding: 0; 
+        }
+        .header { 
+            text-align: center; 
+            margin-bottom: 15px; 
+            border: 2px solid #000; 
+            padding: 10px; 
+            background: #fff;
+        }
+        .header .title { 
+            font-size: 14px; 
+            font-weight: bold; 
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            color: #000;
+        }
+        .header .subtitle { 
+            font-size: 11px; 
+            margin-bottom: 3px; 
+            font-weight: bold;
+            color: #000;
+        }
+        .header .form-info { 
+            font-size: 10px; 
+            margin-top: 8px; 
+            padding-top: 5px;
+            border-top: 1px solid #000;
+            color: #000;
+        }
+        .section-title { 
+            background: #000; 
+            color: #fff; 
+            font-size: 11px; 
+            padding: 6px 10px; 
+            margin: 15px 0 8px 0; 
+            font-weight: bold; 
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 1px solid #000;
+        }
+        .data-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            font-size: 9px; 
+            margin-bottom: 8px; 
+            border: 2px solid #000;
+        }
+        .data-table th { 
+            background: #000; 
+            color: #fff;
+            padding: 6px 4px; 
+            text-align: center; 
+            border: 1px solid #000; 
+            font-weight: bold;
+            font-size: 9px;
+        }
+        .data-table td { 
+            padding: 5px 4px; 
+            border: 1px solid #000; 
+            text-align: center;
+            vertical-align: middle;
+            background: #fff;
+            color: #000;
+        }
+        .data-table .label { 
+            font-weight: bold; 
+            background: #f5f5f5;
+            text-align: left;
+            padding-left: 6px;
+            color: #000;
+        }
+        .data-table .value { 
+            text-align: center; 
+            font-weight: bold;
+            color: #000;
+        }
+        .highlight { 
+            font-weight: bold; 
+            color: #000;
+            text-decoration: underline;
+        }
+        .money { 
+            font-weight: bold; 
+            color: #000;
+        }
+        
+        /* Contenedor para tablas lado a lado */
+        .tables-row { 
+            display: table; 
+            width: 100%; 
+            margin-bottom: 10px;
+        }
+        .table-cell { 
+            display: table-cell; 
+            width: 50%; 
+            padding-right: 5px;
+            vertical-align: top;
+        }
+        .table-cell:last-child { 
+            padding-right: 0; 
+            padding-left: 5px;
+        }
+        
+        .variation-section { 
+            margin: 15px 0; 
+            padding: 8px; 
+            background: #fff; 
+            color: #000; 
+            text-align: center; 
+            font-weight: bold; 
+            font-size: 11px;
+            border: 2px solid #000;
+            text-transform: uppercase;
+        }
+        .signatures { 
+            margin-top: 25px; 
+            display: table; 
+            width: 100%;
+        }
+        .signature { 
+            display: table-cell; 
+            text-align: center; 
+            width: 33.33%; 
+            padding: 0 10px;
+            vertical-align: top;
+        }
+        .signature-line { 
+            border-top: 2px solid #000; 
+            margin-top: 25px; 
+            margin-bottom: 5px;
+        }
+        .signature-text {
+            font-size: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #000;
+        }
+        .footer { 
+            font-size: 8px; 
+            text-align: center; 
+            margin-top: 20px; 
+            border-top: 2px solid #000; 
+            padding-top: 8px; 
+            color: #000;
+        }
+        .general-info { 
+            border: 2px solid #000; 
+            margin-bottom: 10px;
+        }
+        .general-info td { 
+            padding: 8px; 
+            border-right: 1px solid #000;
+            background: #fff;
+        }
+        .general-info td:last-child { 
+            border-right: none;
+        }
+        .status-conforme {
+            color: #000;
+            font-weight: bold;
+        }
+        .status-revisar {
+            color: #000;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="document-container">
+        <div class="header">
+            <div class="title">Servicio de Transporte Bus Municipal</div>
+            <div class="subtitle">Unidad de Administración y Recaudo</div>
+            <div class="subtitle">Formulario de Registro de Efectivo - Valores e Instrumentos</div>
+            <div class="form-info">
+                <strong>FORM - 001</strong> | 
+                <strong>FECHA DE REGISTRO:</strong> ' . date("d/m/Y", strtotime($record->created_at)) . ' | 
+                <strong>HORA:</strong> ' . date("H:i", strtotime($record->created_at)) . '
             </div>
-        </td>
-        <td style="width: 33.33%; padding: 0 10px; border: none;">
-            <div style="display: flex; flex-direction: column; align-items: center;">
-                <div style="border-top: 1px solid #000; width: 80%; margin-top: 60px;"></div>
-                <p style="margin-top: 8px;"><strong>FIRMA Y SELLO ANFITRIÓN<br>ENTREGUÉ</strong></p>
+        </div>
+
+        <div class="section-title">I. Datos Generales del Servicio</div>
+        <table class="data-table general-info">
+            <tr>
+                <td width="25%">
+                    <div class="label">ANFITRIÓN:</div>
+                    <div class="value">' . $record->anfitrion->nombre . ' ' . $record->anfitrion->apellido_paterno . '</div>
+                </td>
+                <td width="25%">
+                    <div class="label">CONDUCTOR:</div>
+                    <div class="value">' . $record->conductor->nombre . ' ' . $record->conductor->apellido_paterno . '</div>
+                </td>
+                <td width="25%">
+                    <div class="label">RUTA:</div>
+                    <div class="value">' . $record->rutas . '</div>
+                </td>
+                <td width="25%">
+                    <div class="label">TURNO:</div>
+                    <div class="value">' . $record->horario . '</div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="label">BUS Nº:</div>
+                    <div class="value highlight">' . $record->bus->numero_bus . '</div>
+                </td>
+                <td>
+                    <div class="label">FICHA Nº:</div>
+                    <div class="value">' . $record->N_ficha . '</div>
+                </td>
+                <td colspan="2">
+                    <div class="label">OBSERVACIONES:</div>
+                    <div style="height: 15px; border-bottom: 1px dotted #666;"></div>
+                </td>
+            </tr>
+        </table>
+
+        <div class="section-title">II. Recaudo de Pasajes</div>
+        <div class="tables-row">
+            <div class="table-cell">
+                <table class="data-table">
+                    <tr><th colspan="3">RECAUDO PREFERENCIALES</th></tr>
+                    <tr>
+                        <th width="33%">CANTIDAD</th>
+                        <th width="34%">RANGO INICIAL</th>
+                        <th width="33%">MONTO (Bs)</th>
+                    </tr>
+                    <tr>
+                        <td class="highlight">' . number_format($record->cantidad_ventas_preferenciales) . '</td>
+                        <td>' . $record->rango_inicial_preferencial . '</td>
+                        <td class="money">' . number_format($record->monto_recaudado_preferencial, 2) . '</td>
+                    </tr>
+                </table>
             </div>
-        </td>
-        <td style="width: 33.33%; padding: 0 10px; border: none;">
-            <div style="display: flex; flex-direction: column; align-items: center;">
-                <div style="border-top: 1px solid #000; width: 80%; margin-top: 60px;"></div>
-                <p style="margin-top: 8px;"><strong>FIRMA Y SELLO CAJERO<br>RECIBÍ CONFORME</strong></p>
+            <div class="table-cell">
+                <table class="data-table">
+                    <tr><th colspan="3">RECAUDO REGULARES</th></tr>
+                    <tr>
+                        <th width="33%">CANTIDAD</th>
+                        <th width="34%">RANGO INICIAL</th>
+                        <th width="33%">MONTO (Bs)</th>
+                    </tr>
+                    <tr>
+                        <td class="highlight">' . number_format($record->cantidad_ventas_regulares) . '</td>
+                        <td>' . $record->rango_inicial_regulares . '</td>
+                        <td class="money">' . number_format($record->monto_recaudado_regular, 2) . '</td>
+                    </tr>
+                </table>
             </div>
-        </td>
-    </tr>
-</table>
+        </div>
 
+        <div class="section-title">III. Control y Verificación</div>
+        <div class="tables-row">
+            <div class="table-cell">
+                <table class="data-table">
+                    <tr><th colspan="2">CONTROL MOLINETE</th></tr>
+                    <tr>
+                        <th width="50%">MOLINETE INICIAL</th>
+                        <th width="50%">MOLINETE FINAL</th>
+                    </tr>
+                    <tr>
+                        <td class="highlight">' . ($datosRegulador->molinete_inicial ?? 'N/A') . '</td>
+                        <td class="highlight">' . ($datosRegulador->molinete_final ?? 'N/A') . '</td>
+                    </tr>
+                    <tr>
+                        <th>TOTAL GIROS MOLINETE</th>
+                        <th>FECHA REGISTRO</th>
+                    </tr>
+                    <tr>
+                        <td class="money">' . number_format($totalGiros) . '</td>
+                        <td>' . ($datosRegulador ? date("d/m/Y H:i", strtotime($datosRegulador->created_at)) : 'N/A') . '</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="table-cell">
+                <table class="data-table">
+                    <tr><th colspan="2">COMPARACIÓN DE GIROS</th></tr>
+                    <tr>
+                        <th width="50%">GIROS ANFITRIÓN</th>
+                        <th width="50%">DIFERENCIA</th>
+                    </tr>
+                    <tr>
+                        <td class="highlight">' . number_format($girosRealizadosAnfitrion) . '</td>
+                        <td class="' . ($estadoCruce == "CONFORME" ? "status-conforme" : "status-revisar") . '">' . abs($diferencia) . '</td>
+                    </tr>
+                    <tr>
+                        <th>TOTAL RECAUDADO (Bs)</th>
+                        <th>ESTADO CRUCE</th>
+                    </tr>
+                    <tr>
+                        <td class="money">' . number_format($record->total_recaudo_regular_preferencial, 2) . '</td>
+                        <td class="' . ($estadoCruce == "CONFORME" ? "status-conforme" : "status-revisar") . '">' . $estadoCruce . '</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
 
-';
+        <div class="variation-section">
+            ' . $variacionTexto . '
+        </div>
 
-                        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html);
+        <div class="section-title">IV. Firmas y Validaciones</div>
+        <div class="signatures">
+            <div class="signature">
+                <div class="signature-line"></div>
+                <div class="signature-text">Firma y Sello<br>Conductor Observador</div>
+            </div>
+            <div class="signature">
+                <div class="signature-line"></div>
+                <div class="signature-text">Firma y Sello<br>Anfitrión - Entregué</div>
+            </div>
+            <div class="signature">
+                <div class="signature-line"></div>
+                <div class="signature-text">Firma y Sello<br>Cajero - Recibí Conforme</div>
+            </div>
+        </div>
 
-                        return response()->streamDownload(
-                            fn() => print($pdf->stream()),
-                            'formulario_recaudo_' . $record->id . '.pdf'
-                        );
-                    }),
+        <div class="footer">
+            <strong>Documento Oficial Generado Automáticamente</strong><br>
+            Fecha y Hora: ' . date("d/m/Y H:i:s") . ' | Sistema de Control de Transporte Municipal<br>
+            <em>Este documento tiene validez administrativa según normativa vigente</em>
+        </div>
+    </div>
+</body>
+</html>';
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html);
+        $pdf->setPaper('A4', 'portrait');
+        $pdf->setOptions([
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled' => true,
+            'defaultFont' => 'Times-Roman'
+        ]);
+
+        return response()->streamDownload(
+            fn() => print($pdf->stream()),
+            'formulario_recaudo_' . $record->bus->numero_bus . '_' . date('Y-m-d_H-i') . '.pdf'
+        );
+    })
             ])
 
 

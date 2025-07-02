@@ -12,6 +12,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use IbrahimBougaoua\FilaProgress\Infolists\Components\ProgressBarEntry;
+use IbrahimBougaoua\FilaProgress\Tables\Columns\CircleProgress;
+use IbrahimBougaoua\FilaProgress\Tables\Columns\ProgressBar;
 
 class EntregaTalonariosAnfitrionResource extends Resource
 {
@@ -270,143 +273,195 @@ public static function form(Form $form): Form
                 ]),
         ]);
 }
-    public static function table(Table $table): Table
-    {
-        return $table
-            ->columns([
-
-                Tables\Columns\TextColumn::make('entrega_talonario_id')
-                    ->label('Cajer@s')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->getStateUsing(function ($record) {
-                        $cajero = \App\Models\Cajero::find($record->entrega_talonario_id);
-                        return $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
-                    }),
-
-
-                Tables\Columns\TextColumn::make('anfitrion_id')
-                    ->label('Anfitrión')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->getStateUsing(function ($record) {
-                        $anfitrion = \App\Models\Anfitrion::find($record->anfitrion_id);  // Cambia el modelo si se llama distinto
-                        return $anfitrion ? $anfitrion->nombre . ' ' . $anfitrion->apellido_paterno . ' ' . $anfitrion->apellido_materno : 'No disponible';
-                    }),
-
-                Tables\Columns\TextColumn::make('numero_autorizacion')
-                    ->label('N° Autorización')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('cantidad_preferenciales')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Cant. Preferencial'),
-
-                Tables\Columns\TextColumn::make('rango_inicial_preferencial')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Rango Inicial Pref.'),
-
-                Tables\Columns\TextColumn::make('rango_final_preferencial')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Rango Final Pref.'),
-
-                Tables\Columns\TextColumn::make('total_boletos_preferenciales')
-                    ->label('Total Tickets Pref.')
-                    ->color(function ($state) {
-                        if ($state < 800) {
-                            return 'danger';    // rojo
-                        } elseif ($state >= 800 && $state <= 1500) {
-                            return 'warning';  // amarillo
-                        } else {
-                            return 'success';  // verde
-                        }
-                    }),
-
-
-                Tables\Columns\TextColumn::make('total_aproximado_bolivianos_preferencial')
-                    ->label('Recaudo Preferecial Bs.')
-                    ->formatStateUsing(fn($state) => 'Bs. ' . number_format($state, 2, '.', ','))
-                    ->color('warning'),
-
-                Tables\Columns\TextColumn::make('cantidad_restante_preferencial')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Cant. Restante Pref.'),
-
-                Tables\Columns\TextColumn::make('cantidad_regulares')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Cant. Regulares'),
-
-                Tables\Columns\TextColumn::make('rango_inicial_regular')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Rango Inicial Reg.'),
-
-                Tables\Columns\TextColumn::make('rango_final_regular')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Rango Final Reg.'),
-
-                Tables\Columns\TextColumn::make('total_boletos_regulares')
-                    ->label('Total Tickets Reg.')
-                    ->color(function ($state) {
-                        if ($state < 800) {
-                            return 'danger';    // rojo
-                        } elseif ($state >= 800 && $state <= 1500) {
-                            return 'warning';  // amarillo
-                        } else {
-                            return 'success';  // verde
-                        }
-                    }),
-
-
-                Tables\Columns\TextColumn::make('total_aproximado_bolivianos_regular')
-                    ->label('Recaudo Regular Bs.')
-                    ->formatStateUsing(fn($state) => 'Bs. ' . number_format($state, 2, '.', ','))
-                    ->color('warning'),
-
-                Tables\Columns\TextColumn::make('cantidad_restante_regular')
-                    ->label('Cant. Restante Reg.')
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('tipo_talonarios')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Tipo Talonarios'),
 
 
 
-                Tables\Columns\TextColumn::make('observaciones')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Observaciones')->limit(50),
+public static function table(Table $table): Table
+{
+    return $table
+        ->columns([
+            // 👥 Información de Personal
+            Tables\Columns\TextColumn::make('personal_info')
+                ->label('👥 Personal')
+                ->html()
+                ->getStateUsing(function ($record) {
+                    $cajero = \App\Models\Cajero::find($record->entrega_talonario_id);
+                    $anfitrion = \App\Models\Anfitrion::find($record->anfitrion_id);
+                    
+                    $cajeroNombre = $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
+                    $anfitrionNombre = $anfitrion ? $anfitrion->nombre . ' ' . $anfitrion->apellido_paterno . ' ' . $anfitrion->apellido_materno : 'No disponible';
+                    
+                    return "
+                    <strong>Cajero:</strong> {$cajeroNombre}<br>
+                    <strong>Anfitrión:</strong> {$anfitrionNombre}
+                    ";
+                })
+                ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('total_recaudacion_bolivianos')
-                    ->label('Total Recaudación Bs.')
-                    ->formatStateUsing(fn($state) => 'Bs. ' . number_format($state, 2, '.', ','))
-                    ->color('warning'),
 
-                Tables\Columns\TextColumn::make('fecha_entrega')
-                    ->label('Fecha de Entrega')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->searchable()
-                    ->date('d/m/Y'),
 
-                Tables\Columns\TextColumn::make('created_at')->label('Creado')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->dateTime('d/m/Y H:i'),
 
-                Tables\Columns\TextColumn::make('updated_at')->label('Actualizado')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->dateTime('d/m/Y H:i'),
-            ])
-            ->filters([
-                // Puedes agregar filtros aquí si deseas
-            ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
-    }
+            // 📋 Información General
+            Tables\Columns\TextColumn::make('info_general')
+                ->label('📋 Información General')
+                ->html()
+                ->getStateUsing(function ($record) {
+                    return "
+                    <strong>N° Autorización:</strong> {$record->numero_autorizacion}<br>
+                    <strong>Fecha Entrega:</strong> " . date('d/m/Y', strtotime($record->fecha_entrega)) . "<br>
+                    <strong>Tipo Talonarios:</strong> {$record->tipo_talonarios}
+                    ";
+                })
+                ->toggleable(isToggledHiddenByDefault: true),
 
+            // 🎫 Tickets Preferenciales
+            Tables\Columns\TextColumn::make('preferenciales_info')
+                ->label('🎫 Preferenciales')
+                ->html()
+                ->getStateUsing(function ($record) {
+                    $colorTotal = '';
+                    if ($record->total_boletos_preferenciales < 800) {
+                        $colorTotal = '#dc2626'; // rojo
+                    } elseif ($record->total_boletos_preferenciales >= 800 && $record->total_boletos_preferenciales <= 1500) {
+                        $colorTotal = '#ea580c'; // naranja
+                    } else {
+                        $colorTotal = '#16a34a'; // verde
+                    }
+
+                    $colorRestante = $record->cantidad_restante_preferencial < 800 ? '#dc2626' : 
+                                   ($record->cantidad_restante_preferencial < 2000 ? '#ea580c' : '#16a34a');
+                    
+                    return "
+                    <div>
+                        <strong>Cantidad:</strong> {$record->cantidad_preferenciales}<br>
+                        <strong>Restante:</strong> <span style='color:{$colorRestante}; font-weight: bold;'>{$record->cantidad_restante_preferencial}</span><br>
+                        <strong>Rango:</strong> {$record->rango_inicial_preferencial} - {$record->rango_final_preferencial}<br>
+                        <strong>Total Tickets:</strong> <span style='color:{$colorTotal}; font-weight: bold;'>{$record->total_boletos_preferenciales}</span><br>
+                        <strong>Recaudo:</strong> <span style='color: #059669; font-weight: bold;'>Bs. " . number_format($record->total_aproximado_bolivianos_preferencial, 2, '.', ',') . "</span>
+                    </div>
+                    ";
+                }),
+// 🎟️ Barra de progreso: muestra boletos REGULARES restantes (disminuye al vender)
+ProgressBar::make('regulares_progress')
+    ->getStateUsing(function ($record) {
+        $total = $record->cantidad_regulares ?: 1; // Evita división por cero
+        $restantes = $record->cantidad_restante_regular ?? 0;
+
+        $porcentajeRestante = round(($restantes / $total) * 100);
+        $vendidos = $total - $restantes;
+
+        return [
+            'total' => 100,
+            'progress' => $porcentajeRestante,
+            'label' => "Quedan: {$restantes} de {$total} ({$porcentajeRestante}%)",
+        ];
+    })
+    ->label('Boletos Regulares Restantes')
+    ->extraAttributes([
+        'class' => 'bg-orange-100',
+        'style' => '--progress-value-display: block;'
+    ]),
+
+
+   
+            // 🎟️ Tickets Regulares
+            Tables\Columns\TextColumn::make('regulares_info')
+                ->label('🎟️ Regulares')
+                ->html()
+                ->getStateUsing(function ($record) {
+                    $colorTotal = '';
+                    if ($record->total_boletos_regulares < 800) {
+                        $colorTotal = '#dc2626'; // rojo
+                    } elseif ($record->total_boletos_regulares >= 800 && $record->total_boletos_regulares <= 1500) {
+                        $colorTotal = '#ea580c'; // naranja
+                    } else {
+                        $colorTotal = '#16a34a'; // verde
+                    }
+
+                    $colorRestante = $record->cantidad_restante_regular < 800 ? '#dc2626' : 
+                                   ($record->cantidad_restante_regular < 2000 ? '#ea580c' : '#16a34a');
+                    
+                    return "
+                    <div>
+                        <strong>Cantidad:</strong> {$record->cantidad_regulares}<br>
+                        <strong>Restante:</strong> <span style='color:{$colorRestante}; font-weight: bold;'>{$record->cantidad_restante_regular}</span><br>
+                        <strong>Rango:</strong> {$record->rango_inicial_regular} - {$record->rango_final_regular}<br>
+                        <strong>Total Tickets:</strong> <span style='color:{$colorTotal}; font-weight: bold;'>{$record->total_boletos_regulares}</span><br>
+                        <strong>Recaudo:</strong> <span style='color: #059669; font-weight: bold;'>Bs. " . number_format($record->total_aproximado_bolivianos_regular, 2, '.', ',') . "</span>
+                    </div>
+                    ";
+                }),
+
+               // 🎫 Barra de progreso para boletos preferenciales (disminuye conforme se usan)
+// 🎫 Barra de progreso que muestra lo que queda (disminuye al vender)
+ProgressBar::make('preferenciales_progress')
+    ->getStateUsing(function ($record) {
+        $total = $record->cantidad_preferenciales ?: 1; // Para evitar división por cero
+        $restantes = $record->cantidad_restante_preferencial ?? 0;
+
+        $porcentajeRestante = round(($restantes / $total) * 100);
+        $usados = $total - $restantes;
+
+        return [
+            'total' => 100,
+            'progress' => $porcentajeRestante,
+            'label' => "Quedan: $restantes / $total ({$porcentajeRestante}%)",
+        ];
+    })
+    ->label('Boletos Preferenciales Restantes')
+    ->extraAttributes([
+        'class' => 'bg-blue-100',
+        'style' => '--progress-value-display: block;'
+    ]),
+
+
+
+        Tables\Columns\TextColumn::make('total_recaudacion_bolivianos')
+    ->label('💰 Total Recaudación')
+    ->html()
+    ->getStateUsing(function ($record) {
+        return "
+        <span style='font-size: 18px; color: #059669;'>
+        Bs. " . number_format($record->total_recaudacion_bolivianos, 2, '.', ',') . "
+        </span>
+        ";
+    }),
+
+            // 📝 Observaciones y Fechas
+            Tables\Columns\TextColumn::make('detalles_observaciones')
+                ->label('📝 Observaciones')
+                ->html()
+                ->getStateUsing(function ($record) {
+                    $observaciones = $record->observaciones ?: 'Sin observaciones';
+                    return "
+                    <div>
+                        <strong>Observaciones:</strong><br>
+                        <span style='font-size: 13px; line-height: 1.4;'>{$observaciones}</span><br><br>
+                        <strong>Creado:</strong> " . date('d/m/Y H:i', strtotime($record->created_at)) . "<br>
+                        <strong>Actualizado:</strong> " . date('d/m/Y H:i', strtotime($record->updated_at)) . "
+                    </div>
+                    ";
+                })
+                ->toggleable(isToggledHiddenByDefault: true),
+        ])
+        ->filters([
+            // Puedes agregar filtros aquí si deseas
+        ])
+
+        ->actions([
+            Tables\Actions\EditAction::make(),
+ 
+        ])
+
+        ->bulkActions([
+            Tables\Actions\BulkActionGroup::make([
+                Tables\Actions\DeleteBulkAction::make(),
+            ]),
+        ]);
+}
+
+
+    
     public static function getRelations(): array
     {
         return [

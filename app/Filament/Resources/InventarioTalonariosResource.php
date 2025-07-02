@@ -135,63 +135,18 @@ class InventarioTalonariosResource extends Resource
                 // Preferenciales
                 Forms\Components\Section::make('PREFERENCIALES')
                     ->schema([
-                        Grid::make(4)->schema([
-                            Forms\Components\TextInput::make('preferencial_del')
-                                ->label('Del')
-                                ->prefixIcon('heroicon-o-arrow-down')
-                                ->numeric()
-                                ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $del = (int) $state;
-                                    $al = (int) $get('preferencial_al');
+                        Grid::make(3)->schema([
 
-                                    if ($del && $al && $al >= $del) {
-                                        $set('cantidad_preferenciales', $al - $del + 1);
-                                    }
-                                }),
+                          Forms\Components\TextInput::make('preferencial_del')
+                        ->label('Del')
+                        ->prefixIcon('heroicon-o-arrow-down')
+                        ->numeric(),
 
-                            Forms\Components\TextInput::make('preferencial_al')
-                                ->label('Al')
-                                ->prefixIcon('heroicon-o-arrow-up')
-                                ->numeric()
-                                ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $al = (int) $state;
-                                    $del = (int) $get('preferencial_del');
-
-                                    if ($del && $al && $al >= $del) {
-                                        $set('cantidad_preferenciales', $al - $del + 1);
-                                    } else {
-                                        $set('cantidad_preferenciales', null);
-                                    }
-                                })
-                                ->rule(function (callable $get) {
-                                    $del = (int) $get('preferencial_del');
-                                    return function ($attribute, $value, $fail) use ($del) {
-                                        if ($del && $value < $del) {
-                                            $fail('El campo "Al" no puede ser menor que el campo "Del".');
-                                        }
-                                    };
-                                }),
-
-
-                            Forms\Components\TextInput::make('cantidad_preferenciales')
-                                ->label('Cantidad Preferenciales')
-                                ->prefixIcon('heroicon-o-hashtag')
-                                ->numeric()
-                                ->disabled() // ⛔ el usuario no puede editarlo
-                                ->dehydrated(true)
-                                ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $cantidad = (int) $state;
-                                    $del = (int) $get('preferencial_del');
-
-                                    if ($del && $cantidad > 0) {
-                                        $set('preferencial_al', $del + $cantidad - 1);
-                                    }
-                                }),
-
-
+                           Forms\Components\TextInput::make('preferencial_al')
+                        ->label('Al')
+                        ->prefixIcon('heroicon-o-arrow-up')
+                        ->numeric(),
+    
                             Forms\Components\TextInput::make('rango_inicial_preferencial')
                                 ->label('Rango Inicial')
                                 ->prefixIcon('heroicon-o-arrow-down')
@@ -209,61 +164,17 @@ class InventarioTalonariosResource extends Resource
                 // Regulares
                 Forms\Components\Section::make('REGULARES')
                     ->schema([
-                        Grid::make(4)->schema([
+                        Grid::make(3)->schema([
 
                             Forms\Components\TextInput::make('regular_del')
                                 ->label('Del')
                                 ->prefixIcon('heroicon-o-arrow-down')
-                                ->numeric()
-                                ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $del = (int) $state;
-                                    $al = (int) $get('regular_al');
-
-                                    if ($del && $al && $al >= $del) {
-                                        $set('cantidad_regulares', $al - $del + 1);
-                                    }
-                                }),
+                                ->numeric(), 
 
                             Forms\Components\TextInput::make('regular_al')
                                 ->label('Al')
                                 ->prefixIcon('heroicon-o-arrow-up')
-                                ->numeric()
-                                ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $al = (int) $state;
-                                    $del = (int) $get('regular_del');
-
-                                    if ($del && $al && $al >= $del) {
-                                        $set('cantidad_regulares', $al - $del + 1);
-                                    } else {
-                                        $set('cantidad_regulares', null);
-                                    }
-                                })
-                                ->rule(function (callable $get) {
-                                    $del = (int) $get('regular_del');
-                                    return function ($attribute, $value, $fail) use ($del) {
-                                        if ($del && $value < $del) {
-                                            $fail('El campo "Al" no puede ser menor que el campo "Del".');
-                                        }
-                                    };
-                                }),
-
-                            Forms\Components\TextInput::make('cantidad_regulares')
-                                ->label('Cantidad Regulares')
-                                ->prefixIcon('heroicon-o-hashtag')
-                                ->numeric()
-                                ->disabled()              // ❌ No editable
-                                ->dehydrated(true)        // ✅ Se guarda en la base de datos
-                                ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $cantidad = (int) $state;
-                                    $del = (int) $get('regular_del');
-
-                                    if ($del && $cantidad > 0) {
-                                        $set('regular_al', $del + $cantidad - 1);
-                                    }
-                                }),
+                                ->numeric(),
 
                             Forms\Components\TextInput::make('rango_inicial_regular')
                                 ->label('Rango Inicial')
@@ -287,6 +198,7 @@ class InventarioTalonariosResource extends Resource
                     ->columns(1),
             ]);
     }
+
 
     public static function saving(InventarioTalonarios $record)
     {

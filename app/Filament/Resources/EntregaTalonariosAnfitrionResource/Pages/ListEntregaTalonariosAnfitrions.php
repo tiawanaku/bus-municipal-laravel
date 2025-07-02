@@ -6,6 +6,7 @@ use App\Filament\Resources\EntregaTalonariosAnfitrionResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 
+
 class ListEntregaTalonariosAnfitrions extends ListRecords
 {
     protected static string $resource = EntregaTalonariosAnfitrionResource::class;

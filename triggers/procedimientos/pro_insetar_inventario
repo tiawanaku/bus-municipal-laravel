@@ -20,11 +20,11 @@ CREATE PROCEDURE inventario_talonarios (
     IN p_fecha_autorizacion DATE,
     IN p_fecha_activacion DATE,
 
-    -- Nuevos rangos
-    IN p_regular_del INT,
-    IN p_regular_al INT,
-    IN p_preferencial_del INT,
-    IN p_preferencial_al INT
+    -- Nuevos rangos (números de talonarios)
+    IN p_regular_del INT,        -- Talonario número inicial
+    IN p_regular_al INT,         -- Talonario número final
+    IN p_preferencial_del INT,   -- Talonario número inicial
+    IN p_preferencial_al INT     -- Talonario número final
 )
 BEGIN
     DECLARE v_rango_final_preferencial INT DEFAULT 0;
@@ -36,16 +36,45 @@ BEGIN
     DECLARE v_total_bs_regulares DECIMAL(10,2) DEFAULT 0.00;
 
     DECLARE v_total_recaudar DECIMAL(10,2) DEFAULT 0.00;
+    
+    -- Variables para las cantidades de talonarios calculadas desde los rangos
+    DECLARE v_cantidad_talonarios_preferenciales_calculada INT DEFAULT 0;
+    DECLARE v_cantidad_talonarios_regulares_calculada INT DEFAULT 0;
+    DECLARE v_cantidad_preferenciales_final INT DEFAULT 0;
+    DECLARE v_cantidad_regulares_final INT DEFAULT 0;
 
-    IF p_cantidad_preferenciales > 0 THEN
-        SET v_rango_final_preferencial = p_rango_inicial_preferencial + (p_cantidad_preferenciales * 50) - 1;
-        SET v_total_boletos_preferenciales = p_cantidad_preferenciales * 50;
+    -- ✅ CORRECCIÓN: Del y Al son números de talonarios, no de tickets
+    -- Calcular cuántos talonarios hay en el rango
+    IF p_preferencial_del > 0 AND p_preferencial_al > 0 AND p_preferencial_al >= p_preferencial_del THEN
+        SET v_cantidad_talonarios_preferenciales_calculada = p_preferencial_al - p_preferencial_del + 1;
+    END IF;
+
+    IF p_regular_del > 0 AND p_regular_al > 0 AND p_regular_al >= p_regular_del THEN
+        SET v_cantidad_talonarios_regulares_calculada = p_regular_al - p_regular_del + 1;
+    END IF;
+
+    -- Usar las cantidades de talonarios calculadas si están disponibles, de lo contrario usar las proporcionadas
+    SET v_cantidad_preferenciales_final = CASE 
+        WHEN v_cantidad_talonarios_preferenciales_calculada > 0 THEN v_cantidad_talonarios_preferenciales_calculada
+        ELSE p_cantidad_preferenciales
+    END;
+
+    SET v_cantidad_regulares_final = CASE 
+        WHEN v_cantidad_talonarios_regulares_calculada > 0 THEN v_cantidad_talonarios_regulares_calculada
+        ELSE p_cantidad_regulares
+    END;
+
+    -- Calcular valores para boletos preferenciales
+    IF v_cantidad_preferenciales_final > 0 THEN
+        SET v_rango_final_preferencial = p_rango_inicial_preferencial + (v_cantidad_preferenciales_final * 50) - 1;
+        SET v_total_boletos_preferenciales = v_cantidad_preferenciales_final * 50; -- Cada talonario = 50 tickets
         SET v_total_bs_preferenciales = v_total_boletos_preferenciales * 1.00;
     END IF;
 
-    IF p_cantidad_regulares > 0 THEN
-        SET v_rango_final_regular = p_rango_inicial_regular + (p_cantidad_regulares * 50) - 1;
-        SET v_total_boletos_regulares = p_cantidad_regulares * 50;
+    -- Calcular valores para boletos regulares
+    IF v_cantidad_regulares_final > 0 THEN
+        SET v_rango_final_regular = p_rango_inicial_regular + (v_cantidad_regulares_final * 50) - 1;
+        SET v_total_boletos_regulares = v_cantidad_regulares_final * 50; -- Cada talonario = 50 tickets
         SET v_total_bs_regulares = v_total_boletos_regulares * 1.50;
     END IF;
 
@@ -53,18 +82,18 @@ BEGIN
 
     INSERT INTO inventario_talonarios (
         cajero_id,
-        cantidad_preferenciales,
+        cantidad_preferenciales,        -- Cantidad de TALONARIOS preferenciales
         rango_inicial_preferencial,
         rango_final_preferencial,
-        total_boletos_preferenciales,
+        total_boletos_preferenciales,   -- Total de TICKETS (talonarios × 50)
         total_aproximado_bolivianos_preferencial,
-        cantidad_restante_preferencial,
-        cantidad_regulares,
+        cantidad_restante_preferencial, -- Talonarios restantes
+        cantidad_regulares,             -- Cantidad de TALONARIOS regulares
         rango_inicial_regular,
         rango_final_regular,
-        total_boletos_regulares,
+        total_boletos_regulares,        -- Total de TICKETS (talonarios × 50)
         total_aproximado_bolivianos_regular,
-        cantidad_restante_regular,
+        cantidad_restante_regular,      -- Talonarios restantes
         estado_preferencial,
         estado_regular,
         tipo_talonarios,
@@ -85,25 +114,25 @@ BEGIN
         fecha_autorizacion,
         fecha_activacion,
 
-        -- Nuevos rangos
+        -- Nuevos rangos de talonarios
         regular_del,
         regular_al,
         preferencial_del,
         preferencial_al
     ) VALUES (
         p_cajero_id,
-        p_cantidad_preferenciales,
+        v_cantidad_preferenciales_final,  -- Cantidad de TALONARIOS
         p_rango_inicial_preferencial,
         v_rango_final_preferencial,
-        v_total_boletos_preferenciales,
+        v_total_boletos_preferenciales,   -- Total de TICKETS (talonarios × 50)
         v_total_bs_preferenciales,
-        p_cantidad_preferenciales,
-        p_cantidad_regulares,
+        v_cantidad_preferenciales_final,  -- Talonarios restantes inicialmente
+        v_cantidad_regulares_final,       -- Cantidad de TALONARIOS
         p_rango_inicial_regular,
         v_rango_final_regular,
-        v_total_boletos_regulares,
+        v_total_boletos_regulares,        -- Total de TICKETS (talonarios × 50)
         v_total_bs_regulares,
-        p_cantidad_regulares,
+        v_cantidad_regulares_final,       -- Talonarios restantes inicialmente
         NULL,
         NULL,
         'mixto',
@@ -124,7 +153,7 @@ BEGIN
         p_fecha_autorizacion,
         p_fecha_activacion,
 
-        -- Nuevos valores rangos
+        -- Nuevos valores rangos de talonarios
         p_regular_del,
         p_regular_al,
         p_preferencial_del,

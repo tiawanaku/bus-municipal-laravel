@@ -5,6 +5,9 @@ namespace App\Filament\Resources\InventarioTalonariosResource\Widgets;
 use App\Models\InventarioTalonarios;
 use EightyNine\FilamentAdvancedWidget\AdvancedStatsOverviewWidget as BaseWidget;
 use EightyNine\FilamentAdvancedWidget\AdvancedStatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+
 
 class InventarioStatsWidget extends BaseWidget
 {
