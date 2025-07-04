@@ -137,16 +137,16 @@ class InventarioTalonariosResource extends Resource
                     ->schema([
                         Grid::make(3)->schema([
 
-                          Forms\Components\TextInput::make('preferencial_del')
-                        ->label('Del')
-                        ->prefixIcon('heroicon-o-arrow-down')
-                        ->numeric(),
+                            Forms\Components\TextInput::make('preferencial_del')
+                                ->label('Del')
+                                ->prefixIcon('heroicon-o-arrow-down')
+                                ->numeric(),
 
-                           Forms\Components\TextInput::make('preferencial_al')
-                        ->label('Al')
-                        ->prefixIcon('heroicon-o-arrow-up')
-                        ->numeric(),
-    
+                            Forms\Components\TextInput::make('preferencial_al')
+                                ->label('Al')
+                                ->prefixIcon('heroicon-o-arrow-up')
+                                ->numeric(),
+
                             Forms\Components\TextInput::make('rango_inicial_preferencial')
                                 ->label('Rango Inicial')
                                 ->prefixIcon('heroicon-o-arrow-down')
@@ -169,7 +169,7 @@ class InventarioTalonariosResource extends Resource
                             Forms\Components\TextInput::make('regular_del')
                                 ->label('Del')
                                 ->prefixIcon('heroicon-o-arrow-down')
-                                ->numeric(), 
+                                ->numeric(),
 
                             Forms\Components\TextInput::make('regular_al')
                                 ->label('Al')
@@ -357,7 +357,8 @@ class InventarioTalonariosResource extends Resource
                 // Observaciones si existen
                 Tables\Columns\TextColumn::make('observaciones')
                     ->label('Observaciones')
-                    ->wrap(), // Permite que se ajuste y no ensanche la tabla
+                    ->wrap()
+                    ->toggleable(isToggledHiddenByDefault: true), // Permite que se ajuste y no ensanche la tabla
             ])
 
             ->filters([
@@ -371,6 +372,7 @@ class InventarioTalonariosResource extends Resource
                             ])
                             ->toArray()
                     ),
+
                 Tables\Filters\TernaryFilter::make('observaciones')
                     ->label('Tiene Observaciones')
                     ->trueLabel('Sí')
@@ -379,21 +381,13 @@ class InventarioTalonariosResource extends Resource
                         true: fn($query) => $query->whereNotNull('observaciones')->where('observaciones', '!=', ''),
                         false: fn($query) => $query->whereNull('observaciones')->orWhere('observaciones', '')
                     ),
-                Tables\Filters\Filter::make('cantidad_restante_preferencial')
-                    ->label('Cantidad Restante Preferencial < 1000')
-                    ->query(fn($query) => $query->where('cantidad_restante_preferencial', '<', 1000)),
-
-                Tables\Filters\Filter::make('cantidad_restante_regular')
-                    ->label('Cantidad Restante Regular < 1000')
-                    ->query(fn($query) => $query->where('cantidad_restante_regular', '<', 1000)),
-
-                Tables\Filters\Filter::make('monto_preferencial_alto')
-                    ->label('Recaudo Preferencial > Bs. 5000')
-                    ->query(fn($query) => $query->where('total_aproximado_bolivianos_preferencial', '>', 5000)),
-
-                Tables\Filters\Filter::make('monto_regular_alto')
-                    ->label('Recaudo Regular > Bs. 5000')
-                    ->query(fn($query) => $query->where('total_aproximado_bolivianos_regular', '>', 5000)),
+                Tables\Filters\SelectFilter::make('estado_preferencial')
+                    ->label('Estados')
+                    ->options([
+                        0 => 'Asignado',
+                        1 => 'Asignable',
+                        2 => 'En Espera',
+                    ]),
 
                 // Solo este filtro tiene formulario (rango de fechas)
                 Tables\Filters\Filter::make('fecha_creacion')
@@ -409,6 +403,38 @@ class InventarioTalonariosResource extends Resource
                             ->when($data['from'], fn($query) => $query->whereDate('created_at', '>=', $data['from']))
                             ->when($data['until'], fn($query) => $query->whereDate('created_at', '<=', $data['until']));
                     }),
+
+                // NUEVOS FILTROS AÑADIDOS
+
+                Tables\Filters\Filter::make('n_cite')
+                    ->label('Buscar por Nº de CITE')
+                    ->form([
+                        TextInput::make('n_cite')
+                            ->label('Número de CITE')
+                            ->placeholder('Ej: GAM/UR/123/2024'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query
+                            ->when(
+                                $data['n_cite'],
+                                fn($q) => $q->where('n_cite', 'like', '%' . $data['n_cite'] . '%')
+                                    ->orWhere('cite_nota_solicitud', 'like', '%' . $data['n_cite'] . '%')
+                            );
+                    }),
+
+
+                Tables\Filters\Filter::make('gestion')
+                    ->label('Filtrar por Gestión')
+                    ->form([
+                        Forms\Components\TextInput::make('gestion')
+                            ->label('Gestión')
+                            ->placeholder('Ej: 2024'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query->when($data['gestion'], fn($query) => $query->where('gestion', 'like', '%' . $data['gestion'] . '%'));
+                    }),
+
+
             ])
             ->filtersFormColumns(2)
 
@@ -435,11 +461,22 @@ class InventarioTalonariosResource extends Resource
                 Tables\Actions\Action::make('descargar_pdf')
                     ->label('Descargar PDF')
                     ->icon('heroicon-o-printer')
-                    ->url(fn() => route('inventario.pdf'))
-                    ->openUrlInNewTab(),
+                    ->url(function ($livewire) {
+                        $filters = $livewire->tableFilters ?? [];
+                        $queryParams = [];
+
+                        if (isset($filters['estado_preferencial']['value']) && $filters['estado_preferencial']['value'] !== null) {
+                            $queryParams['estado_preferencial'] = $filters['estado_preferencial']['value'];
+                        }
+
+                        return route('inventario.pdf', $queryParams);
+                    })
+                    ->openUrlInNewTab()
             ])
+
+
             ->bulkActions([
-                    Tables\Actions\BulkActionGroup::make([
+                Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);

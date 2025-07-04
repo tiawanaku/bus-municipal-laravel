@@ -35,3 +35,5 @@ Route::get('/pdf/generate/mantenimientos', [PdfController::class, 'Mantenimiento
 
 
 Route::get('/exportar-pdf-inventario', [InventariController::class, 'exportarPDF'])->name('inventario.pdf');
+
+Route::get('/inventario/pdf', [InventariController::class, 'exportarPDF'])->name('inventario.pdf');
