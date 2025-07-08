@@ -208,7 +208,7 @@
         <div class="firma-box">
             <div class="firma-linea"></div>
             <div class="firma-texto">
-                RESPONSABLE DE INVENTARIO<br>
+                RESPONSABLE DE INVENTARIO O CUSTODIO<br>
                 Nombre: _________<br>
                 C.I.: _________
             </div>
@@ -217,7 +217,7 @@
         <div class="firma-box">
             <div class="firma-linea"></div>
             <div class="firma-texto">
-                SUPERVISOR GENERAL<br>
+                FEJE DE UNIDAD DE RECAUDO<br>
                 Nombre: _________<br>
                 C.I.: _________
             </div>

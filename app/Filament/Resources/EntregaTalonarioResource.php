@@ -164,31 +164,13 @@ class EntregaTalonarioResource extends Resource
                                 ->label('Del')
                                 ->prefixIcon('heroicon-o-arrow-down')
                                 ->numeric()
-                                ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $del = (int) $state;
-                                    $al = (int) $get('preferencial_al');
-
-                                    if ($del && $al && $al >= $del) {
-                                        $set('cantidad_preferenciales', $al - $del + 1);
-                                    }
-                                }),
+                                ->reactive(),
 
                             Forms\Components\TextInput::make('preferencial_al')
                                 ->label('Al')
                                 ->prefixIcon('heroicon-o-arrow-up')
                                 ->numeric()
                                 ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $al = (int) $state;
-                                    $del = (int) $get('preferencial_del');
-
-                                    if ($del && $al && $al >= $del) {
-                                        $set('cantidad_preferenciales', $al - $del + 1);
-                                    } else {
-                                        $set('cantidad_preferenciales', null);
-                                    }
-                                })
                                 ->rule(function (callable $get) {
                                     $del = (int) $get('preferencial_del');
                                     return function ($attribute, $value, $fail) use ($del) {
@@ -253,31 +235,14 @@ class EntregaTalonarioResource extends Resource
                                 ->label('Del')
                                 ->prefixIcon('heroicon-o-arrow-down')
                                 ->numeric()
-                                ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $del = (int) $state;
-                                    $al = (int) $get('regular_al');
+                                ->reactive(),
 
-                                    if ($del && $al && $al >= $del) {
-                                        $set('cantidad_regulares', $al - $del + 1);
-                                    }
-                                }),
 
                             Forms\Components\TextInput::make('regular_al')
                                 ->label('Al')
                                 ->prefixIcon('heroicon-o-arrow-up')
                                 ->numeric()
                                 ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $al = (int) $state;
-                                    $del = (int) $get('regular_del');
-
-                                    if ($del && $al && $al >= $del) {
-                                        $set('cantidad_regulares', $al - $del + 1);
-                                    } else {
-                                        $set('cantidad_regulares', null);
-                                    }
-                                })
                                 ->rule(function (callable $get) {
                                     $del = (int) $get('regular_del');
                                     return function ($attribute, $value, $fail) use ($del) {
@@ -401,122 +366,122 @@ class EntregaTalonarioResource extends Resource
     }
 
     public static function table(Table $table): Table
-{
-    return $table
-        ->columns([
-            Tables\Columns\TextColumn::make('inventario_id')
-                ->label('Encargad@ de Cajer@s')
-                ->toggleable(isToggledHiddenByDefault: true)
-                ->getStateUsing(function ($record) {
-                    $inventario = \App\Models\InventarioTalonarios::find($record->inventario_id);
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('inventario_id')
+                    ->label('Encargad@ de Cajer@s')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->getStateUsing(function ($record) {
+                        $inventario = \App\Models\InventarioTalonarios::find($record->inventario_id);
 
-                    if ($inventario && $inventario->cajero_id) {
-                        $cajero = \App\Models\Cajero::find($inventario->cajero_id);
-                        if ($cajero) {
-                            return $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno;
+                        if ($inventario && $inventario->cajero_id) {
+                            $cajero = \App\Models\Cajero::find($inventario->cajero_id);
+                            if ($cajero) {
+                                return $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno;
+                            }
                         }
-                    }
-                    return 'No disponible';
-                }),
+                        return 'No disponible';
+                    }),
 
-            Tables\Columns\TextColumn::make('cajero_id')
-                ->label('Cajer@s')
-                ->toggleable(isToggledHiddenByDefault: true)
-                ->getStateUsing(function ($record) {
-                    $cajero = \App\Models\Cajero::find($record->cajero_id);
-                    return $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
-                }),
+                Tables\Columns\TextColumn::make('cajero_id')
+                    ->label('Cajer@s')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->getStateUsing(function ($record) {
+                        $cajero = \App\Models\Cajero::find($record->cajero_id);
+                        return $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
+                    }),
 
-            // Preferenciales resumen + progreso
-            Tables\Columns\TextColumn::make('resumen_preferenciales')
-                ->label('🎫 Preferenciales')
-                ->html()
-                ->getStateUsing(function ($record) {
-                    $total = $record->cantidad_preferenciales ?? 1;
-                    $restante = $record->cantidad_restante_preferencial ?? 0;
-                    $porcentaje = $total > 0 ? round(($restante / $total) * 100) : 0;
+                // Preferenciales resumen + progreso
+                Tables\Columns\TextColumn::make('resumen_preferenciales')
+                    ->label('🎫 Preferenciales')
+                    ->html()
+                    ->getStateUsing(function ($record) {
+                        $total = $record->cantidad_preferenciales ?? 1;
+                        $restante = $record->cantidad_restante_preferencial ?? 0;
+                        $porcentaje = $total > 0 ? round(($restante / $total) * 100) : 0;
 
-                    return "
+                        return "
         <strong>Cantidad:</strong> {$total}<br>
         <strong>Rango Original:</strong> {$record->rango_inicial_preferencial} - {$record->rango_final_preferencial}<br>
         <strong>Del-Al :</strong> {$record->preferencial_del} - {$record->preferencial_al}<br>
         <strong>Restan:</strong> {$restante} ({$porcentaje}%)<br>
         <strong>Total Bs.:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_preferencial, 2, '.', ',') . "
     ";
-                }),
+                    }),
 
-            ProgressBar::make('preferenciales_progress_bar')
-                ->getStateUsing(function ($record) {
-                    $total = $record->cantidad_preferenciales ?? 1;
-                    $restante = $record->cantidad_restante_preferencial ?? 0;
-                    if ($total == 0) $total = 1;
-                    $porcentaje = round(($restante / $total) * 100);
-                    return [
-                        'total' => 100,
-                        'progress' => $porcentaje,
-                    ];
-                })
-                ->label('% Restante Preferenciales'),
+                ProgressBar::make('preferenciales_progress_bar')
+                    ->getStateUsing(function ($record) {
+                        $total = $record->cantidad_preferenciales ?? 1;
+                        $restante = $record->cantidad_restante_preferencial ?? 0;
+                        if ($total == 0) $total = 1;
+                        $porcentaje = round(($restante / $total) * 100);
+                        return [
+                            'total' => 100,
+                            'progress' => $porcentaje,
+                        ];
+                    })
+                    ->label('% Restante Preferenciales'),
 
-            // Regulares resumen + progreso
-            Tables\Columns\TextColumn::make('resumen_regulares')
-                ->label('🎟️ Regulares')
-                ->html()
-                ->getStateUsing(function ($record) {
-                    $total = $record->cantidad_regulares ?? 1;
-                    $restante = $record->cantidad_restante_regular ?? 0;
-                    $porcentaje = $total > 0 ? round(($restante / $total) * 100) : 0;
+                // Regulares resumen + progreso
+                Tables\Columns\TextColumn::make('resumen_regulares')
+                    ->label('🎟️ Regulares')
+                    ->html()
+                    ->getStateUsing(function ($record) {
+                        $total = $record->cantidad_regulares ?? 1;
+                        $restante = $record->cantidad_restante_regular ?? 0;
+                        $porcentaje = $total > 0 ? round(($restante / $total) * 100) : 0;
 
-                    return "
+                        return "
         <strong>Cantidad:</strong> {$total}<br>
         <strong>Rango Original:</strong> {$record->rango_inicial_regular} - {$record->rango_final_regular}<br>
         <strong>del-Al:</strong> {$record->regular_del} - {$record->regular_al}<br>
         <strong>Restan:</strong> {$restante} ({$porcentaje}%)<br>
         <strong>Total Bs.:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_regular, 2, '.', ',') . "
     ";
-                }),
+                    }),
 
-            ProgressBar::make('regulares_progress_bar')
-                ->getStateUsing(function ($record) {
-                    $total = $record->cantidad_regulares ?? 1;
-                    $restante = $record->cantidad_restante_regular ?? 0;
-                    if ($total == 0) $total = 1;
-                    $porcentaje = round(($restante / $total) * 100);
-                    return [
-                        'total' => 100,
-                        'progress' => $porcentaje,
-                    ];
-                })
-                ->label('% Restante Regulares'),
-        ])
-        ->filters([
-            //
-        ])
-      
-      
-        ->actions([
-    Tables\Actions\EditAction::make(),
+                ProgressBar::make('regulares_progress_bar')
+                    ->getStateUsing(function ($record) {
+                        $total = $record->cantidad_regulares ?? 1;
+                        $restante = $record->cantidad_restante_regular ?? 0;
+                        if ($total == 0) $total = 1;
+                        $porcentaje = round(($restante / $total) * 100);
+                        return [
+                            'total' => 100,
+                            'progress' => $porcentaje,
+                        ];
+                    })
+                    ->label('% Restante Regulares'),
+            ])
+            ->filters([
+                //
+            ])
 
-    Action::make('generar_pdf')
-        ->label('Generar PDF')
-        ->icon('heroicon-o-document')
-        ->color('success')
-        ->action(function ($record) {
-            $cajero = \App\Models\Cajero::find($record->cajero_id);
-            $nombreCompleto = $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
-            $ci = $cajero ? $cajero->ci : 'No disponible';
 
-            $tipo_talonario = $record->tipo_talonario;
-            $filasTabla = '';
+            ->actions([
+                Tables\Actions\EditAction::make(),
 
-            if (in_array($tipo_talonario, ['preferencial', 'Preferenciales y Regulares']) && $record->cantidad_preferenciales > 0) {
-                $rangoTicketsInicial = $record->preferencial_del ?? $record->rango_inicial_preferencial;
-                $rangoTicketsFinal = $record->preferencial_al ?? ($record->rango_inicial_preferencial + ($record->cantidad_preferenciales * 50) - 1);
+                Action::make('generar_pdf')
+                    ->label('Generar PDF')
+                    ->icon('heroicon-o-document')
+                    ->color('success')
+                    ->action(function ($record) {
+                        $cajero = \App\Models\Cajero::find($record->cajero_id);
+                        $nombreCompleto = $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
+                        $ci = $cajero ? $cajero->ci : 'No disponible';
 
-                $rangoFacturasInicial = $record->rango_inicial_preferencial;
-                $rangoFacturasFinal = $record->rango_final_preferencial ?? ($record->rango_inicial_preferencial + $record->cantidad_preferenciales - 1);
+                        $tipo_talonario = $record->tipo_talonario;
+                        $filasTabla = '';
 
-                $filasTabla .= '
+                        if (in_array($tipo_talonario, ['preferencial', 'Preferenciales y Regulares']) && $record->cantidad_preferenciales > 0) {
+                            $rangoTicketsInicial = $record->preferencial_del ?? $record->rango_inicial_preferencial;
+                            $rangoTicketsFinal = $record->preferencial_al ?? ($record->rango_inicial_preferencial + ($record->cantidad_preferenciales * 50) - 1);
+
+                            $rangoFacturasInicial = $record->rango_inicial_preferencial;
+                            $rangoFacturasFinal = $record->rango_final_preferencial ?? ($record->rango_inicial_preferencial + $record->cantidad_preferenciales - 1);
+
+                            $filasTabla .= '
                 <tr>
                     <td>PREFERENCIAL</td>
                     <td>' . number_format($rangoTicketsInicial, 0, '', ',') . '</td>
@@ -524,16 +489,16 @@ class EntregaTalonarioResource extends Resource
                     <td>' . $record->cantidad_preferenciales . ' talonarios</td>
                     <td>' . number_format($rangoFacturasInicial, 0, '', ',') . ' - ' . number_format($rangoFacturasFinal, 0, '', ',') . '</td>
                 </tr>';
-            }
+                        }
 
-            if (in_array($tipo_talonario, ['regular', 'Preferenciales y Regulares']) && $record->cantidad_regulares > 0) {
-                $rangoTicketsInicial = $record->regular_del ?? $record->rango_inicial_regular;
-                $rangoTicketsFinal = $record->regular_al ?? ($record->rango_inicial_regular + ($record->cantidad_regulares * 50) - 1);
+                        if (in_array($tipo_talonario, ['regular', 'Preferenciales y Regulares']) && $record->cantidad_regulares > 0) {
+                            $rangoTicketsInicial = $record->regular_del ?? $record->rango_inicial_regular;
+                            $rangoTicketsFinal = $record->regular_al ?? ($record->rango_inicial_regular + ($record->cantidad_regulares * 50) - 1);
 
-                $rangoFacturasInicial = $record->rango_inicial_regular;
-                $rangoFacturasFinal = $record->rango_final_regular ?? ($record->rango_inicial_regular + $record->cantidad_regulares - 1);
+                            $rangoFacturasInicial = $record->rango_inicial_regular;
+                            $rangoFacturasFinal = $record->rango_final_regular ?? ($record->rango_inicial_regular + $record->cantidad_regulares - 1);
 
-                $filasTabla .= '
+                            $filasTabla .= '
                 <tr>
                     <td>REGULAR</td>
                     <td>' . number_format($rangoTicketsInicial, 0, '', ',') . '</td>
@@ -541,16 +506,16 @@ class EntregaTalonarioResource extends Resource
                     <td>' . $record->cantidad_regulares . ' talonarios</td>
                     <td>' . number_format($rangoFacturasInicial, 0, '', ',') . ' - ' . number_format($rangoFacturasFinal, 0, '', ',') . '</td>
                 </tr>';
-            }
+                        }
 
-            $fechaActual = \Carbon\Carbon::now()->locale('es')->isoFormat('D [días del mes de] MMMM [del año] YYYY');
+                        $fechaActual = \Carbon\Carbon::now()->locale('es')->isoFormat('D [días del mes de] MMMM [del año] YYYY');
 
-            $encabezadoPath = public_path('img/Galeria/encabezado.png');
-            $piePath = public_path('img/Galeria/pie de pagina.png');
-            $encabezadoBase64 = file_exists($encabezadoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($encabezadoPath)) : '';
-            $pieBase64 = file_exists($piePath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($piePath)) : '';
+                        $encabezadoPath = public_path('img/Galeria/encabezado.png');
+                        $piePath = public_path('img/Galeria/pie de pagina.png');
+                        $encabezadoBase64 = file_exists($encabezadoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($encabezadoPath)) : '';
+                        $pieBase64 = file_exists($piePath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($piePath)) : '';
 
-            $html = '
+                        $html = '
             <html>
             <head>
                 <style>
@@ -630,7 +595,7 @@ class EntregaTalonarioResource extends Resource
             </head>
             <body>
                 <div class="encabezado">' .
-                    ($encabezadoBase64 ? '<img src="' . $encabezadoBase64 . '">' : '<h3>EMPRESA - ENCABEZADO</h3>') . '
+                            ($encabezadoBase64 ? '<img src="' . $encabezadoBase64 . '">' : '<h3>EMPRESA - ENCABEZADO</h3>') . '
                 </div>
 
                 <h2>ACTA DE ENTREGA DE TALONARIOS</h2>
@@ -673,11 +638,11 @@ class EntregaTalonarioResource extends Resource
       <div style="margin-top: 15px; text-align: center; margin-left: 20px;">
         <p style="margin: 2px 0; line-height: 1.2;">_________________________</p>
         <p style="margin: 2px 0; line-height: 1.2;"><strong>Firma del Cajero</strong></p>
-        <p style="margin: 2px 0; line-height: 1.2;">'.htmlspecialchars($nombreCompleto).'</p>
-        <p style="margin: 2px 0; line-height: 1.2;">C.I.: '.htmlspecialchars($ci).'</p>
+        <p style="margin: 2px 0; line-height: 1.2;">' . htmlspecialchars($nombreCompleto) . '</p>
+        <p style="margin: 2px 0; line-height: 1.2;">C.I.: ' . htmlspecialchars($ci) . '</p>
       </div>
     </td>
-    
+
     <!-- Firma Derecha (alineada al borde derecho) -->
     <td style="width: 50%; padding: 0; border: none; vertical-align: top; text-align: right;">
       <div style="margin-top: 15px; display: inline-block; text-align: center; margin-right: 20px;">
@@ -688,42 +653,41 @@ class EntregaTalonarioResource extends Resource
     </td>
   </tr>
 </table>
- 
+
              <div class="pie-pagina">
-              
-        PDF generado el: '.\Carbon\Carbon::now()->format('d/m/Y H:i:s').'
-    
-        '.($pieBase64 ? '<img src="' . $pieBase64 . '">' : 'Dirección de la empresa | Teléfono | Email').'
+
+        PDF generado el: ' . \Carbon\Carbon::now()->format('d/m/Y H:i:s') . '
+
+        ' . ($pieBase64 ? '<img src="' . $pieBase64 . '">' : 'Dirección de la empresa | Teléfono | Email') . '
     </div>
             </body>
             </html>';
 
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)
-                ->setPaper('letter', 'portrait')
-                ->setOptions([
-                    'defaultFont' => 'DejaVu Sans',
-                    'isRemoteEnabled' => true,
-                    'isHtml5ParserEnabled' => true,
-                ]);
+                        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)
+                            ->setPaper('letter', 'portrait')
+                            ->setOptions([
+                                'defaultFont' => 'DejaVu Sans',
+                                'isRemoteEnabled' => true,
+                                'isHtml5ParserEnabled' => true,
+                            ]);
 
-            return response()->streamDownload(function () use ($pdf) {
-                echo $pdf->stream();
-            }, 'acta_entrega_talonarios_' . $record->id . '.pdf');
-        }),
-    ])
-    
-    
-    ->headerActions([
-         CreateAction::make(),
-    ])
-    
-     ->bulkActions([
-                    Tables\Actions\BulkActionGroup::make([
+                        return response()->streamDownload(function () use ($pdf) {
+                            echo $pdf->stream();
+                        }, 'acta_entrega_talonarios_' . $record->id . '.pdf');
+                    }),
+            ])
+
+
+            ->headerActions([
+                CreateAction::make(),
+            ])
+
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
-
-}
+    }
 
     public static function getRelations(): array
     {
