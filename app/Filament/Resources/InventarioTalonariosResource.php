@@ -271,21 +271,22 @@ class InventarioTalonariosResource extends Resource
 
                 // 🟪  resumen detos generales
                 Tables\Columns\TextColumn::make('resumen_general')
-                    ->label('Resumen General')
+                    ->label('📄 Resumen General')
                     ->html()
                     ->getStateUsing(function ($record) {
                         return "
-                        <strong>N° CITE:</strong> {$record->n_cite}<br>
-                        <strong>Gestión:</strong> {$record->gestion}<br>
-                        <strong>N° Dosificación:</strong> {$record->n_dosificacion}<br>
-                        <strong>Autorización:</strong> {$record->numero_autorizacion}<br>
-                        <strong>F.Solicitud:</strong> {$record->fecha_solicitud_dosificacion}<br>
-                        <strong>F.Autorización:</strong> {$record->fecha_autorizacion}<br>
-                        <strong>F.Activación:</strong> {$record->fecha_activacion}
-                        ";
+<span>🔖 <strong>N° CITE:</strong> {$record->n_cite}</span><br>
+<span>📅 <strong>Gestión:</strong> {$record->gestion}</span><br>
+<span>🧾 <strong>N° Dosificación:</strong> {$record->n_dosificacion}</span><br>
+<span>✅ <strong>Autorización:</strong> {$record->numero_autorizacion}</span><br>
+<span>📆 <strong>F. Solicitud:</strong> {$record->fecha_solicitud_dosificacion}</span><br>
+<span>📆 <strong>F. Autorización:</strong> {$record->fecha_autorizacion}</span><br>
+<span>🚀 <strong>F. Activación:</strong> {$record->fecha_activacion}</span>";
                     })
                     ->toggleable(isToggledHiddenByDefault: true),
 
+
+                // 🟪 Preferenciales resumen
                 // 🟪 Preferenciales resumen
                 Tables\Columns\TextColumn::make('preferenciales_info')
                     ->label('🎫 Preferenciales')
@@ -304,15 +305,20 @@ class InventarioTalonariosResource extends Resource
                             2 => 'En espera',
                             default => 'Desconocido'
                         };
+
                         return "
-        <strong>Cantidad:</strong> {$record->cantidad_preferenciales}<br>
-        <strong>Restante:</strong> <span style='color:" . ($record->cantidad_restante_preferencial < 800 ? 'red' : ($record->cantidad_restante_preferencial < 2000 ? 'green' : 'blue')) . "'>
-        {$record->cantidad_restante_preferencial}</span><br>
-        <strong>Rango:</strong> {$record->rango_inicial_preferencial} - {$record->rango_final_preferencial}<br>
-        <strong>Tickets:</strong> {$record->total_boletos_preferenciales}<br>
-        <strong>Recaudo:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_preferencial, 2, '.', ',') . "<br>
-        <strong>Estado:</strong> <span style='color:{$estadoColor}'>{$estadoTexto}</span>";
+<span>🔢 <strong>Cantidad:</strong> {$record->cantidad_preferenciales}</span><br>
+<span>📉 <strong>Restante:</strong> <span style='color:" .
+                            ($record->cantidad_restante_preferencial < 800 ? 'red' : ($record->cantidad_restante_preferencial < 2000 ? 'green' : 'blue')) . "'>
+    {$record->cantidad_restante_preferencial}</span></span><br>
+<span>🔁 <strong>Rango:</strong> {$record->rango_inicial_preferencial} - {$record->rango_final_preferencial}</span><br>
+<span>📅<strong>Del-Al :</strong> {$record->preferencial_del} - {$record->preferencial_al}<br>
+<span>🎟️ <strong>Tickets:</strong> {$record->total_boletos_preferenciales}</span><br>
+<span>💰 <strong>Recaudo:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_preferencial, 2, '.', ',') . "</span><br>
+<span>📌 <strong>Estado:</strong> <span style='color:{$estadoColor}'>{$estadoTexto}</span></span>";
                     }),
+
+
                 ProgressBar::make('preferenciales_progress_bar')
                     ->label('% Restante Preferenciales')
                     ->getStateUsing(fn($record) => [
@@ -338,15 +344,19 @@ class InventarioTalonariosResource extends Resource
                             2 => 'En espera',
                             default => 'Desconocido'
                         };
+
                         return "
-        <strong>Cantidad:</strong> {$record->cantidad_regulares}<br>
-        <strong>Restante:</strong> <span style='color:" . ($record->cantidad_restante_regular < 800 ? 'red' : ($record->cantidad_restante_regular < 2000 ? 'green' : 'blue')) . "'>
-        {$record->cantidad_restante_regular}</span><br>
-        <strong>Rango:</strong> {$record->rango_inicial_regular} - {$record->rango_final_regular}<br>
-        <strong>Tickets:</strong> {$record->total_boletos_regulares}<br>
-        <strong>Recaudo:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_regular, 2, '.', ',') . "<br>
-        <strong>Estado:</strong> <span style='color:{$estadoColor}'>{$estadoTexto}</span>";
+<span>🔢 <strong>Cantidad:</strong> {$record->cantidad_regulares}</span><br>
+<span>📉 <strong>Restante:</strong> <span style='color:" .
+                            ($record->cantidad_restante_regular < 800 ? 'red' : ($record->cantidad_restante_regular < 2000 ? 'green' : 'blue')) . "'>
+    {$record->cantidad_restante_regular}</span></span><br>
+<span>🔁 <strong>Rango:</strong> {$record->rango_inicial_regular} - {$record->rango_final_regular}</span><br>
+<span>📅<strong>Del-Al:</strong> {$record->regular_del} - {$record->regular_al}<br>
+<span>🎟️ <strong>Tickets:</strong> {$record->total_boletos_regulares}</span><br>
+<span>💰 <strong>Recaudo:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_regular, 2, '.', ',') . "</span><br>
+<span>📌 <strong>Estado:</strong> <span style='color:{$estadoColor}'>{$estadoTexto}</span></span>";
                     }),
+
                 ProgressBar::make('regulares_progress_bar')
                     ->label('% Restante Regulares')
                     ->getStateUsing(fn($record) => [
