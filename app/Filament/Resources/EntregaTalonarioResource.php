@@ -392,23 +392,55 @@ class EntregaTalonarioResource extends Resource
                         return $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
                     }),
 
-                // Preferenciales resumen + progreso
                 Tables\Columns\TextColumn::make('resumen_preferenciales')
-                    ->label('🎫 Preferenciales')
+                    ->label('🎟️ Preferenciales')
                     ->html()
                     ->getStateUsing(function ($record) {
+                        // Debug 1: Verificar si el campo existe y mostrar todos los campos disponibles
+                        if (!isset($record->estado_preferencial)) {
+                            $availableFields = implode(', ', array_keys((array)$record));
+                            return "<div style='color:red; font-weight:bold;'>ERROR: El campo 'estado_preferencial' no existe en este registro.</div>"
+                                . "<div>Campos disponibles: {$availableFields}</div>"
+                                . "<div>Valores recibidos: " . json_encode($record) . "</div>";
+                        }
+
+                        // Debug 2: Mostrar el valor crudo del campo
+                        $rawEstado = $record->getRawOriginal('estado_preferencial') ?? 'null';
+
                         $total = $record->cantidad_preferenciales ?? 1;
                         $restante = $record->cantidad_restante_preferencial ?? 0;
                         $porcentaje = $total > 0 ? round(($restante / $total) * 100) : 0;
+                        $colorPorcentaje = $porcentaje < 30 ? 'red' : ($porcentaje < 60 ? 'orange' : 'green');
+
+                        // Debug 3: Forzar diferentes valores para prueba
+                        // $rawEstado = 2; // <-- Descomentar para probar manualmente
+
+                        $estadoValor = (int) $rawEstado;
+
+                        $estadoColor = match ($estadoValor) {
+                            1 => 'green',     // Asignable
+                            2 => 'blue',      // En espera
+                            default => 'red'  // Asignado (0 o cualquier otro valor)
+                        };
+
+                        $estadoTexto = match ($estadoValor) {
+                            1 => 'Asignable',
+                            2 => 'En espera',
+                            default => 'Asignado'
+                        };
 
                         return "
-        <strong>Cantidad:</strong> {$total}<br>
-        <strong>Rango Original:</strong> {$record->rango_inicial_preferencial} - {$record->rango_final_preferencial}<br>
-        <strong>Del-Al :</strong> {$record->preferencial_del} - {$record->preferencial_al}<br>
-        <strong>Restan:</strong> {$restante} ({$porcentaje}%)<br>
-        <strong>Total Bs.:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_preferencial, 2, '.', ',') . "
-    ";
+<span>🔢 <strong>Cantidad:</strong> {$total}</span><br>
+<span>🔁 <strong>Rango Original:</strong> {$record->rango_inicial_preferencial} - {$record->rango_final_preferencial}</span><br>
+<span>📅 <strong>Del - Al:</strong> {$record->preferencial_del} - {$record->preferencial_al}</span><br>
+<span>📉 <strong>Restan:</strong> <span style='color:{$colorPorcentaje}'>{$restante} ({$porcentaje}%)</span></span><br>
+<span>💰 <strong>Total Bs.:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_preferencial, 2, '.', ',') . "</span><br>
+<span>📌 <strong>Estado:</strong> <span style='color:{$estadoColor}'>{$estadoTexto}</span></span>
+<br>
+<div style='color:gray; font-size:0.8em;'>
+</div>";
                     }),
+
 
                 ProgressBar::make('preferenciales_progress_bar')
                     ->getStateUsing(function ($record) {
@@ -423,24 +455,55 @@ class EntregaTalonarioResource extends Resource
                     })
                     ->label('% Restante Preferenciales'),
 
-                // Regulares resumen + progreso
+                // Para regulares también:
                 Tables\Columns\TextColumn::make('resumen_regulares')
-                    ->label('🎟️ Regulares')
+                    ->label('🎫 Regulares')
                     ->html()
                     ->getStateUsing(function ($record) {
+                        // Debug 1: Verificar si el campo existe y mostrar todos los campos disponibles
+                        if (!isset($record->estado_regular)) {
+                            $availableFields = implode(', ', array_keys((array)$record));
+                            return "<div style='color:red; font-weight:bold;'>ERROR: El campo 'estado_regular' no existe en este registro.</div>"
+                                . "<div>Campos disponibles: {$availableFields}</div>"
+                                . "<div>Valores recibidos: " . json_encode($record) . "</div>";
+                        }
+
+                        // Debug 2: Mostrar el valor crudo del campo
+                        $rawEstado = $record->getRawOriginal('estado_regular') ?? 'null';
+
                         $total = $record->cantidad_regulares ?? 1;
                         $restante = $record->cantidad_restante_regular ?? 0;
                         $porcentaje = $total > 0 ? round(($restante / $total) * 100) : 0;
+                        $colorPorcentaje = $porcentaje < 30 ? 'red' : ($porcentaje < 60 ? 'orange' : 'green');
+
+                        // Debug 3: Forzar diferentes valores para prueba
+                        // $rawEstado = 2; // <-- Descomentar para probar manualmente
+
+                        $estadoValor = (int) $rawEstado;
+
+                        $estadoColor = match ($estadoValor) {
+                            1 => 'green',     // Asignable
+                            2 => 'blue',      // En espera
+                            default => 'red'  // Asignado (0 o cualquier otro valor)
+                        };
+
+                        $estadoTexto = match ($estadoValor) {
+                            1 => 'Asignable',
+                            2 => 'En espera',
+                            default => 'Asignado'
+                        };
 
                         return "
-        <strong>Cantidad:</strong> {$total}<br>
-        <strong>Rango Original:</strong> {$record->rango_inicial_regular} - {$record->rango_final_regular}<br>
-        <strong>del-Al:</strong> {$record->regular_del} - {$record->regular_al}<br>
-        <strong>Restan:</strong> {$restante} ({$porcentaje}%)<br>
-        <strong>Total Bs.:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_regular, 2, '.', ',') . "
-    ";
+<span>🔢 <strong>Cantidad:</strong> {$total}</span><br>
+<span>🔁 <strong>Rango Original:</strong> {$record->rango_inicial_regular} - {$record->rango_final_regular}</span><br>
+<span>📅 <strong>Del - Al:</strong> {$record->regular_del} - {$record->regular_al}</span><br>
+<span>📉 <strong>Restan:</strong> <span style='color:{$colorPorcentaje}'>{$restante} ({$porcentaje}%)</span></span><br>
+<span>💰 <strong>Total Bs.:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_regular, 2, '.', ',') . "</span><br>
+<span>📌 <strong>Estado:</strong> <span style='color:{$estadoColor}'>{$estadoTexto}</span></span>
+<br>
+<div style='color:gray; font-size:0.8em;'>
+</div>";
                     }),
-
                 ProgressBar::make('regulares_progress_bar')
                     ->getStateUsing(function ($record) {
                         $total = $record->cantidad_regulares ?? 1;
