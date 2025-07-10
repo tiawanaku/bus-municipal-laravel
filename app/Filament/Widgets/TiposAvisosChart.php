@@ -6,25 +6,46 @@ use Filament\Widgets\ChartWidget;
 use App\Models\Aviso;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class TiposAvisosChart extends ChartWidget
 {
-    protected static ?string $heading = 'Tipos de Avisos por Mes';
+   protected static ?string $heading = 'Tipos de Avisos por Mes';
     protected static ?int $sort = 4;
-/* Función para los Avisos clasificarlos en meses, y el tipo de noticia */
+
     protected function getData(): array
     {
         Carbon::setLocale('es');
+        $filter = $this->filter ?? 'today';
 
-
-        $datos = Aviso::select(
+        $query = Aviso::select(
             DB::raw('YEAR(inicio_periodo) as year'),
             DB::raw('MONTH(inicio_periodo) as month'),
             'noticia',
             DB::raw('count(*) as total')
-        )
-            ->whereNotNull('inicio_periodo')
-            ->groupBy(DB::raw('YEAR(inicio_periodo)'), DB::raw('MONTH(inicio_periodo)'), 'noticia')
+        )->whereNotNull('inicio_periodo');
+
+        // Aplicar filtro de fecha
+        switch ($filter) {
+            case 'today':
+                $query->whereDate('inicio_periodo', Carbon::today());
+                break;
+
+            case 'week':
+                $query->whereBetween('inicio_periodo', [Carbon::now()->subDays(6)->startOfDay(), Carbon::now()->endOfDay()]);
+                break;
+
+            case 'month':
+                $query->whereMonth('inicio_periodo', Carbon::now()->month)
+                    ->whereYear('inicio_periodo', Carbon::now()->year);
+                break;
+
+            case 'year':
+                $query->whereYear('inicio_periodo', Carbon::now()->year);
+                break;
+        }
+
+        $datos = $query->groupBy(DB::raw('YEAR(inicio_periodo)'), DB::raw('MONTH(inicio_periodo)'), 'noticia')
             ->orderBy('year')
             ->orderBy('month')
             ->get();
@@ -34,11 +55,11 @@ class TiposAvisosChart extends ChartWidget
         })->unique()->values();
 
         $noticias = $datos->pluck('noticia')->unique();
+
         $datosIndexados = $datos->mapWithKeys(function ($item) {
             $label = Carbon::createFromDate($item->year, $item->month)->translatedFormat('F Y');
             return [$item->noticia . '|' . $label => $item->total];
         });
-
 
         $datasets = $noticias->map(function ($noticia) use ($labels, $datosIndexados) {
             return [
@@ -47,9 +68,11 @@ class TiposAvisosChart extends ChartWidget
                     return $datosIndexados[$noticia . '|' . $label] ?? 0;
                 }),
                 'borderColor' => $this->getColorForNoticia($noticia),
-                'backgroundColor' => $this->getColorForNoticia($noticia),
+                'backgroundColor' => 'transparent', // para que el fondo no tape la línea
                 'borderWidth' => 2,
                 'fill' => false,
+                'pointRadius' => 4,
+                'pointHoverRadius' => 6,
             ];
         });
 
@@ -59,11 +82,21 @@ class TiposAvisosChart extends ChartWidget
         ];
     }
 
+    protected function getFilters(): ?array
+    {
+        return [
+            'today' => 'Hoy',
+            'week' => 'Última semana',
+            'month' => 'Último mes',
+            'year' => 'Este año',
+        ];
+    }
+
     protected function getType(): string
     {
-        return 'bar';
+        return 'line';
     }
-    /* Función para cambiar el color en base a la noticia */
+
     private function getColorForNoticia($noticia)
     {
         return match ($noticia) {
@@ -75,4 +108,8 @@ class TiposAvisosChart extends ChartWidget
             default => '#6c757d',
         };
     }
+    public static function canView(): bool
+{
+    return Gate::allows('widget_TiposAvisosChart');
+}
 }

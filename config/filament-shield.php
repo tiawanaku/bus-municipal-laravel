@@ -56,7 +56,7 @@ return [
         'pages' => true,
         'widgets' => true,
         'resources' => true,
-        'custom_permissions' => false,
+        'custom_permissions' => true,
     ],
 
     'generator' => [
@@ -88,5 +88,17 @@ return [
     'register_role_policy' => [
         'enabled' => true,
     ],
+
+    'custom_permissions' => [
+    'marcar-llegada' => [
+        'label' => 'Marcar llegada de Buses',
+        'group' => 'Acciones personalizadas',
+    ],
+    'marcarFinalizado' => [
+        'label' => 'Marcar Finalizado Mantenimiento',
+        'group' => 'Acciones personalizadas',
+    ],
+
+],
 
 ];

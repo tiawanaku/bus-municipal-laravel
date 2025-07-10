@@ -19,6 +19,7 @@ class InventarioTalonariosResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationLabel = 'Inventario de Talonarios';
+    protected static ?string $navigationGroup = 'Gestión de Talonarios';
 
   public static function form(Form $form): Form
 {

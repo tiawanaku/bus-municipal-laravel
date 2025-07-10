@@ -1,7 +1,7 @@
 <nav class="bg-gray-900 text-gray-300 fixed top-0 left-0 w-full z-50 shadow-md">
     <div class="container mx-auto flex flex-wrap items-center justify-between px-6 py-3">
-        <a href="/bus-municipal" class="flex items-center shrink-0">
-            <img src="img/logo.png" alt="Bus Municipal Logo" class="h-10 w-auto mr-2">
+        <a href="/bus-municipal" class="flex items-center left-0 shrink-0">
+            <img src="img/logo.png" alt="Bus Municipal Logo" class="h-8 w-auto mr-2 sm:h-12 md:h-14 lg:h-14" />
         </a>
 
 

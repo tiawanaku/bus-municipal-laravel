@@ -67,10 +67,10 @@ class RutaResource extends Resource
                 ->drawPolygon(false)
                 ->cutPolygon(false)
                 ->editPolygon(false)
-                ->drawRectangle(false)
+                
                 ->drawCircle(false)
                 ->drawCircleMarker(false)
-                ->drawText(false)
+                
                 ->deleteLayer(false)
                 ->rotateMode(false),
 

@@ -24,41 +24,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  /* Para las cards de las paradas en cada página de la Ruta */
-  
-  document.addEventListener('DOMContentLoaded', function () {
-    const cards = document.querySelectorAll('.parada');
-
-    cards.forEach(card => {
-        const textOverlay = card.querySelector('.info-overlay');
-
-        // Detectar si es dispositivo táctil o no
-        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-
-        if (isTouchDevice) {
-            // Modo móvil: mostrar texto al hacer clic
-            card.addEventListener('click', (e) => {
-                e.stopPropagation();
-                textOverlay.classList.toggle('opacity-100');
-            });
-
-            // Ocultar texto al hacer clic fuera de la tarjeta
-            document.addEventListener('click', (e) => {
-                if (!card.contains(e.target)) {
-                    textOverlay.classList.remove('opacity-100');
-                }
-            });
-        } else {
-            // Modo escritorio: mostrar texto al pasar el ratón
-            card.addEventListener('mouseenter', () => {
-                textOverlay.classList.add('opacity-100');
-            });
-            card.addEventListener('mouseleave', () => {
-                textOverlay.classList.remove('opacity-100');
-            });
-        }
-    });
-});
+ 
 
 
 /* Efectos para los links del Navbar */
@@ -87,6 +53,53 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+/* Animación para desplazar li de izquierda a derecha */
+document.addEventListener("DOMContentLoaded", function () {
+    function animarLista(olSelector, delayStep = 300) {
+        const elementos = document.querySelectorAll(olSelector + " li");
+        elementos.forEach((el, index) => {
+            el.style.opacity = "0";
+            el.style.transform = "translateX(-100px)";
+            el.style.transition = "opacity 0.6s ease-out, transform 0.6s ease-out";
 
-    /* Función para el Iframe y manejar video de youtube o faecbook */
+            setTimeout(() => {
+                el.style.opacity = "1";
+                el.style.transform = "translateX(0)";
+            }, index * delayStep);
+        });
+    }
+
+    // Ejecutar ambas animaciones al mismo tiempo
+    animarLista("#lista-ida");
+    animarLista("#lista-vuelta");
+});
+
+/* Efecto de Escritura  */
+document.addEventListener("DOMContentLoaded", function () {
+    const elements = document.querySelectorAll('.typewrite');
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && !entry.target.classList.contains('animated')) {
+                const el = entry.target;
+                const text = el.getAttribute('data-text');
+                let index = 0;
+                const speed = 100;
+
+                function typeChar() {
+                    if (index < text.length) {
+                        el.textContent += text.charAt(index);
+                        index++;
+                        setTimeout(typeChar, speed);
+                    }
+                }
+
+                el.classList.add('animated');
+                typeChar();
+            }
+        });
+    }, { threshold: 0.8 });
+
+    elements.forEach(el => observer.observe(el));
+});
     

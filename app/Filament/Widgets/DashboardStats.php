@@ -9,6 +9,7 @@ use App\Models\Aviso;
 use App\Models\Mantenimiento;
 use App\Models\AsignacionDeBus;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Gate;
 
 class DashboardStats extends BaseWidget
 {
@@ -41,4 +42,9 @@ class DashboardStats extends BaseWidget
                 ->color('success'),
         ];
     }
+    /* Solo visible para usuarios con permiso */
+    public static function canView(): bool
+{
+    return Gate::allows('widget_DashboardStats');
+}
 }

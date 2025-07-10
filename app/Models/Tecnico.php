@@ -16,5 +16,10 @@ class Tecnico extends Model
         'numero_contrato',
         'numero_contacto',
         'numero_referencia',
-        ];
+    ];
+    /* Relacion con Mantenimiento */
+    public function mantenimientos()
+    {
+        return $this->hasMany(Mantenimiento::class, 'tecnico_id');
+    }
 }

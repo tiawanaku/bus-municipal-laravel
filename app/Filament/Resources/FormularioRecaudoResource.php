@@ -27,6 +27,7 @@ class FormularioRecaudoResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document';
     protected static ?string $navigationLabel = 'Formulario Recaudo';
     protected static ?string $modelLabel = 'Formulario de Recaudo';
+    protected static ?string $navigationGroup = 'Gestión de Talonarios';
 
     public static function form(Form $form): Form
     {

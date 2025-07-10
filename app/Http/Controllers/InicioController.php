@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AsignacionDeBus;
+use App\Models\SalidaDeBuses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Parada;
@@ -12,6 +14,10 @@ use App\Models\Pasaje;
 use App\Models\Horario;
 use App\Models\Galeria;
 use Carbon\Carbon;
+use App\Models\Bus;
+use App\Models\Designacion;
+use App\Models\Salida;
+use Illuminate\Support\Facades\Http;
 
 class InicioController extends Controller
 {
@@ -26,66 +32,130 @@ class InicioController extends Controller
             'sentido',
             'id_ruta',
             'orden',
-            'id_paradas',
+            'id_paradas'
         )
             ->with('ruta')
             ->get();
 
-
         $avisos = Aviso::where('status', 1)
-            ->where('fin_periodo', '>', Carbon::now()) // Filtramos para que solo se muestren los avisos que no están vencidos
-            ->get();
+            ->where('fin_periodo', '>', Carbon::now())
+            ->get()
+            ->map(function ($aviso) {
+                $aviso->ubicacion = $aviso->ubicacion ? json_decode($aviso->ubicacion) : null;
+                $aviso->created_at_humano = $aviso->created_at->diffForHumans();
+                return $aviso;
+            });
 
-        foreach ($avisos as $aviso) {
-            $aviso->created_at_humano = $aviso->created_at->diffForHumans();
-        }
         $rutas = Ruta::all();
-
 
         return view('partials.index', [
             'avisos' => $avisos,
             'locations' => $paradas,
             'rutas' => $rutas
         ]);
-
     }
 
-    /* Obtener la ubicación del bus a traves del GPS */
-    public function obtenerUbicacion()
+
+    /* Conexion con la api */
+    function obtenerUbicacionesDeTodosLosDispositivos()
     {
-        $url = 'http://64.225.54.113:8047/bus20';
+        // 1. Obtener dispositivos desde la API externa
+        $responseDevices = Http::withBasicAuth('milenkaelisaq95@gmail.com', '12345678')
+            ->get('http://64.225.54.113:7541/api/devices/');
 
-
-        $ch = curl_init($url);
-
-
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // Para que cURL devuelva el resultado como una cadena
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json',
-
-        ]);
-
-
-        $response = curl_exec($ch);
-
-
-        if ($response === false) {
-            $error = curl_error($ch);
-            curl_close($ch);
-            return response()->json(['error' => "Error al obtener ubicación: $error"], 500);
+        if (!$responseDevices->ok()) {
+            return response()->json(['error' => 'Error al obtener dispositivos'], 500);
         }
 
+        $devices = $responseDevices->json();
 
-        curl_close($ch);
+        // 2. Obtener positionId válidos
+        $positionIds = collect($devices)->pluck('positionId')->filter()->unique()->values()->all();
 
+        if (empty($positionIds)) {
+            return response()->json(['error' => 'No se encontraron positionId válidos'], 404);
+        }
 
-        $data = json_decode($response, true);
+        // 3. Obtener posiciones
+        $responsePositions = Http::withBasicAuth('milenkaelisaq95@gmail.com', '12345678')
+            ->get('http://64.225.54.113:7541/api/positions', ['id' => $positionIds]);
 
+        if (!$responsePositions->ok()) {
+            return response()->json(['error' => 'Error al obtener posiciones'], 500);
+        }
 
-        return response()->json($data);
+        $positions = collect($responsePositions->json());
+
+        // 4. Obtener buses con relaciones necesarias
+        $buses = Bus::with([
+            'asignaciones.conductor',
+            'asignaciones.anfitrion',
+            'asignaciones.salidas.ruta', 
+        ])->get()->keyBy('uniqueId');
+
+        // 5. Armar resultado
+        $resultado = collect($devices)->map(function ($device) use ($positions, $buses) {
+            $position = $positions->firstWhere('id', $device['positionId']);
+            $bus = $buses[$device['uniqueId']] ?? null;
+            $numeroBus = $bus->numero_bus ?? 'sin número de bus';
+
+            $rutaNombre = 'Ruta desconocida';
+            $nombreConductor = 'Sin confirmar';
+            $nombreAnfitrion = 'Sin confirmar';
+
+            if ($bus && $bus->asignaciones->isNotEmpty()) {
+                $hoy = now()->toDateString();
+                $salida = null;
+                $asignacionValida = null;
+
+                foreach ($bus->asignaciones as $asignacion) {
+                    $salidaActiva = $asignacion->salidas()
+                        ->whereNull('fecha_llegada')
+                        ->whereDate('fecha_salida', $hoy)
+                        ->orderByDesc('id_salida_bus')
+                        ->first();
+
+                    if ($salidaActiva) {
+                        $salida = $salidaActiva;
+                        $asignacionValida = $asignacion;
+                        break;
+                    }
+                }
+
+                if ($salida) {
+                    $rutaNombre = optional($salida->ruta)->nombre ?? 'Ruta desconocida';
+
+                    if ($salida->conductor_confirmado) {
+                        $nombreConductor = optional($asignacionValida->conductor)->nombre ?? 'Desconocido';
+                    }
+
+                    if ($salida->anfitrion_confirmado) {
+                        $nombreAnfitrion = optional($asignacionValida->anfitrion)->nombre ?? 'Desconocido';
+                    }
+                }
+            }
+
+            return [
+                'uniqueId' => $device['uniqueId'],
+                'numero_bus' => $numeroBus,
+                'ruta' => $rutaNombre,
+                'conductor' => $nombreConductor,
+                'anfitrion' => $nombreAnfitrion,
+                'latitude' => $position['latitude'] ?? null,
+                'longitude' => $position['longitude'] ?? null,
+                'velocidad_kmh' => isset($position['speed']) ? round($position['speed'] * 3.6, 1) : null,
+                'posicion' => $position,
+            ];
+        })// FILTRAMOS resultados con posición válida
+            ->filter(fn($item) => $item['latitude'] && $item['longitude'])
+            // FILTRAMOS los que tengan número de bus y ruta conocidos
+            ->filter(fn($item) => $item['numero_bus'] !== 'sin número de bus' && $item['ruta'] !== 'Ruta desconocida')
+            ->values();
+
+        return response()->json($resultado);
+
 
     }
-
     /* Función para buscar las paradas por el buscador */
     public function buscar(Request $request)
     {
@@ -96,7 +166,7 @@ class InicioController extends Controller
 
         return response()->json($paradas);
     }
-    /* Función para obtener la ubicación de la parada por el ID q */
+    /* Función para obtener la ubicación de la parada por el ID  */
     public function obtenerUbicacionParada(Request $request)
     {
         $id = $request->input('id_paradas');
@@ -118,22 +188,29 @@ class InicioController extends Controller
     /* Función para traer todos los datos para la vista RUTA NORTE */
     public function showRutaNorte()
     {
-        // Buscar la ruta que contenga "sur" (ignorando mayúsculas)
+        // Buscar la ruta que contenga "norte" (ignorando mayúsculas)
         $ruta = Ruta::whereRaw('LOWER(nombre) LIKE ?', ['%norte%'])->first();
 
         if (!$ruta) {
             abort(404, 'Ruta Norte no encontrada');
         }
 
-        // Eliminar duplicados por nombre (insensible a mayúsculas)
-        $paradas = $ruta->paradas
-            ->sortBy('orden')
-            ->unique(function ($parada) {
-                return strtolower($parada->nombre_parada);
-            });
+        // Filtrar paradas con sentido 'ida' y ordenar por 'orden'
+        $paradasIda = $ruta->paradas
+            ->filter(function ($parada) {
+                return strtolower($parada->sentido) === 'ida';
+            })
+            ->sortBy('orden');
+
+        $paradasVuelta = $ruta->paradas
+            ->filter(function ($parada) {
+                return strtolower($parada->sentido) === 'vuelta';
+            })
+            ->sortBy('orden');
 
         return view('pageInformation.ruta-norte', [
-            'paradas' => $paradas,
+            'paradasIda' => $paradasIda,
+            'paradasVuelta' => $paradasVuelta,
             'rutas' => $ruta
         ]);
     }
@@ -147,15 +224,22 @@ class InicioController extends Controller
             abort(404, 'Ruta Sur no encontrada');
         }
 
-        // Eliminar duplicados por nombre (insensible a mayúsculas)
-        $paradas = $ruta->paradas
-            ->sortBy('orden')
-            ->unique(function ($parada) {
-                return strtolower($parada->nombre_parada);
-            });
+        // Filtrar paradas con sentido 'ida' y ordenar por 'orden'
+        $paradasIda = $ruta->paradas
+            ->filter(function ($parada) {
+                return strtolower($parada->sentido) === 'ida';
+            })
+            ->sortBy('orden');
+
+        $paradasVuelta = $ruta->paradas
+            ->filter(function ($parada) {
+                return strtolower($parada->sentido) === 'vuelta';
+            })
+            ->sortBy('orden');
 
         return view('pageInformation.ruta-sur', [
-            'paradas' => $paradas,
+            'paradasIda' => $paradasIda,
+            'paradasVuelta' => $paradasVuelta,
             'rutas' => $ruta
         ]);
     }

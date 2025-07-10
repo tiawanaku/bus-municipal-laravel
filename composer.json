@@ -6,15 +6,18 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "afsakar/filament-otp-login": "^1.4",
         "arbermustafa/filament-locationpickr-field": "2.0.0",
         "bezhansalleh/filament-shield": "^3.3",
         "dotswan/filament-map-picker": "^1.4",
         "filament/filament": "^3.2",
         "fortawesome/font-awesome": "^6.5",
+        "laravel-lang/common": "^6.7",
         "laravel/framework": "^11.0",
         "laravel/tinker": "^2.9",
         "livewire/flux": "^1.0",
         "livewire/livewire": "^3.5",
+        "rmsramos/activitylog": "^1.0",
         "spatie/laravel-permission": "^6.7",
         "swisnl/filament-backgrounds": "^1.1"
     },

@@ -7,7 +7,6 @@ use App\Models\AsignacionDeBus;
 use Filament\Forms;
 use Filament\Forms\Form; // Asegúrate de usar este espacio de nombres
 use Filament\Resources\Resource;
-use Filament\Resources\Table;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\DateTimeColumn; // Cambiado a DateTimeColumn
@@ -18,18 +17,19 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select as FilamentSelect; // Cambiamos el alias aquí
 
 
-use Filament\Forms\Components\TimePicker;
-use App\Models\Conductor;
-use App\Models\Anfitrion;
+use Filament\Support\Exceptions\Halt;
 
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Group;
-use Filament\Forms\Components\Toggle;
-use Filament\Forms\Get;
+use Filament\Forms\Components\Wizard;
 use Filament\Tables\Columns\IconColumn;
 use App\Models\Bus;
+use App\Models\Horario;
 use Carbon\Carbon;
+use Filament\Notifications\Notification;
 use Filament\Forms\Components\Container; // Asegúrate de que esta línea esté presente
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\CheckboxList;
 
 
 class AsignacionDeBusResource extends Resource
@@ -38,173 +38,274 @@ class AsignacionDeBusResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-truck'; // Usa otro ícono como ejemplo
 
-
+protected static ?string $navigationGroup = 'Gestión de Buses';
     protected static ?string $navigationLabel = 'Asignación de Buses';
     protected static ?string $pluralModelLabel = 'Asignaciones de Bus';
 
     public static function form(Forms\Form $form): Forms\Form
     {
         return $form->schema([
-            Grid::make()->columns(3)->schema([
-                Group::make()
-                    ->schema([
-                        FilamentSelect::make('id_conductor')
-                            ->label('Conductor')
-                            ->options(function (callable $get, $livewire) {
-                                $fecha = $get('fecha_designacion');
-                                if (!$fecha)
-                                    return []; // No hay fecha, no se muestran opciones
-                    
-                                $mes = Carbon::parse($fecha)->format('Y-m');
+            /* Mostrar un form simple si es para editar */
+            Group::make()
+                ->hidden(fn(callable $get) => $get('id_designacion_bus') === null) // Ocultar si estamos creando
+                ->schema([
+                    TextInput::make('id_buses')
+                        ->label('ID del Bus')
+                        ->numeric()
+                        ->hidden(),
 
-                                $ocupados = AsignacionDeBus::whereRaw("DATE_FORMAT(fecha_designacion, '%Y-%m') = ?", [$mes])
-                                    ->where(function ($query) use ($fecha) {
-                                        $query->whereNull('fin_asignacion')
-                                            ->orWhereDate('fin_asignacion', '>=', $fecha);
-                                    });
+                    Placeholder::make('numero_bus')
+                        ->label('Número de Bus')
+                        ->content(function (callable $get) {
+                            $busId = $get('id_buses');
+                            $bus = Bus::find($busId);
+                            return $bus ? $bus->numero_bus : 'No existe bus con ese ID';
+                        }),
+                    TextInput::make('id_anfitrion')
+                        ->label('Nombre de Anfitrión')
+                        ->numeric()
+                        ->hidden(),
+                    Placeholder::make('nombre_completo_anfitrion')
+                        ->label('Nombre completo del Anfitrión')
+                        ->content(function (callable $get) {
+                            $anfitrionId = $get('id_anfitrion');
+                            $anfitrion = \App\Models\Anfitrion::find($anfitrionId);
 
-                                if ($record = $livewire->record ?? null) {
-                                    $ocupados->where('id_designacion_bus', '!=', $record->id_designacion_bus);
-                                }
+                            return $anfitrion ? $anfitrion->full_name : 'No asignado';
+                        }),
+                    TextInput::make('id_conductor')
+                        ->label('Nombre de Conductor')
+                        ->numeric()
+                        ->hidden(),
+                    Placeholder::make('nombre_completo_conductor')
+                        ->label('Nombre completo del Conductor')
+                        ->content(function (callable $get) {
+                            $conductorId = $get('id_conductor');
+                            $conductor = \App\Models\Conductor::find($conductorId);
 
-                                $idsOcupados = $ocupados->pluck('id_conductor');
+                            return $conductor ? $conductor->nombre_completo : 'No asignado';
+                        }),
 
-                                return Conductor::whereNotIn('id', $idsOcupados)
-                                    ->get()
-                                    ->mapWithKeys(fn($c) => [
-                                        $c->id => "{$c->nombre} {$c->apellido_paterno} {$c->apellido_materno}"
-                                    ]);
-                            })
+                    TextInput::make('n_ficha')
+                        ->label('Número de Ficha')
+                        ->numeric()
+                        ->required(),
+                    Textarea::make('observaciones')
+                        ->label('Observaciones')
+                        ->rows(3)
+                        ->nullable(),
+                ]),
+            // Hacer que los demás campos solo sean visibles en creación
+            Group::make()
+                ->hidden(fn(callable $get) => $get('id_designacion_bus') !== null) // Ocultar si estamos en edición
+                ->schema([
+                    Wizard::make([
+                        Wizard\Step::make('Seleccionar fecha de asignación')
+                            ->schema([
+                                // ...
+                                Group::make()
+                                    ->schema([
 
-                            ->reactive()
-                            ->required()
-                            ->placeholder('Selecciona un conductor'),
+                                        Select::make('tipo_asignacion')
+                                            ->label('Tipo de asignación')
+                                            ->options([
+                                                'dia' => 'Un día',
+                                                'semana' => 'Una semana',
+                                                'mes' => 'Un mes',
+                                                'personalizado' => 'Personalizado',
+                                            ])
+                                            ->required()
+                                            ->reactive()
+                                            ->afterStateUpdated(function (callable $set, callable $get, $state) {
+                                                $inicio = $get('fecha_designacion');
 
-                        FilamentSelect::make('id_anfitrion')
-                            ->label('Anfitrión')
-                            ->options(function (callable $get, $livewire) {
-                                $fecha = $get('fecha_designacion');
-                                if (!$fecha)
-                                    return [];
+                                                if (!$inicio || !$state)
+                                                    return;
 
-                                $ocupados = AsignacionDeBus::whereDate('fecha_designacion', '<=', $fecha)
-                                    ->where(function ($query) use ($fecha) {
-                                        $query->whereNull('fin_asignacion')
-                                            ->orWhereDate('fin_asignacion', '>=', $fecha);
-                                    });
+                                                $fecha = Carbon::parse($inicio);
 
-                                if ($record = $livewire->record ?? null) {
-                                    $ocupados->where('id_designacion_bus', '!=', $record->id_designacion_bus);
-                                }
+                                                switch ($state) {
+                                                    case 'dia':
+                                                        $set('fin_designacion', $fecha->format('Y-m-d'));
+                                                        break;
 
-                                $idsOcupados = $ocupados->pluck('id_anfitrion');
+                                                    case 'semana':
+                                                        $lunes = $fecha->copy()->startOfWeek();
+                                                        $viernes = $lunes->copy()->addDays(4);
+                                                        $set('fin_designacion', $viernes->format('Y-m-d'));
+                                                        break;
 
-                                return Anfitrion::whereNotIn('id', $idsOcupados)
-                                    ->get()
-                                    ->mapWithKeys(fn($a) => [
-                                        $a->id => "{$a->nombre} {$a->apellido_paterno} {$a->apellido_materno}"
-                                    ]);
-                            })
-                            ->reactive()
-                            ->required()
-                            ->placeholder('Selecciona un anfitrión'),
+                                                    case 'mes':
+                                                        $set('fin_designacion', $fecha->copy()->endOfMonth()->format('Y-m-d'));
+                                                        break;
 
-                        FilamentSelect::make('id_buses')
-                            ->label('Bus')
-                            ->options(function (callable $get, $livewire) {
-                                $fecha = $get('fecha_designacion');
-                                if (!$fecha)
-                                    return [];
+                                                    case 'personalizado':
+                                                        break;
+                                                }
+                                            })
+                                    ])
+                                    ->columns(1),
+                                   
 
-                                $ocupados = AsignacionDeBus::whereDate('fecha_designacion', '<=', $fecha)
-                                    ->where(function ($query) use ($fecha) {
-                                        $query->whereNull('fin_asignacion')
-                                            ->orWhereDate('fin_asignacion', '>=', $fecha);
-                                    });
+                                Grid::make(2)->schema([
+                                    DatePicker::make('fecha_designacion')
+                                        ->label('Fecha de inicio')
+                                        ->minDate(now()->startOfDay())
+                                        ->validationMessages([
+                                            'after_or_equal' => 'No se permiten fechas pasadas. Elige una fecha válida a partir de hoy.',
+                                        ])
+                                        ->required()
+                                        ->disabled(fn(callable $get) => !$get('tipo_asignacion'))
+                                        ->reactive()
+                                        ->afterStateUpdated(function (callable $set, callable $get, $state) {
+                                            $tipo = $get('tipo_asignacion');
+                                            if (!$state || !$tipo)
+                                                return;
 
-                                if ($record = $livewire->record ?? null) {
-                                    $ocupados->where('id_designacion_bus', '!=', $record->id_designacion_bus);
-                                }
+                                            $inicio = Carbon::parse($state);
+                                            switch ($tipo) {
+                                                case 'dia':
+                                                    $set('fin_designacion', $inicio->format('Y-m-d'));
+                                                    break;
+                                                case 'semana':
+                                                    $set('fin_designacion', $inicio->copy()->startOfWeek()->addDays(4)->format('Y-m-d'));
+                                                    break;
+                                                case 'mes':
+                                                    $set('fin_designacion', $inicio->copy()->endOfMonth()->format('Y-m-d'));
+                                                    break;
+                                            }
 
-                                $idsOcupados = $ocupados->pluck('id_buses');
+                                            // Verificar disponibilidad justo después de cambiar fechas
+                                            $fechaInicio = $get('fecha_designacion');
+                                            $fechaFin = $get('fin_designacion');
 
-                                return Bus::whereNotIn('id', $idsOcupados)
-                                    ->pluck('numero_bus', 'id');
-                            })
-                            ->reactive()
-                            ->required()
-                            ->placeholder('Selecciona un bus'),
-                    ])
-                    ->columnSpan(1)
-                    ->extraAttributes([
-                        'class' => 'p-6 min-h-[250px] bg-gradient-to-r from-blue-500 to-blue-700 rounded-xl shadow-lg border border-transparent text-white'
-                    ]),
+                                            if (!$fechaInicio || !$fechaFin)
+                                                return;
+
+                                            $disponibles = AsignacionDeBus::buscarDisponibilidad($fechaInicio, $fechaFin);
+
+                                            // Guardar directamente los arrays de datos
+                                            $set('conductores_disponibles', $disponibles['conductores']->isEmpty() ? [] : $disponibles['conductores']->toArray());
+                                            $set('anfitriones_disponibles', $disponibles['anfitriones']->isEmpty() ? [] : $disponibles['anfitriones']->toArray());
+                                            $set('buses_disponibles', $disponibles['buses']->isEmpty() ? [] : $disponibles['buses']->toArray());
 
 
-                Group::make()
-                    ->schema([
-                        TextInput::make('n_ficha')
-                            ->label('Número de Ficha')
-                            ->numeric()
-                            ->required()
-                            ->placeholder('Ingrese el número de ficha'),
+                                        }),
+                                    DatePicker::make('fin_designacion')
+                                        ->label('Fecha de fin')
+                                        ->afterOrEqual('fecha_designacion')
+                                        ->required()
+                                        ->reactive()
+                                        /* si el tipo es personalizado se permite seleccionar la fecha fin */
+                                        ->disabled(fn(callable $get) => $get('tipo_asignacion') !== 'personalizado')
+                                        ->dehydrated()
 
-                        Textarea::make('observaciones')
-                            ->label('Observaciones')
-                            ->rows(3)
-                            ->nullable()
-                            ->placeholder('Ingrese observaciones adicionales...'),
-                    ])
-                    ->columnSpan(1)
-                    ->extraAttributes(['class' => 'p-6 min-h-[250px] bg-gradient-to-r from-green-500 to-green-700 rounded-xl shadow-lg border border-transparent text-white']), // Fondo degradado y bordes redondeados
+                                        ->validationMessages([
+                                            'after_or_equal' => 'La fecha de fin debe ser posterior o igual a la fecha de designación.',
+                                        ])
+                                ])
 
-                Group::make()
-                    ->schema([
-                        TimePicker::make('hora_salida')
-                            ->label('Hora de Salida')
-                            ->required()
-                            ->placeholder('Selecciona la hora de salida'),
+                            ])
+                        ,
+                        Wizard\Step::make('Validando disponibilidad')
+                            ->schema([
 
-                        DatePicker::make('fecha_designacion')
-    ->label('Fecha de Designación')
-    ->required()
-    ->reactive()
-    ->afterStateUpdated(fn (callable $set) => $set('id_conductor', null)) // Reinicia opciones de conductor al cambiar fecha
-    ->afterStateUpdated(fn (callable $set) => $set('id_anfitrion', null)) // Reinicia opciones de anfitrión
-    ->afterStateUpdated(fn (callable $set) => $set('id_buses', null)) // Reinicia opciones de buses
-    ->placeholder('Selecciona la fecha de designación'),
-                    ])
-                    ->columnSpan(1)
-                    ->extraAttributes(['class' => 'p-6 min-h-[250px] bg-gradient-to-r from-purple-500 to-purple-700 rounded-xl shadow-lg border border-transparent text-white']), // Fondo degradado y bordes redondeados
+                                Placeholder::make('mensaje_disponibilidad')
 
-                Group::make()
-                    ->schema([
-                        Toggle::make('asignacion_activa')
-                            ->label('Asignación activa')
-                            ->default(true)
-                            ->reactive() // 
-                            ->afterStateUpdated(function ($state, callable $set) {
-                                // Setea la fecha si se desactiva, la limpia si se activa
-                                if (!$state) {
-                                    $set('fin_asignacion', now()->toDateString());
-                                } else {
-                                    $set('fin_asignacion', null);
+                                    ->label('Estado de disponibilidad')
+                                    ->reactive()
+                                    ->content(function (callable $get) {
+                                        $conductores = $get('conductores_disponibles');
+                                        $anfitriones = $get('anfitriones_disponibles');
+                                        $buses = $get('buses_disponibles');
+
+
+                                        $mensajes = [];
+
+                                        if (empty($conductores)) {
+                                            $mensajes[] = '❌ No hay conductores disponibles.';
+                                        }
+                                        if (empty($anfitriones)) {
+                                            $mensajes[] = '❌ No hay anfitriones disponibles.';
+                                        }
+                                        if (empty($buses)) {
+                                            $mensajes[] = '❌ No hay buses disponibles.';
+                                        }
+
+                                        // Si alguno falta, se muestra advertencia
+                                        if (!empty($mensajes)) {
+                                            return implode("\n", $mensajes) . "\n ⚠️ No hay disponibilidad de conductores, anfitriones o buses en el período seleccionado. Por favor, elige otro rango de fechas.";
+                                        }
+
+                                        return '✅ Hay disponibilidad de conductores, anfitriones y buses. Puedes continuar.';
+                                    }),
+
+                            ])
+                            ->beforeValidation(function (callable $get) {
+                                $conductores = $get('conductores_disponibles');
+                                $anfitriones = $get('anfitriones_disponibles');
+                                $buses = $get('buses_disponibles');
+
+                                // 🔹 Si ningún recurso está disponible, bloquear avance
+                                if (empty($conductores) || empty($anfitriones) || empty($buses)) {
+                                    throw new Halt();
                                 }
                             }),
+                        Wizard\Step::make('Asignación')
+                            ->schema([
+                                // ...
+                                Grid::make()->columns(2)->schema([
+                                    Group::make()
+                                        ->schema([
+                                            FilamentSelect::make('id_conductor')
+                                                ->label('Conductor')
+                                                ->options(fn(callable $get) => $get('conductores_disponibles'))
+                                                ->reactive()
+                                                ->preload()
+                                                ->required()
+                                                ->placeholder('Selecciona un conductor'),
+                                            FilamentSelect::make('id_anfitrion')
+                                                ->label('Anfitrión')
+                                                ->options(fn(callable $get) => $get('anfitriones_disponibles'))
+                                                ->reactive()
+                                                ->preload()
+                                                ->required()
+                                                ->placeholder('Selecciona un anfitrión'),
 
-                        DatePicker::make('fin_asignacion')
-                            ->label('Fecha Fin de Asignación')
-                            ->required()
-                            ->reactive()
-                            ->afterStateUpdated(function (\Filament\Forms\Set $set, $state) {
-                                $set('id_conductor', null);
-                                $set('id_anfitrion', null);
-                                $set('id_buses', null);
-                            }),
-                    ])
-                    ->columns(1),
-            ]),
+                                            FilamentSelect::make('id_buses')
+                                                ->label('Bus')
+                                                ->options(fn(callable $get) => $get('buses_disponibles'))
+                                                ->reactive()
+                                                ->required()
+                                                ->placeholder('Selecciona un bus'),
+                                        ])
+                                        ->columnSpan(1)
+                                        ->extraAttributes([
+                                            'class' => 'p-6 min-h-[250px] bg-gradient-to-r from-blue-500 to-blue-700 rounded-xl shadow-lg border border-transparent text-white'
+                                        ]),
 
+                                    Group::make()
+                                        ->schema([
+                                            TextInput::make('n_ficha')
+                                                ->label('Número de Ficha')
+                                                ->numeric()
+                                                ->required()
+                                                ->placeholder('Ingrese el número de ficha'),
+
+                                            Textarea::make('observaciones')
+                                                ->label('Observaciones')
+                                                ->rows(3)
+                                                ->nullable()
+                                                ->placeholder('Ingrese observaciones adicionales...'),
+                                        ])
+                                        ->columnSpan(1)
+                                        ->extraAttributes(['class' => 'p-6 min-h-[250px] bg-gradient-to-r from-green-500 to-green-700 rounded-xl shadow-lg border border-transparent text-white']), // Fondo degradado y bordes redondeados
+                                ]),
+                            ]),
+
+                    ])->columnSpanFull()
+
+                ])->columnSpanFull()
         ]);
     }
     public static function table(Tables\Table $table): Tables\Table
@@ -228,7 +329,13 @@ class AsignacionDeBusResource extends Resource
                 IconColumn::make('asignacion_activa')
                     ->label('Asignación activa')
                     ->boolean()
-                    ->getStateUsing(fn($record) => is_null($record->fin_asignacion)) // si no hay fin, está activa
+                    ->getStateUsing(
+                        fn($record) =>
+                        now()->between(
+                            Carbon::parse($record->fecha_designacion)->startOfDay(),
+                            Carbon::parse($record->fin_designacion ?? now()->addYear())->endOfDay()
+                        )
+                    )
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
                     ->trueColor('success')
@@ -239,7 +346,7 @@ class AsignacionDeBusResource extends Resource
                     ->label('Fecha de Designación')
                     ->sortable(),
 
-                TextColumn::make('fin_asignacion')
+                TextColumn::make('fin_designacion')
                     ->label('Fecha Fin Designación')
                     ->date('Y-m-d')
                     ->sortable(),

@@ -16,7 +16,7 @@ Route::get('/', function () {
 });
 
 Route::get('/', [InicioController::class, 'obtenerVista'], );
-Route::get('/ubicacion', [InicioController::class, 'obtenerUbicacion']);
+Route::get('/ubicacion', [InicioController::class, 'obtenerUbicacionesDeTodosLosDispositivos']);
 
 Route::get('/buscar', [InicioController::class, 'buscar']);
 Route::get('/ubicacionparada', [InicioController::class, 'obtenerUbicacionParada']);

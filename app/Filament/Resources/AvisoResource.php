@@ -19,10 +19,12 @@ use Filament\Forms\Components\Select;
 
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Forms\Components\RichEditor;
+use ArberMustafa\FilamentLocationPickrField\Forms\Components\LocationPickr;
 
 class AvisoResource extends Resource
 {
     protected static ?string $model = Aviso::class;
+    protected static ?string $navigationGroup = 'Administración Sitio Web';
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
@@ -35,7 +37,7 @@ class AvisoResource extends Resource
                     ->options([
                         'Cambio de Ruta' => 'Cambio de Ruta',
                         'Bloqueo de Vías' => 'Bloqueo de Vías',
-                        'Nueva Ruta' => 'Nueva Ruta',
+                        
                         'Suspención del servicio' => 'Suspención del servicio',
                         'Otro' => 'Otro',
                     ])
@@ -62,7 +64,48 @@ class AvisoResource extends Resource
 
                 Forms\Components\Textarea::make('paradas_afectadas')
                     ->label('Paradas Afectadas')
-                    ->nullable(),
+                    ->required(),
+                    // Componente LOcation Picker
+                LocationPickr::make('lat_long_v1')
+                    ->label('Seleccionar ubicación')
+
+                    ->mapControls([
+                        'mapTypeControl' => true,
+                        'scaleControl' => true,
+                        'streetViewControl' => true,
+                        'rotateControl' => true,
+                        'fullscreenControl' => true,
+                        'zoomControl' => false,
+                    ])
+                    ->defaultZoom(15)
+                    ->draggable()
+                    ->clickable()
+                    ->height('40vh')
+                    // Ubicación por defecto 
+                    ->defaultLocation(function ($record) {
+                        if ($record && $record->lat_long) {
+                            $location = json_decode($record->lat_long, true);
+                            return [$location['lat'], $location['lng']];
+                        }
+                        return [-16.52546755669295, -68.1826633779974];
+                    })
+                    ->myLocationButtonLabel('My location')
+
+                    //Obtener los datos del marker y convertirlo en Json
+                    ->afterStateUpdated(function ($state, callable $set) {
+
+                        if ($state && is_array($state)) {
+                            $lat = $state['lat'];
+                            $lng = $state['lng'];
+
+                            $set('ubicacion', json_encode(['lat' => $lat, 'lng' => $lng]));
+                        }
+                    }),
+
+                // Campo de texto para mostrar las coordenadas
+                Forms\Components\TextInput::make('ubicacion')
+                    ->label('Ubicación (Lat/Lng)')
+                    ->readonly(),
 
                  RichEditor::make('detalle')
                     ->label('Detalles')

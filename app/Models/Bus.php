@@ -17,6 +17,11 @@ class Bus extends Model
        
         
         public function mantenimientos() {
-            return $this->hasMany(Mantenimiento::class);
+            return $this->hasMany(Mantenimiento::class,'bus_id');
         }
+        /* Relación con Asignación de Buses */
+        public function asignaciones()
+    {
+        return $this->hasMany(AsignacionDeBus::class, 'id_buses');
+    }
 }

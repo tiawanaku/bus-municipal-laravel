@@ -146,6 +146,7 @@ class BusResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('uniqueId')
                     ->searchable()
+                    ->label("IMEI GPS")
                     ->size('lg'),
 
 
@@ -179,13 +180,13 @@ class BusResource extends Resource
         ];
     }
 
-    /* Para enviar a TRACCAR */
+    /* Trae todos los gps disponibles */
 
     public static function getAvailableDevices(): array
     {
         $response = Http::withHeaders([
-            'Authorization' => 'Basic ' . base64_encode('milenkaelisaq95@gmail.com:71256293') // Reemplaza con credenciales válidas
-        ])->withoutVerifying()->get("https://demo.traccar.org/api/devices");
+            'Authorization' => 'Basic ' . base64_encode('milenkaelisaq95@gmail.com:12345678') // Reemplaza con credenciales válidas
+        ])->withoutVerifying()->get("http://64.225.54.113:7541/api/devices");
 
         if ($response->failed()) {
             return [];

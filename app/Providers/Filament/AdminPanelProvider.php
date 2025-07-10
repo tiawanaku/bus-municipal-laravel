@@ -20,6 +20,8 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Swis\Filament\Backgrounds\FilamentBackgroundsPlugin;
 use Swis\Filament\Backgrounds\ImageProviders\MyImages;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
+use Afsakar\FilamentOtpLogin\FilamentOtpLoginPlugin;
+use Rmsramos\Activitylog\ActivitylogPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -31,6 +33,9 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->profile()
+            ->passwordReset()
+            ->databaseNotifications()
             ->colors([
                 'primary' => Color::Blue,
             ])
@@ -66,6 +71,10 @@ class AdminPanelProvider extends PanelProvider
                         MyImages::make()
                             ->directory('images/backgrounds')
                     ),
+            ])
+            ->plugins([
+                FilamentOtpLoginPlugin::make(),
+                ActivitylogPlugin::make(),
             ])
             ->authMiddleware([
                 Authenticate::class,

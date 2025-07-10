@@ -17,12 +17,5 @@ class ListSalidaDeBuses extends ListRecords
         ];
     }
 
-    protected function getFooterWidgets(): array
-    {
-        return [
-            SalidaDeBusesResource\Widgets\MapWidget::class,
-            SalidaDeBusesResource\Widgets\InformeSeguimiento::class,
-
-        ];
-    }
+   
 }

@@ -37,7 +37,7 @@
     <title>BusMunicipal</title>
 </head>
 
-<body class="bg-gradient-to-r from-blue-900 to-gray-900 min-h-screen flex flex-col ">
+<body class="">
 
     <!-- HEADER -->
     @include('pageInformation.partials.navbar')
@@ -67,6 +67,7 @@
     <script>
         AOS.init();
     </script>
+    
 </body>
 
 </html>

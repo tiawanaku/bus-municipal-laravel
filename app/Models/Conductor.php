@@ -25,4 +25,9 @@ class Conductor extends Model
     {
         return "{$this->nombre} {$this->apellido_paterno} {$this->apellido_materno}";
     }
+    /* Relación con Asignación de Buses */
+     public function asignaciones()
+    {
+        return $this->hasMany(AsignacionDeBus::class, 'id_conductor');
+    }
 }

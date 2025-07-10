@@ -11,6 +11,7 @@ body {
   font-weight: 400;
   font-style: normal;
   padding-top: 60px;
+  background-color: #131E3A;
 }
 h1, h2, h3 {
     font-family: 'Montserrat', serif;
@@ -42,6 +43,7 @@ p, span, a {
     background-color: rgba(24, 24, 185, 0.5); 
     z-index: 1; 
 }
+
 
 
 

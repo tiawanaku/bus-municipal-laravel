@@ -8,6 +8,7 @@ use App\Models\Cajero;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Card;
 use App\Models\Bus;
+use Illuminate\Support\Facades\Gate;
 
 
 class PatientTypeOverview extends BaseWidget
@@ -23,4 +24,9 @@ class PatientTypeOverview extends BaseWidget
             Card::make('Tecnicos', Tecnico ::query()->count()),
         ];
     }
+     /* Solo visible para usuarios con permiso */
+    public static function canView(): bool
+{
+    return Gate::allows('widget_PatientTypeOverview');
+}
 }

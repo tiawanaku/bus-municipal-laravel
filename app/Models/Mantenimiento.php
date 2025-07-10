@@ -13,6 +13,8 @@ class Mantenimiento extends Model
         'tecnico_id',
         'salida_id',
         'fecha_mantenimiento',
+        'fecha_recibido',
+        'fecha_fin',
         'km_anterior',
         'km_actual',
         'km_actual_recorrido',

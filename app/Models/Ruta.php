@@ -20,6 +20,7 @@ class Ruta extends Model
     protected $casts = [
         'recorrido' => 'array',
     ];
+    
     public function paradas()
     {
         return $this->hasMany(Parada::class, 'id_ruta');  

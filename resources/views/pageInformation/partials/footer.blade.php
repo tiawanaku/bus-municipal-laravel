@@ -25,7 +25,7 @@
       </div>
     </div>
     <div class="mt-8 border-t border-gray-700 pt-4 text-center">
-      <p class="text-sm text-gray-500">&copy; 2024 Bus Municipal. All rights reserved.</p>
+      <p class="text-sm text-gray-500">&copy; 2025 Bus Municipal. All rights reserved.</p>
     </div>
   </div>
 </footer>
