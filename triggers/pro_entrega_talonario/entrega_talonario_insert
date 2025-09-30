@@ -16,6 +16,7 @@ CREATE PROCEDURE sp_entregar_talonarios(
     IN p_observaciones TEXT
 )
 BEGIN
+<<<<<<< HEAD
     DECLARE v_total_boletos_pref INT DEFAULT 0;
     DECLARE v_total_boletos_reg INT DEFAULT 0;
     DECLARE v_total_bs_pref DECIMAL(10,2) DEFAULT 0;
@@ -71,6 +72,92 @@ BEGIN
             FETCH cur_inventarios INTO v_cur_inv_id, v_cur_pref_rest, v_cur_reg_rest;
             IF v_done OR p_cantidad_preferenciales <= 0 THEN
                 LEAVE pref_loop;
+=======
+    DECLARE cantidad_total_preferenciales INT DEFAULT 0;
+    DECLARE cantidad_total_regulares INT DEFAULT 0;
+    DECLARE cantidad_original_preferenciales INT DEFAULT 0;
+    DECLARE cantidad_original_regulares INT DEFAULT 0;
+    DECLARE rango_final_preferencial INT DEFAULT 0;
+    DECLARE rango_final_regular INT DEFAULT 0;
+
+    DECLARE total_boletos_preferenciales INT DEFAULT 0;
+    DECLARE total_boletos_regulares INT DEFAULT 0;
+    DECLARE total_estimado_preferenciales DECIMAL(10,2) DEFAULT 0;
+    DECLARE total_estimado_regulares DECIMAL(10,2) DEFAULT 0;
+    DECLARE total_estimado_general DECIMAL(10,2) DEFAULT 0;
+
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE inv_id INT;
+    DECLARE inv_cantidad_pref INT;
+    DECLARE inv_cantidad_reg INT;
+
+    DECLARE primer_inventario_id INT DEFAULT NULL;
+
+    -- Variables para calcular cantidades basadas en rangos
+    DECLARE cantidad_calculada_preferenciales INT DEFAULT 0;
+    DECLARE cantidad_calculada_regulares INT DEFAULT 0;
+
+    DECLARE cur CURSOR FOR
+        SELECT id, cantidad_restante_preferencial, cantidad_restante_regular
+        FROM inventario_talonarios
+        WHERE (cantidad_restante_preferencial > 0 AND estado_preferencial = 1)
+           OR (cantidad_restante_regular > 0 AND estado_regular = 1)
+        ORDER BY id ASC;
+
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+    -- Calcular cantidades basadas en rangos si están definidos
+    IF p_preferencial_del > 0 AND p_preferencial_al > 0 THEN
+        SET cantidad_calculada_preferenciales = p_preferencial_al - p_preferencial_del + 1;
+        IF p_cantidad_preferenciales > 0 THEN
+            SET cantidad_total_preferenciales = p_cantidad_preferenciales;
+        ELSE
+            SET cantidad_total_preferenciales = cantidad_calculada_preferenciales;
+        END IF;
+    ELSE
+        SET cantidad_total_preferenciales = p_cantidad_preferenciales;
+    END IF;
+
+    IF p_regular_del > 0 AND p_regular_al > 0 THEN
+        SET cantidad_calculada_regulares = p_regular_al - p_regular_del + 1;
+        IF p_cantidad_regulares > 0 THEN
+            SET cantidad_total_regulares = p_cantidad_regulares;
+        ELSE
+            SET cantidad_total_regulares = cantidad_calculada_regulares;
+        END IF;
+    ELSE
+        SET cantidad_total_regulares = p_cantidad_regulares;
+    END IF;
+
+    -- Guardar las cantidades originales para el INSERT
+    SET cantidad_original_preferenciales = cantidad_total_preferenciales;
+    SET cantidad_original_regulares = cantidad_total_regulares;
+
+    -- Calcular rangos y totales si hay cantidades preferenciales
+    IF cantidad_total_preferenciales > 0 THEN
+        SET rango_final_preferencial = p_rango_inicial_preferencial + (cantidad_total_preferenciales * 50) - 1;
+        SET total_boletos_preferenciales = cantidad_total_preferenciales * 50;
+        SET total_estimado_preferenciales = total_boletos_preferenciales * 1.00;
+    END IF;
+
+    -- Calcular rangos y totales si hay cantidades regulares
+    IF cantidad_total_regulares > 0 THEN
+        SET rango_final_regular = p_rango_inicial_regular + (cantidad_total_regulares * 50) - 1;
+        SET total_boletos_regulares = cantidad_total_regulares * 50;
+        SET total_estimado_regulares = total_boletos_regulares * 1.50;
+    END IF;
+
+    SET total_estimado_general = total_estimado_preferenciales + total_estimado_regulares;
+
+    -- Repartir talonarios preferenciales
+    IF cantidad_total_preferenciales > 0 THEN
+        SET done = FALSE;
+        OPEN cur;
+        read_loop_pref: LOOP
+            FETCH cur INTO inv_id, inv_cantidad_pref, inv_cantidad_reg;
+            IF done THEN
+                LEAVE read_loop_pref;
+>>>>>>> 177fd53dbdc811c93d77d3caa4bd2aef498d1e4f
             END IF;
             
             IF v_cur_pref_rest > 0 THEN
@@ -107,6 +194,7 @@ BEGIN
             SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = @error_msg;
         END IF;
     END IF;
+<<<<<<< HEAD
     
     -- Procesar talonarios regulares
     IF p_cantidad_regulares > 0 THEN
@@ -117,6 +205,17 @@ BEGIN
             FETCH cur_inventarios INTO v_cur_inv_id, v_cur_pref_rest, v_cur_reg_rest;
             IF v_done OR p_cantidad_regulares <= 0 THEN
                 LEAVE reg_loop;
+=======
+
+    -- Repartir talonarios regulares
+    IF cantidad_total_regulares > 0 THEN
+        SET done = FALSE;
+        OPEN cur;
+        read_loop_reg: LOOP
+            FETCH cur INTO inv_id, inv_cantidad_pref, inv_cantidad_reg;
+            IF done THEN
+                LEAVE read_loop_reg;
+>>>>>>> 177fd53dbdc811c93d77d3caa4bd2aef498d1e4f
             END IF;
             
             IF v_cur_reg_rest > 0 THEN
@@ -187,6 +286,7 @@ BEGIN
         p_cajero_id,
         p_preferencial_del,
         p_preferencial_al,
+<<<<<<< HEAD
         v_cant_entregada_pref,
         p_rango_inicial_preferencial,
         p_rango_inicial_preferencial + (v_cant_entregada_pref * 50) - 1,
@@ -201,6 +301,22 @@ BEGIN
         v_total_boletos_reg,
         v_total_bs_reg,
         v_cant_entregada_reg,
+=======
+        cantidad_original_preferenciales - cantidad_total_preferenciales, -- Cantidad real entregada
+        p_rango_inicial_preferencial,
+        rango_final_preferencial,
+        total_boletos_preferenciales,
+        total_estimado_preferenciales,
+        cantidad_original_preferenciales - cantidad_total_preferenciales, -- Cantidad entregada (mismo valor que cantidad_preferenciales)
+        p_regular_del,
+        p_regular_al,
+        cantidad_original_regulares - cantidad_total_regulares, -- Cantidad real entregada
+        p_rango_inicial_regular,
+        rango_final_regular,
+        total_boletos_regulares,
+        total_estimado_regulares,
+        cantidad_original_regulares - cantidad_total_regulares, -- Cantidad entregada (mismo valor que cantidad_regulares)
+>>>>>>> 177fd53dbdc811c93d77d3caa4bd2aef498d1e4f
         0,
         0,
         p_tipo_talonario,
@@ -210,11 +326,17 @@ BEGIN
         NOW(),
         NOW()
     );
+<<<<<<< HEAD
     
     -- Actualizar estados de inventarios
     CALL sp_actualizar_estados_inventarios();
     
     SELECT LAST_INSERT_ID() AS id_entrega;
+=======
+
+    -- Los estados se actualizarán automáticamente mediante el trigger
+
+>>>>>>> 177fd53dbdc811c93d77d3caa4bd2aef498d1e4f
 END //
 
 DELIMITER ;

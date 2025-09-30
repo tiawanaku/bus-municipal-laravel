@@ -323,6 +323,7 @@ Tables\Columns\TextColumn::make('preferenciales_info')
                     : 0,
             ]),
 
+<<<<<<< HEAD
         ProgressBar::make('preferenciales_progress_bar')
             ->label('🏷️% Restante Pref.')
             ->getStateUsing(fn($record) => [
@@ -332,6 +333,182 @@ Tables\Columns\TextColumn::make('preferenciales_info')
                     : 0,
             ]),
             
+=======
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('cajero_id')
+                    ->label('Cajero')
+                    ->getStateUsing(function ($record) {
+                        $cajero = \App\Models\Cajero::find($record->cajero_id);
+                        return $cajero ? $cajero->nombre . ' ' . $cajero->apellido_paterno . ' ' . $cajero->apellido_materno : 'No disponible';
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                // 🟪  resumen detos generales
+                Tables\Columns\TextColumn::make('resumen_general')
+                    ->label('📄 Resumen General')
+                    ->html()
+                    ->getStateUsing(function ($record) {
+                        return "
+<span>🔖 <strong>N° CITE:</strong> {$record->n_cite}</span><br>
+<span>📅 <strong>Gestión:</strong> {$record->gestion}</span><br>
+<span>🧾 <strong>N° Dosificación:</strong> {$record->n_dosificacion}</span><br>
+<span>✅ <strong>Autorización:</strong> {$record->numero_autorizacion}</span><br>
+<span>📆 <strong>F. Solicitud:</strong> {$record->fecha_solicitud_dosificacion}</span><br>
+<span>📆 <strong>F. Autorización:</strong> {$record->fecha_autorizacion}</span><br>
+<span>🚀 <strong>F. Activación:</strong> {$record->fecha_activacion}</span>";
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+
+                // 🟪 Preferenciales resumen
+                // 🟪 Preferenciales resumen
+                Tables\Columns\TextColumn::make('preferenciales_info')
+                    ->label('🎫 Preferenciales')
+                    ->html()
+                    ->getStateUsing(function ($record) {
+                        $estadoColor = match ($record->estado_preferencial) {
+                            0 => 'red',
+                            1 => 'green',
+                            2 => 'blue',
+                            default => 'black'
+                        };
+
+                        $estadoTexto = match ($record->estado_preferencial) {
+                            0 => 'Asignado',
+                            1 => 'Asignable',
+                            2 => 'En espera',
+                            default => 'Desconocido'
+                        };
+
+                        return "
+<span>🔢 <strong>Cantidad:</strong> {$record->cantidad_preferenciales}</span><br>
+<span>📉 <strong>Restante:</strong> <span style='color:" .
+                            ($record->cantidad_restante_preferencial < 800 ? 'red' : ($record->cantidad_restante_preferencial < 2000 ? 'green' : 'blue')) . "'>
+    {$record->cantidad_restante_preferencial}</span></span><br>
+<span>🔁 <strong>Rango:</strong> {$record->rango_inicial_preferencial} - {$record->rango_final_preferencial}</span><br>
+<span>📅<strong>Del-Al :</strong> {$record->preferencial_del} - {$record->preferencial_al}<br>
+<span>🎟️ <strong>Tickets:</strong> {$record->total_boletos_preferenciales}</span><br>
+<span>💰 <strong>Recaudo:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_preferencial, 2, '.', ',') . "</span><br>
+<span>📌 <strong>Estado:</strong> <span style='color:{$estadoColor}'>{$estadoTexto}</span></span>";
+                    }),
+
+
+                ProgressBar::make('preferenciales_progress_bar')
+                    ->label('% Restante Preferenciales')
+                    ->getStateUsing(fn($record) => [
+                        'total' => 100,
+                        'progress' => round((($record->cantidad_restante_preferencial ?? 0) / ($record->cantidad_preferenciales ?: 1)) * 100)
+                    ]),
+
+                // 🟦 Regulares resumen
+                Tables\Columns\TextColumn::make('regulares_info')
+                    ->label('🎟️ Regulares')
+                    ->html()
+                    ->getStateUsing(function ($record) {
+                        $estadoColor = match ($record->estado_regular) {
+                            0 => 'red',
+                            1 => 'green',
+                            2 => 'blue',
+                            default => 'black'
+                        };
+
+                        $estadoTexto = match ($record->estado_regular) {
+                            0 => 'Asignado',
+                            1 => 'Asignable',
+                            2 => 'En espera',
+                            default => 'Desconocido'
+                        };
+
+                        return "
+<span>🔢 <strong>Cantidad:</strong> {$record->cantidad_regulares}</span><br>
+<span>📉 <strong>Restante:</strong> <span style='color:" .
+                            ($record->cantidad_restante_regular < 800 ? 'red' : ($record->cantidad_restante_regular < 2000 ? 'green' : 'blue')) . "'>
+    {$record->cantidad_restante_regular}</span></span><br>
+<span>🔁 <strong>Rango:</strong> {$record->rango_inicial_regular} - {$record->rango_final_regular}</span><br>
+<span>📅<strong>Del-Al:</strong> {$record->regular_del} - {$record->regular_al}<br>
+<span>🎟️ <strong>Tickets:</strong> {$record->total_boletos_regulares}</span><br>
+<span>💰 <strong>Recaudo:</strong> Bs. " . number_format($record->total_aproximado_bolivianos_regular, 2, '.', ',') . "</span><br>
+<span>📌 <strong>Estado:</strong> <span style='color:{$estadoColor}'>{$estadoTexto}</span></span>";
+                    }),
+
+                ProgressBar::make('regulares_progress_bar')
+                    ->label('% Restante Regulares')
+                    ->getStateUsing(fn($record) => [
+                        'total' => 100,
+                        'progress' => round((($record->cantidad_restante_regular ?? 0) / ($record->cantidad_regulares ?: 1)) * 100)
+                    ]),
+
+                // Observaciones si existen
+                Tables\Columns\TextColumn::make('observaciones')
+                    ->label('Observaciones')
+                    ->wrap()
+                    ->toggleable(isToggledHiddenByDefault: true), // Permite que se ajuste y no ensanche la tabla
+            ])
+
+            ->filters([
+                Tables\Filters\SelectFilter::make('cajero_id')
+                    ->label('Cajero')
+                    ->options(
+                        Cajero::where('tipo_cajero', 'principal')
+                            ->get()
+                            ->mapWithKeys(fn($cajero) => [
+                                $cajero->id => $cajero->nombre_completo ?: 'Nombre no disponible'
+                            ])
+                            ->toArray()
+                    ),
+
+                Tables\Filters\TernaryFilter::make('observaciones')
+                    ->label('Tiene Observaciones')
+                    ->trueLabel('Sí')
+                    ->falseLabel('No')
+                    ->queries(
+                        true: fn($query) => $query->whereNotNull('observaciones')->where('observaciones', '!=', ''),
+                        false: fn($query) => $query->whereNull('observaciones')->orWhere('observaciones', '')
+                    ),
+                Tables\Filters\SelectFilter::make('estado_preferencial')
+                    ->label('Estados')
+                    ->options([
+                        0 => 'Asignado',
+                        1 => 'Asignable',
+                        2 => 'En Espera',
+                    ]),
+
+                // Solo este filtro tiene formulario (rango de fechas)
+                Tables\Filters\Filter::make('fecha_creacion')
+                    ->label('Rango de Fecha')
+                    ->form([
+                        Forms\Components\Grid::make(2)->schema([
+                            Forms\Components\DatePicker::make('from')->label('Desde'),
+                            Forms\Components\DatePicker::make('until')->label('Hasta'),
+                        ]),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query
+                            ->when($data['from'], fn($query) => $query->whereDate('created_at', '>=', $data['from']))
+                            ->when($data['until'], fn($query) => $query->whereDate('created_at', '<=', $data['until']));
+                    }),
+
+                // NUEVOS FILTROS AÑADIDOS
+
+                Tables\Filters\Filter::make('n_cite')
+                    ->label('Buscar por Nº de CITE')
+                    ->form([
+                        TextInput::make('n_cite')
+                            ->label('Número de CITE')
+                            ->placeholder('Ej: GAM/UR/123/2024'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query
+                            ->when(
+                                $data['n_cite'],
+                                fn($q) => $q->where('n_cite', 'like', '%' . $data['n_cite'] . '%')
+                                    ->orWhere('cite_nota_solicitud', 'like', '%' . $data['n_cite'] . '%')
+                            );
+                    }),
+>>>>>>> 177fd53dbdc811c93d77d3caa4bd2aef498d1e4f
 
 
           // Información Regulares - Mejorada con todos los campos
