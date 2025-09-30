@@ -201,17 +201,17 @@ class FormularioRecaudoResource extends Resource
     public static function table(Table $table): Table
     {
        return $table
-        ->modifyQueryUsing(function (Builder $query) {
-            $user = auth()->user();
+        //->modifyQueryUsing(function (Builder $query) {
+          //  $user = auth()->user();
             
             // Si es super_admin, puede ver todos los registros
-            if ($user->hasRole('super_admin')) {
-                return $query; // No aplica ningún filtro
-            }
+           // if ($user->hasRole('super_admin')) {
+           //     return $query; // No aplica ningún filtro
+           // }
             
             // Para cualquier otro usuario, solo ve sus propios registros
-            return $query->where('anfitrion_id', $user->id);
-        })
+          //  return $query->where('anfitrion_id', $user->id);
+       // })
             ->columns([
                 // 👥 Información de Personal
                 Tables\Columns\TextColumn::make('personal_info')
@@ -428,9 +428,9 @@ Tables\Columns\TextColumn::make('total_recaudo')
         .header { 
             text-align: center; 
             margin-bottom: 15px; 
-            border: 2px solid #000; 
+            border: 2px solid #f8f9fa; 
             padding: 10px; 
-            background: #fff;
+            background: #f8f9fa;
         }
         .header .title { 
             font-size: 14px; 
@@ -449,11 +449,11 @@ Tables\Columns\TextColumn::make('total_recaudo')
             font-size: 10px; 
             margin-top: 8px; 
             padding-top: 5px;
-            border-top: 1px solid #000;
+            border-top: 1px solid #2c3e50;
             color: #000;
         }
         .section-title { 
-            background: #000; 
+            background: #007bff; 
             color: #fff; 
             font-size: 11px; 
             padding: 6px 10px; 
@@ -462,27 +462,27 @@ Tables\Columns\TextColumn::make('total_recaudo')
             text-align: center;
             text-transform: uppercase;
             letter-spacing: 1px;
-            border: 1px solid #000;
+            border: 1px solid #2c3e50;
         }
         .data-table { 
             width: 100%; 
             border-collapse: collapse; 
             font-size: 9px; 
             margin-bottom: 8px; 
-            border: 2px solid #000;
+            border: 2px solid #007bff;
         }
         .data-table th { 
-            background: #000; 
+            background: #007bff; 
             color: #fff;
             padding: 6px 4px; 
             text-align: center; 
-            border: 1px solid #000; 
+            border: 1px solid #2c3e50; 
             font-weight: bold;
             font-size: 9px;
         }
         .data-table td { 
             padding: 5px 4px; 
-            border: 1px solid #000; 
+            border: 1px solid #007bff; 
             text-align: center;
             vertical-align: middle;
             background: #fff;
@@ -530,12 +530,12 @@ Tables\Columns\TextColumn::make('total_recaudo')
         .variation-section { 
             margin: 15px 0; 
             padding: 8px; 
-            background: #fff; 
+            background: #f8f9fa; 
             color: #000; 
             text-align: center; 
             font-weight: bold; 
             font-size: 11px;
-            border: 2px solid #000;
+            border: 2px solid #2c3e50;
             text-transform: uppercase;
         }
         .signatures { 
@@ -551,7 +551,7 @@ Tables\Columns\TextColumn::make('total_recaudo')
             vertical-align: top;
         }
         .signature-line { 
-            border-top: 2px solid #000; 
+            border-top: 2px solid #2c3e50; 
             margin-top: 25px; 
             margin-bottom: 5px;
         }
@@ -565,17 +565,17 @@ Tables\Columns\TextColumn::make('total_recaudo')
             font-size: 8px; 
             text-align: center; 
             margin-top: 20px; 
-            border-top: 2px solid #000; 
+            border-top: 2px solid #2c3e50; 
             padding-top: 8px; 
             color: #000;
         }
         .general-info { 
-            border: 2px solid #000; 
+            border: 2px solid #2c3e50; 
             margin-bottom: 10px;
         }
         .general-info td { 
             padding: 8px; 
-            border-right: 1px solid #000;
+            border-right: 1px solid #2c3e50;
             background: #fff;
         }
         .general-info td:last-child { 
@@ -645,30 +645,34 @@ Tables\Columns\TextColumn::make('total_recaudo')
         <div class="tables-row">
             <div class="table-cell">
                 <table class="data-table">
-                    <tr><th colspan="3">RECAUDO PREFERENCIALES</th></tr>
+                    <tr><th colspan="4">RECAUDO PREFERENCIALES</th></tr>
                     <tr>
-                        <th width="33%">CANTIDAD</th>
-                        <th width="34%">RANGO INICIAL</th>
-                        <th width="33%">MONTO (Bs)</th>
+                        <th width="25%">CANTIDAD</th>
+                        <th width="25%">RANGO INICIAL</th>
+                        <th width="25%">RANGO FINAL</th>
+                        <th width="25%">MONTO (Bs)</th>
                     </tr>
                     <tr>
                         <td class="highlight">' . number_format($record->cantidad_ventas_preferenciales) . '</td>
                         <td>' . $record->rango_inicial_preferencial . '</td>
+                        <td>' . $record->rango_final_preferencial . '</td>
                         <td class="money">' . number_format($record->monto_recaudado_preferencial, 2) . '</td>
                     </tr>
                 </table>
             </div>
             <div class="table-cell">
                 <table class="data-table">
-                    <tr><th colspan="3">RECAUDO REGULARES</th></tr>
+                    <tr><th colspan="4">RECAUDO REGULARES</th></tr>
                     <tr>
-                        <th width="33%">CANTIDAD</th>
-                        <th width="34%">RANGO INICIAL</th>
-                        <th width="33%">MONTO (Bs)</th>
+                        <th width="25%">CANTIDAD</th>
+                        <th width="25%">RANGO INICIAL</th>
+                        <th width="25%">RANGO FINAL</th>
+                        <th width="25%">MONTO (Bs)</th>
                     </tr>
                     <tr>
                         <td class="highlight">' . number_format($record->cantidad_ventas_regulares) . '</td>
                         <td>' . $record->rango_inicial_regulares . '</td>
+                        <td>' . $record->rango_final_regulares . '</td>
                         <td class="money">' . number_format($record->monto_recaudado_regular, 2) . '</td>
                     </tr>
                 </table>
@@ -707,7 +711,7 @@ Tables\Columns\TextColumn::make('total_recaudo')
                     </tr>
                     <tr>
                         <td class="highlight">' . number_format($girosRealizadosAnfitrion) . '</td>
-                        <td class="' . ($estadoCruce == "CONFORME" ? "status-conforme" : "status-revisar") . '">' . abs($diferencia) . '</td>
+                        <td class="' . ($estadoCruce == "CONFORME" ? "status-conforme" : "status-revisar") . '">' . number_format(abs($diferencia)) . '</td>
                     </tr>
                     <tr>
                         <th>TOTAL RECAUDADO (Bs)</th>
@@ -722,7 +726,7 @@ Tables\Columns\TextColumn::make('total_recaudo')
         </div>
 
         <div class="variation-section">
-            ' . $variacionTexto . '
+            ' . ($estadoCruce == "CONFORME" ? "✓ RECAUDO CONFORME - SIN DIFERENCIAS DETECTADAS" : "⚠ ATENCIÓN: DIFERENCIA DETECTADA - " . number_format(abs($diferencia)) . " GIROS - REQUIERE REVISIÓN") . '
         </div>
 
         <div class="section-title">IV. Firmas y Validaciones</div>

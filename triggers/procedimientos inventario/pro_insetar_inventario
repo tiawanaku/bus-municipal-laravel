@@ -1,0 +1,132 @@
+DELIMITER //
+
+CREATE PROCEDURE sp_insert_inventario_talonarios(
+    IN p_cajero_id BIGINT UNSIGNED,
+    IN p_cantidad_preferenciales INT,
+    IN p_rango_inicial_preferencial INT,
+    IN p_cantidad_regulares INT,
+    IN p_rango_inicial_regular INT,
+    IN p_fecha_entrega DATE,
+    IN p_observaciones VARCHAR(255),
+    
+    -- Campos PDF y cita
+    IN p_cite_nota_solicitud VARCHAR(255),
+    IN p_cite_nota_solicitud_filename VARCHAR(255),
+    IN p_n_cite VARCHAR(255),
+    IN p_gestion INT,
+    IN p_n_dosificacion VARCHAR(255),
+    IN p_numero_autorizacion VARCHAR(255),
+    IN p_fecha_solicitud_dosificacion DATE,
+    IN p_fecha_autorizacion DATE,
+    IN p_fecha_activacion DATE,
+    
+    -- Rangos de talonarios
+    IN p_regular_del INT,
+    IN p_regular_al INT,
+    IN p_preferencial_del INT,
+    IN p_preferencial_al INT
+)
+BEGIN
+    DECLARE v_rango_final_preferencial INT DEFAULT 0;
+    DECLARE v_total_boletos_preferenciales INT DEFAULT 0;
+    DECLARE v_total_bs_preferenciales DECIMAL(10,2) DEFAULT 0.00;
+    
+    DECLARE v_rango_final_regular INT DEFAULT 0;
+    DECLARE v_total_boletos_regulares INT DEFAULT 0;
+    DECLARE v_total_bs_regulares DECIMAL(10,2) DEFAULT 0.00;
+    
+    DECLARE v_total_recaudar DECIMAL(10,2) DEFAULT 0.00;
+    DECLARE v_cantidad_pref_final INT DEFAULT 0;
+    DECLARE v_cantidad_reg_final INT DEFAULT 0;
+    
+    -- Validaciones básicas
+    IF p_cantidad_preferenciales < 0 OR p_cantidad_regulares < 0 THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'Las cantidades no pueden ser negativas';
+    END IF;
+    
+    -- Calcular cantidades basadas en rangos si se proporcionan
+    IF p_preferencial_del > 0 AND p_preferencial_al > 0 THEN
+        IF p_preferencial_al < p_preferencial_del THEN
+            SIGNAL SQLSTATE '45000' 
+            SET MESSAGE_TEXT = 'Rango preferencial inválido (del > al)';
+        END IF;
+        SET v_cantidad_pref_final = p_preferencial_al - p_preferencial_del + 1;
+        
+        IF p_cantidad_preferenciales > 0 AND p_cantidad_preferenciales != v_cantidad_pref_final THEN
+            SIGNAL SQLSTATE '45000' 
+            SET MESSAGE_TEXT = 'Cantidad preferencial no coincide con rango';
+        END IF;
+    ELSE
+        SET v_cantidad_pref_final = p_cantidad_preferenciales;
+    END IF;
+    
+    IF p_regular_del > 0 AND p_regular_al > 0 THEN
+        IF p_regular_al < p_regular_del THEN
+            SIGNAL SQLSTATE '45000' 
+            SET MESSAGE_TEXT = 'Rango regular inválido (del > al)';
+        END IF;
+        SET v_cantidad_reg_final = p_regular_al - p_regular_del + 1;
+        
+        IF p_cantidad_regulares > 0 AND p_cantidad_regulares != v_cantidad_reg_final THEN
+            SIGNAL SQLSTATE '45000' 
+            SET MESSAGE_TEXT = 'Cantidad regular no coincide con rango';
+        END IF;
+    ELSE
+        SET v_cantidad_reg_final = p_cantidad_regulares;
+    END IF;
+    
+    -- Calcular valores finales
+    IF v_cantidad_pref_final > 0 THEN
+        SET v_rango_final_preferencial = p_rango_inicial_preferencial + (v_cantidad_pref_final * 50) - 1;
+        SET v_total_boletos_preferenciales = v_cantidad_pref_final * 50;
+        SET v_total_bs_preferenciales = v_total_boletos_preferenciales * 1.00;
+    END IF;
+    
+    IF v_cantidad_reg_final > 0 THEN
+        SET v_rango_final_regular = p_rango_inicial_regular + (v_cantidad_reg_final * 50) - 1;
+        SET v_total_boletos_regulares = v_cantidad_reg_final * 50;
+        SET v_total_bs_regulares = v_total_boletos_regulares * 1.50;
+    END IF;
+    
+    SET v_total_recaudar = v_total_bs_preferenciales + v_total_bs_regulares;
+    
+    -- Insertar con estados NULL (el trigger los gestionará)
+    INSERT INTO inventario_talonarios (
+        cajero_id,
+        preferencial_del, preferencial_al, cantidad_preferenciales,
+        rango_inicial_preferencial, rango_final_preferencial,
+        total_boletos_preferenciales, total_aproximado_bolivianos_preferencial,
+        cantidad_restante_preferencial, estado_preferencial,
+        regular_del, regular_al, cantidad_regulares,
+        rango_inicial_regular, rango_final_regular,
+        total_boletos_regulares, total_aproximado_bolivianos_regular,
+        cantidad_restante_regular, estado_regular,
+        tipo_talonarios, fecha_entrega, observaciones,
+        total_recaudacion_bolivianos,
+        cite_nota_solicitud, cite_nota_solicitud_filename, n_cite,
+        gestion, n_dosificacion, numero_autorizacion,
+        fecha_solicitud_dosificacion, fecha_autorizacion, fecha_activacion,
+        created_at, updated_at
+    ) VALUES (
+        p_cajero_id,
+        p_preferencial_del, p_preferencial_al, v_cantidad_pref_final,
+        p_rango_inicial_preferencial, v_rango_final_preferencial,
+        v_total_boletos_preferenciales, v_total_bs_preferenciales,
+        v_cantidad_pref_final, NULL, -- El trigger asignará el estado
+        p_regular_del, p_regular_al, v_cantidad_reg_final,
+        p_rango_inicial_regular, v_rango_final_regular,
+        v_total_boletos_regulares, v_total_bs_regulares,
+        v_cantidad_reg_final, NULL, -- El trigger asignará el estado
+        'mixto', p_fecha_entrega, p_observaciones,
+        v_total_recaudar,
+        p_cite_nota_solicitud, p_cite_nota_solicitud_filename, p_n_cite,
+        p_gestion, p_n_dosificacion, p_numero_autorizacion,
+        p_fecha_solicitud_dosificacion, p_fecha_autorizacion, p_fecha_activacion,
+        NOW(), NOW()
+    );
+    
+    SELECT LAST_INSERT_ID() AS nuevo_id_inventario;
+END //
+
+DELIMITER ;

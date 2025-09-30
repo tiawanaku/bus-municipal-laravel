@@ -8,10 +8,6 @@ use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 use Filament\Notifications\Notification;
-use Illuminate\Database\QueryException;
-use Carbon\Carbon;
-
-
 
 class CreateEntregaTalonario extends CreateRecord
 {
@@ -19,52 +15,73 @@ class CreateEntregaTalonario extends CreateRecord
 
     protected function handleRecordCreation(array $data): Model
     {
+        // Preparar parámetros directamente sin validaciones complejas
+        $params = [
+            'inventario_id' => (int) ($data['inventario_id'] ?? 0),
+            'cajero_id' => (int) ($data['cajero_id'] ?? 0),
+            'preferencial_del' => (int) ($data['preferencial_del'] ?? 0),
+            'preferencial_al' => (int) ($data['preferencial_al'] ?? 0),
+            'regular_del' => (int) ($data['regular_del'] ?? 0),
+            'regular_al' => (int) ($data['regular_al'] ?? 0),
+            'rango_inicial_preferencial' => (int) ($data['rango_inicial_preferencial'] ?? 0),
+            'rango_inicial_regular' => (int) ($data['rango_inicial_regular'] ?? 0),
+            'observaciones' => $data['observaciones'] ?? '',
+        ];
+
+        // Log para debugging
+        logger()->info('=== PARÁMETROS PARA SP ===', $params);
+
         try {
-            $data['preferencial_del'] = $data['preferencial_del'] ?? 0;
-            $data['preferencial_al'] = $data['preferencial_al'] ?? 0;
-            $data['cantidad_preferenciales'] = $data['cantidad_preferenciales'] ?? 0;
-            $data['rango_inicial_preferencial'] = $data['rango_inicial_preferencial'] ?? 0;
-
-            $data['regular_del'] = $data['regular_del'] ?? 0;
-            $data['regular_al'] = $data['regular_al'] ?? 0;
-            $data['cantidad_regulares'] = $data['cantidad_regulares'] ?? 0;
-            $data['rango_inicial_regular'] = $data['rango_inicial_regular'] ?? 0;
-
-            $data['fecha_entrega'] = !empty($data['fecha_entrega'])
-                ? Carbon::parse($data['fecha_entrega'])->format('Y-m-d')
-                : now()->format('Y-m-d');
-
-            $data['observaciones'] = $data['observaciones'] ?? '';
-            $data['tipo_talonario'] = $data['tipo_talonario'] ?? '';
-
-            // Debug (opcional)
-            // logger()->info('Datos para procedimiento:', $data);
-
-            DB::statement('CALL entregar_talonarios(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-                $data['cajero_id'],                  // 1
-                $data['inventario_id'],             // 2
-                $data['preferencial_del'],          // 3
-                $data['preferencial_al'],           // 4
-                $data['cantidad_preferenciales'],   // 5
-                $data['rango_inicial_preferencial'], // 6
-                $data['regular_del'],               // 7
-                $data['regular_al'],                // 8
-                $data['cantidad_regulares'],        // 9
-                $data['rango_inicial_regular'],     // 10
-                $data['tipo_talonario'],            // ✅ 11
-                $data['fecha_entrega'],             // ✅ 12
-                $data['observaciones'],             // ✅ 13
+            // Llamar al procedimiento almacenado
+            DB::statement('CALL SP_EntregarTalonariosCajero_UniInventario(?, ?, ?, ?, ?, ?, ?, ?, ?, @resultado, @mensaje)', [
+                $params['inventario_id'],
+                $params['cajero_id'],
+                $params['preferencial_del'],
+                $params['preferencial_al'],
+                $params['regular_del'],
+                $params['regular_al'],
+                $params['rango_inicial_preferencial'],
+                $params['rango_inicial_regular'],
+                $params['observaciones']
             ]);
 
+            // Obtener valores de salida
+            $output = DB::select('SELECT @resultado as resultado, @mensaje as mensaje');
+            $resultado = $output[0]->resultado;
+            $mensaje = $output[0]->mensaje;
 
-            return EntregaTalonario::latest('id')->first();
-        } catch (QueryException $e) {
+            logger()->info("SP Resultado: {$resultado}, Mensaje: {$mensaje}");
+
+            if (!$resultado || $resultado === 0) {
+                throw new \Exception($mensaje ?: 'Error desconocido al crear entrega');
+            }
+
             Notification::make()
-                ->title('Error al realizar la entrega')
+                ->title('Entrega Exitosa')
+                ->body($mensaje)
+                ->success()
+                ->send();
+
+            return EntregaTalonario::findOrFail($resultado);
+
+        } catch (\Exception $e) {
+            logger()->error('Error en SP_EntregarTalonariosCajero_UniInventario', [
+                'error' => $e->getMessage(),
+                'params' => $params
+            ]);
+
+            Notification::make()
+                ->title('Error al crear entrega')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();
-            throw $e;
+            
+            throw new \Exception('Error al crear la entrega: ' . $e->getMessage());
         }
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
     }
 }

@@ -1,8 +1,8 @@
 DELIMITER //
 
-CREATE PROCEDURE entregar_talonarios (
+CREATE PROCEDURE sp_entregar_talonarios(
     IN p_cajero_id INT,
-    IN P_inventario_id INT, -- ya no se usa directamente, pero se mantiene por compatibilidad
+    IN p_inventario_id INT,
     IN p_preferencial_del INT,
     IN p_preferencial_al INT,
     IN p_cantidad_preferenciales INT,
@@ -11,117 +11,150 @@ CREATE PROCEDURE entregar_talonarios (
     IN p_regular_al INT,
     IN p_cantidad_regulares INT,
     IN p_rango_inicial_regular INT,
-    IN p_tipo_talonario VARCHAR(50),   -- nuevo parámetro varchar
+    IN p_tipo_talonario VARCHAR(50),
     IN p_fecha DATE,
     IN p_observaciones TEXT
 )
 BEGIN
-    DECLARE cantidad_total_preferenciales INT DEFAULT p_cantidad_preferenciales;
-    DECLARE cantidad_total_regulares INT DEFAULT p_cantidad_regulares;
-    DECLARE rango_final_preferencial INT DEFAULT 0;
-    DECLARE rango_final_regular INT DEFAULT 0;
-
-    DECLARE total_boletos_preferenciales INT DEFAULT 0;
-    DECLARE total_boletos_regulares INT DEFAULT 0;
-    DECLARE total_estimado_preferenciales DECIMAL(10,2) DEFAULT 0;
-    DECLARE total_estimado_regulares DECIMAL(10,2) DEFAULT 0;
-    DECLARE total_estimado_general DECIMAL(10,2) DEFAULT 0;
-
-    DECLARE done INT DEFAULT FALSE;
-    DECLARE inv_id INT;
-    DECLARE inv_cantidad_pref INT;
-    DECLARE inv_cantidad_reg INT;
-
-    DECLARE primer_inventario_id INT DEFAULT NULL;
-
-    DECLARE cur CURSOR FOR
+    DECLARE v_total_boletos_pref INT DEFAULT 0;
+    DECLARE v_total_boletos_reg INT DEFAULT 0;
+    DECLARE v_total_bs_pref DECIMAL(10,2) DEFAULT 0;
+    DECLARE v_total_bs_reg DECIMAL(10,2) DEFAULT 0;
+    DECLARE v_total_recaudacion DECIMAL(10,2) DEFAULT 0;
+    
+    DECLARE v_inventario_id_pref INT DEFAULT NULL;
+    DECLARE v_inventario_id_reg INT DEFAULT NULL;
+    DECLARE v_cant_entregada_pref INT DEFAULT 0;
+    DECLARE v_cant_entregada_reg INT DEFAULT 0;
+    
+    DECLARE v_done INT DEFAULT FALSE;
+    DECLARE v_cur_inv_id INT;
+    DECLARE v_cur_pref_rest INT;
+    DECLARE v_cur_reg_rest INT;
+    
+    -- Cursor para inventarios disponibles (FIFO)
+    DECLARE cur_inventarios CURSOR FOR
         SELECT id, cantidad_restante_preferencial, cantidad_restante_regular
         FROM inventario_talonarios
-        WHERE (cantidad_restante_preferencial > 0 AND estado_preferencial = 1)
-           OR (cantidad_restante_regular > 0 AND estado_regular = 1)
-        ORDER BY id ASC;
-
-    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
-
-    -- Calcular rangos y totales si hay cantidades preferenciales
-    IF p_cantidad_preferenciales > 0 THEN
-        SET rango_final_preferencial = p_rango_inicial_preferencial + (p_cantidad_preferenciales * 50) - 1;
-        SET total_boletos_preferenciales = p_cantidad_preferenciales * 50;
-        SET total_estimado_preferenciales = total_boletos_preferenciales * 1.00;
+        WHERE (cantidad_restante_preferencial > 0 AND estado_preferencial = 1 AND p_cantidad_preferenciales > 0)
+           OR (cantidad_restante_regular > 0 AND estado_regular = 1 AND p_cantidad_regulares > 0)
+        ORDER BY created_at ASC;
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_done = TRUE;
+    
+    -- Validaciones básicas
+    IF (p_cantidad_preferenciales IS NULL OR p_cantidad_preferenciales < 0) 
+       AND (p_cantidad_regulares IS NULL OR p_cantidad_regulares < 0) THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'Debe especificar al menos una cantidad válida de talonarios';
     END IF;
-
-    -- Calcular rangos y totales si hay cantidades regulares
+    
+    -- Calcular totales
+    IF p_cantidad_preferenciales > 0 THEN
+        SET v_total_boletos_pref = p_cantidad_preferenciales * 50;
+        SET v_total_bs_pref = v_total_boletos_pref * 1.00;
+    END IF;
+    
     IF p_cantidad_regulares > 0 THEN
-        SET rango_final_regular = p_rango_inicial_regular + (p_cantidad_regulares * 50) - 1;
-        SET total_boletos_regulares = p_cantidad_regulares * 50;
-        SET total_estimado_regulares = total_boletos_regulares * 1.50;
+        SET v_total_boletos_reg = p_cantidad_regulares * 50;
+        SET v_total_bs_reg = v_total_boletos_reg * 1.50;
     END IF;
-
-    SET total_estimado_general = total_estimado_preferenciales + total_estimado_regulares;
-
-    -- Repartir talonarios preferenciales
+    
+    SET v_total_recaudacion = v_total_bs_pref + v_total_bs_reg;
+    
+    -- Procesar talonarios preferenciales
     IF p_cantidad_preferenciales > 0 THEN
-        SET done = FALSE;
-        OPEN cur;
-        read_loop_pref: LOOP
-            FETCH cur INTO inv_id, inv_cantidad_pref, inv_cantidad_reg;
-            IF done THEN
-                LEAVE read_loop_pref;
+        SET v_done = FALSE;
+        OPEN cur_inventarios;
+        
+        pref_loop: LOOP
+            FETCH cur_inventarios INTO v_cur_inv_id, v_cur_pref_rest, v_cur_reg_rest;
+            IF v_done OR p_cantidad_preferenciales <= 0 THEN
+                LEAVE pref_loop;
             END IF;
-
-            IF cantidad_total_preferenciales > 0 AND inv_cantidad_pref > 0 THEN
-                IF primer_inventario_id IS NULL THEN
-                    SET primer_inventario_id = inv_id;
+            
+            IF v_cur_pref_rest > 0 THEN
+                -- Registrar el primer inventario usado para la relación
+                IF v_inventario_id_pref IS NULL THEN
+                    SET v_inventario_id_pref = v_cur_inv_id;
                 END IF;
-
-                IF inv_cantidad_pref >= cantidad_total_preferenciales THEN
+                
+                -- Calcular cantidad a entregar de este inventario
+                IF v_cur_pref_rest >= p_cantidad_preferenciales THEN
                     UPDATE inventario_talonarios
-                    SET cantidad_restante_preferencial = cantidad_restante_preferencial - cantidad_total_preferenciales
-                    WHERE id = inv_id;
-                    SET cantidad_total_preferenciales = 0;
+                    SET cantidad_restante_preferencial = cantidad_restante_preferencial - p_cantidad_preferenciales
+                    WHERE id = v_cur_inv_id;
+                    
+                    SET v_cant_entregada_pref = v_cant_entregada_pref + p_cantidad_preferenciales;
+                    SET p_cantidad_preferenciales = 0;
                 ELSE
                     UPDATE inventario_talonarios
                     SET cantidad_restante_preferencial = 0
-                    WHERE id = inv_id;
-                    SET cantidad_total_preferenciales = cantidad_total_preferenciales - inv_cantidad_pref;
+                    WHERE id = v_cur_inv_id;
+                    
+                    SET v_cant_entregada_pref = v_cant_entregada_pref + v_cur_pref_rest;
+                    SET p_cantidad_preferenciales = p_cantidad_preferenciales - v_cur_pref_rest;
                 END IF;
             END IF;
         END LOOP;
-        CLOSE cur;
+        
+        CLOSE cur_inventarios;
+        
+        -- Si no se pudo entregar todo
+        IF p_cantidad_preferenciales > 0 THEN
+            -- Corrección: Usar CONCAT correctamente en SIGNAL
+            SET @error_msg = CONCAT('No hay suficientes talonarios preferenciales disponibles. Faltan: ', p_cantidad_preferenciales);
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = @error_msg;
+        END IF;
     END IF;
-
-    -- Repartir talonarios regulares
+    
+    -- Procesar talonarios regulares
     IF p_cantidad_regulares > 0 THEN
-        SET done = FALSE;
-        OPEN cur;
-        read_loop_reg: LOOP
-            FETCH cur INTO inv_id, inv_cantidad_pref, inv_cantidad_reg;
-            IF done THEN
-                LEAVE read_loop_reg;
+        SET v_done = FALSE;
+        OPEN cur_inventarios;
+        
+        reg_loop: LOOP
+            FETCH cur_inventarios INTO v_cur_inv_id, v_cur_pref_rest, v_cur_reg_rest;
+            IF v_done OR p_cantidad_regulares <= 0 THEN
+                LEAVE reg_loop;
             END IF;
-
-            IF cantidad_total_regulares > 0 AND inv_cantidad_reg > 0 THEN
-                IF primer_inventario_id IS NULL THEN
-                    SET primer_inventario_id = inv_id;
+            
+            IF v_cur_reg_rest > 0 THEN
+                -- Registrar el primer inventario usado para la relación
+                IF v_inventario_id_reg IS NULL THEN
+                    SET v_inventario_id_reg = v_cur_inv_id;
                 END IF;
-
-                IF inv_cantidad_reg >= cantidad_total_regulares THEN
+                
+                -- Calcular cantidad a entregar de este inventario
+                IF v_cur_reg_rest >= p_cantidad_regulares THEN
                     UPDATE inventario_talonarios
-                    SET cantidad_restante_regular = cantidad_restante_regular - cantidad_total_regulares
-                    WHERE id = inv_id;
-                    SET cantidad_total_regulares = 0;
+                    SET cantidad_restante_regular = cantidad_restante_regular - p_cantidad_regulares
+                    WHERE id = v_cur_inv_id;
+                    
+                    SET v_cant_entregada_reg = v_cant_entregada_reg + p_cantidad_regulares;
+                    SET p_cantidad_regulares = 0;
                 ELSE
                     UPDATE inventario_talonarios
                     SET cantidad_restante_regular = 0
-                    WHERE id = inv_id;
-                    SET cantidad_total_regulares = cantidad_total_regulares - inv_cantidad_reg;
+                    WHERE id = v_cur_inv_id;
+                    
+                    SET v_cant_entregada_reg = v_cant_entregada_reg + v_cur_reg_rest;
+                    SET p_cantidad_regulares = p_cantidad_regulares - v_cur_reg_rest;
                 END IF;
             END IF;
         END LOOP;
-        CLOSE cur;
+        
+        CLOSE cur_inventarios;
+        
+        -- Si no se pudo entregar todo
+        IF p_cantidad_regulares > 0 THEN
+            -- Corrección: Usar CONCAT correctamente en SIGNAL
+            SET @error_msg = CONCAT('No hay suficientes talonarios regulares disponibles. Faltan: ', p_cantidad_regulares);
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = @error_msg;
+        END IF;
     END IF;
-
-    -- Insertar registro en entrega_talonarios
+    
+    -- Insertar registro de entrega
     INSERT INTO entrega_talonarios (
         inventario_id,
         cajero_id,
@@ -150,56 +183,38 @@ BEGIN
         created_at,
         updated_at
     ) VALUES (
-        primer_inventario_id,
+        COALESCE(v_inventario_id_pref, v_inventario_id_reg),
         p_cajero_id,
         p_preferencial_del,
         p_preferencial_al,
-        p_cantidad_preferenciales,
+        v_cant_entregada_pref,
         p_rango_inicial_preferencial,
-        rango_final_preferencial,
-        total_boletos_preferenciales,
-        total_estimado_preferenciales,
-        p_cantidad_preferenciales - cantidad_total_preferenciales,
+        p_rango_inicial_preferencial + (v_cant_entregada_pref * 50) - 1,
+        v_total_boletos_pref,
+        v_total_bs_pref,
+        v_cant_entregada_pref,
         p_regular_del,
         p_regular_al,
-        p_cantidad_regulares,
+        v_cant_entregada_reg,
         p_rango_inicial_regular,
-        rango_final_regular,
-        total_boletos_regulares,
-        total_estimado_regulares,
-        p_cantidad_regulares - cantidad_total_regulares,
+        p_rango_inicial_regular + (v_cant_entregada_reg * 50) - 1,
+        v_total_boletos_reg,
+        v_total_bs_reg,
+        v_cant_entregada_reg,
         0,
         0,
         p_tipo_talonario,
         p_fecha,
         p_observaciones,
-        total_estimado_general,
+        v_total_recaudacion,
         NOW(),
         NOW()
     );
-
-    -- Actualizar estados preferenciales
-    UPDATE inventario_talonarios
-    SET estado_preferencial = 0
-    WHERE cantidad_restante_preferencial = 0;
-
-    UPDATE inventario_talonarios
-    SET estado_preferencial = 1
-    WHERE estado_preferencial = 2
-    ORDER BY id ASC
-    LIMIT 1;
-
-    -- Actualizar estados regulares
-    UPDATE inventario_talonarios
-    SET estado_regular = 0
-    WHERE cantidad_restante_regular = 0;
-
-    UPDATE inventario_talonarios
-    SET estado_regular = 1
-    WHERE estado_regular = 2
-    ORDER BY id ASC
-    LIMIT 1;
-
+    
+    -- Actualizar estados de inventarios
+    CALL sp_actualizar_estados_inventarios();
+    
+    SELECT LAST_INSERT_ID() AS id_entrega;
 END //
 
 DELIMITER ;

@@ -14,11 +14,12 @@ return new class extends Migration
         Schema::create('inventario_talonarios', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('cajero_id')->constrained('cajeros')->onDelete('cascade'); // Cajero principal
+            // 🟡 CAMBIO: Restrict en lugar de cascade
+            $table->foreignId('cajero_id')->constrained('cajeros')->onDelete('restrict');
 
             // Preferenciales
-            $table->integer('preferencial_del')->nullable(); // NUEVO
-            $table->integer('preferencial_al')->nullable();  // NUEVO
+            $table->integer('preferencial_del')->nullable();
+            $table->integer('preferencial_al')->nullable();
             $table->integer('cantidad_preferenciales')->nullable();
             $table->integer('rango_inicial_preferencial')->nullable();
             $table->integer('rango_final_preferencial')->nullable();
@@ -27,8 +28,8 @@ return new class extends Migration
             $table->integer('cantidad_restante_preferencial')->nullable();
 
             // Regulares
-            $table->integer('regular_del')->nullable(); // NUEVO
-            $table->integer('regular_al')->nullable();  // NUEVO
+            $table->integer('regular_del')->nullable();
+            $table->integer('regular_al')->nullable();
             $table->integer('cantidad_regulares')->nullable();
             $table->integer('rango_inicial_regular')->nullable();
             $table->integer('rango_final_regular')->nullable();
@@ -40,7 +41,7 @@ return new class extends Migration
             $table->integer('estado_preferencial')->nullable();
             $table->integer('estado_regular')->nullable();
 
-            $table->string('tipo_talonarios')->nullable(); // puede ser mixto, preferencial, regular
+            $table->string('tipo_talonarios')->nullable();
             $table->date('fecha_entrega')->nullable();
             $table->string('observaciones')->nullable();
 
@@ -54,10 +55,23 @@ return new class extends Migration
             $table->string('n_dosificacion')->nullable();
             $table->string('numero_autorizacion')->nullable();
             $table->date('fecha_solicitud_dosificacion')->nullable();
-            $table->date('fecha_autorizacion')->nullable(); // Nota: corregir si es 'autorizacion'
+            $table->date('fecha_autorizacion')->nullable();
             $table->date('fecha_activacion')->nullable();
 
+            // 🆕 CAMPOS ADICIONALES
+            $table->enum('estado', ['disponible', 'agotado', 'inactivo'])->default('disponible');
+            $table->integer('talonarios_entregados')->default(0);
+            $table->integer('talonarios_devueltos')->default(0);
+            $table->integer('talonarios_vendidos')->default(0);
+            $table->date('fecha_cierre')->nullable();
+            $table->string('observaciones_cierre')->nullable();
+
             $table->timestamps();
+
+            // 🟡 ÍNDICES PARA MEJOR PERFORMANCE
+            $table->index('cajero_id');
+            $table->index('estado');
+            $table->index('fecha_entrega');
         });
     }
 

@@ -1,0 +1,40 @@
+DELIMITER //
+
+CREATE PROCEDURE sp_actualizar_estados_inventarios()
+BEGIN
+    -- Actualizar estados preferenciales
+    UPDATE inventario_talonarios
+    SET estado_preferencial = 0
+    WHERE cantidad_restante_preferencial = 0;
+    
+    -- Activar siguiente preferencial en espera si no hay activos
+    IF NOT EXISTS (
+        SELECT 1 FROM inventario_talonarios 
+        WHERE estado_preferencial = 1 AND cantidad_restante_preferencial > 0
+    ) THEN
+        UPDATE inventario_talonarios
+        SET estado_preferencial = 1
+        WHERE estado_preferencial = 2 AND cantidad_restante_preferencial > 0
+        ORDER BY created_at ASC
+        LIMIT 1;
+    END IF;
+    
+    -- Actualizar estados regulares
+    UPDATE inventario_talonarios
+    SET estado_regular = 0
+    WHERE cantidad_restante_regular = 0;
+    
+    -- Activar siguiente regular en espera si no hay activos
+    IF NOT EXISTS (
+        SELECT 1 FROM inventario_talonarios 
+        WHERE estado_regular = 1 AND cantidad_restante_regular > 0
+    ) THEN
+        UPDATE inventario_talonarios
+        SET estado_regular = 1
+        WHERE estado_regular = 2 AND cantidad_restante_regular > 0
+        ORDER BY created_at ASC
+        LIMIT 1;
+    END IF;
+END //
+
+DELIMITER ;

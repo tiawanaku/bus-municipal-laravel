@@ -1,0 +1,639 @@
+-- =====================================================
+-- PROCEDIMIENTOS RESTANTES - EJECUCIÓN INDIVIDUAL
+-- =====================================================
+
+-- 6. PROCEDIMIENTO: CERRAR INVENTARIO CON ARQUEO
+-- =====================================================
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS SP_CerrarInventarioConArqueo$$
+
+CREATE PROCEDURE SP_CerrarInventarioConArqueo(
+    IN p_inventario_id INT,
+    IN p_observaciones_cierre TEXT,
+    OUT p_resultado INT,
+    OUT p_mensaje VARCHAR(255)
+)
+BEGIN
+    DECLARE v_total_entregado_pref INT DEFAULT 0;
+    DECLARE v_total_entregado_reg INT DEFAULT 0;
+    DECLARE v_total_vendido_pref INT DEFAULT 0;
+    DECLARE v_total_vendido_reg INT DEFAULT 0;
+    DECLARE v_total_devuelto_pref INT DEFAULT 0;
+    DECLARE v_total_devuelto_reg INT DEFAULT 0;
+    DECLARE v_monto_recaudado_real DECIMAL(10,2) DEFAULT 0;
+    DECLARE v_monto_esperado DECIMAL(10,2) DEFAULT 0;
+    DECLARE v_diferencia DECIMAL(10,2) DEFAULT 0;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SET p_resultado = 0;
+        SET p_mensaje = 'Error al cerrar inventario';
+    END;
+    
+    START TRANSACTION;
+    
+    -- Calcular totales entregados
+    SELECT 
+        COALESCE(SUM(cantidad_preferenciales), 0),
+        COALESCE(SUM(cantidad_regulares), 0)
+    INTO v_total_entregado_pref, v_total_entregado_reg
+    FROM entrega_talonarios 
+    WHERE inventario_id = p_inventario_id;
+    
+    -- Calcular totales vendidos (a través de anfitriones)
+    SELECT 
+        COALESCE(SUM(fr.cantidad_ventas_preferenciales), 0),
+        COALESCE(SUM(fr.cantidad_ventas_regulares), 0),
+        COALESCE(SUM(fr.total_recaudo_regular_preferencial), 0)
+    INTO v_total_vendido_pref, v_total_vendido_reg, v_monto_recaudado_real
+    FROM formulario_recaudo fr
+    JOIN entrega_talonarios_anfitrion eta ON fr.entrega_talonario_anfitrion_id = eta.id
+    JOIN entrega_talonarios et ON eta.entrega_talonario_id = et.id
+    WHERE et.inventario_id = p_inventario_id;
+    
+    -- Calcular monto esperado
+    SET v_monto_esperado = (v_total_vendido_pref * 1.00) + (v_total_vendido_reg * 1.50);
+    SET v_diferencia = v_monto_recaudado_real - v_monto_esperado;
+    
+    -- Cerrar inventario
+    UPDATE inventario_talonarios 
+    SET 
+        estado = 'inactivo',
+        fecha_cierre = CURDATE(),
+        observaciones_cierre = CONCAT(
+            p_observaciones_cierre, 
+            ' | ARQUEO: Entregados P:', v_total_entregado_pref, 
+            ' R:', v_total_entregado_reg,
+            ' | Vendidos P:', v_total_vendido_pref,
+            ' R:', v_total_vendido_reg,
+            ' | Recaudado: ', v_monto_recaudado_real,
+            ' | Esperado: ', v_monto_esperado,
+            ' | Diferencia: ', v_diferencia
+        ),
+        talonarios_vendidos = CEIL(v_total_vendido_pref / 50.0) + CEIL(v_total_vendido_reg / 50.0)
+    WHERE id = p_inventario_id;
+    
+    SET p_resultado = 1;
+    SET p_mensaje = CONCAT('Inventario cerrado. Diferencia: ', v_diferencia, ' Bs');
+    
+    COMMIT;
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+
+-- 7. PROCEDIMIENTO: REPORTE DE ESTADO GENERAL
+-- =====================================================
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS SP_ReporteEstadoGeneral$$
+
+CREATE PROCEDURE SP_ReporteEstadoGeneral(
+    IN p_fecha_inicio DATE,
+    IN p_fecha_fin DATE
+)
+BEGIN
+    -- Resumen general
+    SELECT 
+        'RESUMEN GENERAL' as seccion,
+        SUM(total_boletos_preferenciales) as total_tickets_preferenciales_creados,
+        SUM(total_boletos_regulares) as total_tickets_regulares_creados,
+        SUM(cantidad_restante_preferencial * 50) as tickets_preferenciales_disponibles,
+        SUM(cantidad_restante_regular * 50) as tickets_regulares_disponibles,
+        SUM(total_recaudacion_bolivianos) as monto_potencial_total
+    FROM inventario_talonarios 
+    WHERE fecha_entrega BETWEEN p_fecha_inicio AND p_fecha_fin;
+    
+    -- Ventas realizadas
+    SELECT 
+        'VENTAS REALIZADAS' as seccion,
+        COUNT(*) as total_ventas,
+        SUM(cantidad_ventas_preferenciales) as tickets_preferenciales_vendidos,
+        SUM(cantidad_ventas_regulares) as tickets_regulares_vendidos,
+        SUM(monto_recaudado_preferencial) as recaudo_preferencial,
+        SUM(monto_recaudado_regular) as recaudo_regular,
+        SUM(total_recaudo_regular_preferencial) as recaudo_total
+    FROM formulario_recaudo 
+    WHERE fecha_recaudo BETWEEN p_fecha_inicio AND p_fecha_fin;
+    
+    -- Estado por cajero
+    SELECT 
+        c.nombres as cajero,
+        i.estado,
+        COUNT(i.id) as inventarios_activos,
+        SUM(i.cantidad_restante_preferencial) as talonarios_pref_disponibles,
+        SUM(i.cantidad_restante_regular) as talonarios_reg_disponibles,
+        SUM(i.cantidad_restante_preferencial * 50 * 1.00 + i.cantidad_restante_regular * 50 * 1.50) as monto_potencial
+    FROM inventario_talonarios i
+    JOIN cajeros c ON i.cajero_id = c.id
+    WHERE i.fecha_entrega BETWEEN p_fecha_inicio AND p_fecha_fin
+    GROUP BY c.id, c.nombres, i.estado
+    ORDER BY c.nombres, i.estado;
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+
+-- 8. PROCEDIMIENTO: VALIDAR CORRELATIVIDAD
+-- =====================================================
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS SP_ValidarCorrelatividad$$
+
+CREATE PROCEDURE SP_ValidarCorrelatividad(
+    IN p_entrega_anfitrion_id INT,
+    OUT p_resultado BOOLEAN,
+    OUT p_mensaje TEXT
+)
+BEGIN
+    DECLARE v_contador INT DEFAULT 0;
+    DECLARE v_mensaje_detalle TEXT DEFAULT '';
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE v_rango_inicial INT;
+    DECLARE v_rango_final INT;
+    DECLARE v_cantidad_vendida INT;
+    DECLARE v_tipo VARCHAR(20);
+    
+    DECLARE cursor_ventas CURSOR FOR 
+        SELECT 
+            rango_inicial_regulares, rango_final_regulares, cantidad_ventas_regulares, 'regular' as tipo
+        FROM formulario_recaudo 
+        WHERE entrega_talonario_anfitrion_id = p_entrega_anfitrion_id AND cantidad_ventas_regulares > 0
+        UNION ALL
+        SELECT 
+            rango_inicial_preferencial, rango_final_preferencial, cantidad_ventas_preferenciales, 'preferencial'
+        FROM formulario_recaudo 
+        WHERE entrega_talonario_anfitrion_id = p_entrega_anfitrion_id AND cantidad_ventas_preferenciales > 0
+        ORDER BY tipo, rango_inicial_regulares;
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    
+    SET p_resultado = TRUE;
+    SET p_mensaje = 'Correlatividad correcta';
+    
+    OPEN cursor_ventas;
+    
+    read_loop: LOOP
+        FETCH cursor_ventas INTO v_rango_inicial, v_rango_final, v_cantidad_vendida, v_tipo;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+        
+        -- Verificar que el rango final corresponda con la cantidad
+        IF v_rango_final != (v_rango_inicial + v_cantidad_vendida - 1) THEN
+            SET p_resultado = FALSE;
+            SET v_mensaje_detalle = CONCAT(v_mensaje_detalle, 
+                'Error en correlatividad ', v_tipo, ': rango ', v_rango_inicial, 
+                '-', v_rango_final, ' no corresponde con cantidad ', v_cantidad_vendida, '; ');
+        END IF;
+        
+        SET v_contador = v_contador + 1;
+    END LOOP;
+    
+    CLOSE cursor_ventas;
+    
+    IF NOT p_resultado THEN
+        SET p_mensaje = CONCAT('Errores encontrados: ', v_mensaje_detalle);
+    END IF;
+    
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+
+-- 9. PROCEDIMIENTO: AUDITORIA DE CORRELATIVOS
+-- =====================================================
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS SP_AuditoriaCorrelativos$$
+
+CREATE PROCEDURE SP_AuditoriaCorrelativos(
+    IN p_fecha_inicio DATE,
+    IN p_fecha_fin DATE
+)
+BEGIN
+    -- Crear tabla temporal para auditoria
+    DROP TEMPORARY TABLE IF EXISTS tmp_auditoria;
+    CREATE TEMPORARY TABLE tmp_auditoria (
+        anfitrion_id INT,
+        anfitrion_nombre VARCHAR(255),
+        tipo_ticket VARCHAR(20),
+        rango_esperado_inicio INT,
+        rango_esperado_fin INT,
+        rango_real_inicio INT,
+        rango_real_fin INT,
+        diferencia INT,
+        estado_correlativo VARCHAR(20),
+        fecha_venta DATE
+    );
+    
+    -- Auditar correlativos regulares
+    INSERT INTO tmp_auditoria
+    SELECT 
+        fr.anfitrion_id,
+        u.name as anfitrion_nombre,
+        'REGULAR' as tipo_ticket,
+        (eta.rango_inicial_regular + 
+         (SELECT COALESCE(SUM(cantidad_ventas_regulares), 0) 
+          FROM formulario_recaudo fr2 
+          WHERE fr2.entrega_talonario_anfitrion_id = fr.entrega_talonario_anfitrion_id 
+          AND fr2.id < fr.id)) as rango_esperado_inicio,
+        (eta.rango_inicial_regular + 
+         (SELECT COALESCE(SUM(cantidad_ventas_regulares), 0) 
+          FROM formulario_recaudo fr2 
+          WHERE fr2.entrega_talonario_anfitrion_id = fr.entrega_talonario_anfitrion_id 
+          AND fr2.id < fr.id) + fr.cantidad_ventas_regulares - 1) as rango_esperado_fin,
+        fr.rango_inicial_regulares as rango_real_inicio,
+        fr.rango_final_regulares as rango_real_fin,
+        ABS(fr.rango_inicial_regulares - 
+            (eta.rango_inicial_regular + 
+             (SELECT COALESCE(SUM(cantidad_ventas_regulares), 0) 
+              FROM formulario_recaudo fr2 
+              WHERE fr2.entrega_talonario_anfitrion_id = fr.entrega_talonario_anfitrion_id 
+              AND fr2.id < fr.id))) as diferencia,
+        CASE 
+            WHEN fr.rango_inicial_regulares = 
+                 (eta.rango_inicial_regular + 
+                  (SELECT COALESCE(SUM(cantidad_ventas_regulares), 0) 
+                   FROM formulario_recaudo fr2 
+                   WHERE fr2.entrega_talonario_anfitrion_id = fr.entrega_talonario_anfitrion_id 
+                   AND fr2.id < fr.id))
+            THEN 'CORRECTO'
+            ELSE 'ERROR'
+        END as estado_correlativo,
+        fr.fecha_recaudo
+    FROM formulario_recaudo fr
+    JOIN entrega_talonarios_anfitrion eta ON fr.entrega_talonario_anfitrion_id = eta.id
+    JOIN users u ON fr.anfitrion_id = u.id
+    WHERE fr.fecha_recaudo BETWEEN p_fecha_inicio AND p_fecha_fin
+    AND fr.cantidad_ventas_regulares > 0;
+    
+    -- Auditar correlativos preferenciales
+    INSERT INTO tmp_auditoria
+    SELECT 
+        fr.anfitrion_id,
+        u.name as anfitrion_nombre,
+        'PREFERENCIAL' as tipo_ticket,
+        (eta.rango_inicial_preferencial + 
+         (SELECT COALESCE(SUM(cantidad_ventas_preferenciales), 0) 
+          FROM formulario_recaudo fr2 
+          WHERE fr2.entrega_talonario_anfitrion_id = fr.entrega_talonario_anfitrion_id 
+          AND fr2.id < fr.id)) as rango_esperado_inicio,
+        (eta.rango_inicial_preferencial + 
+         (SELECT COALESCE(SUM(cantidad_ventas_preferenciales), 0) 
+          FROM formulario_recaudo fr2 
+          WHERE fr2.entrega_talonario_anfitrion_id = fr.entrega_talonario_anfitrion_id 
+          AND fr2.id < fr.id) + fr.cantidad_ventas_preferenciales - 1) as rango_esperado_fin,
+        fr.rango_inicial_preferencial as rango_real_inicio,
+        fr.rango_final_preferencial as rango_real_fin,
+        ABS(fr.rango_inicial_preferencial - 
+            (eta.rango_inicial_preferencial + 
+             (SELECT COALESCE(SUM(cantidad_ventas_preferenciales), 0) 
+              FROM formulario_recaudo fr2 
+              WHERE fr2.entrega_talonario_anfitrion_id = fr.entrega_talonario_anfitrion_id 
+              AND fr2.id < fr.id))) as diferencia,
+        CASE 
+            WHEN fr.rango_inicial_preferencial = 
+                 (eta.rango_inicial_preferencial + 
+                  (SELECT COALESCE(SUM(cantidad_ventas_preferenciales), 0) 
+                   FROM formulario_recaudo fr2 
+                   WHERE fr2.entrega_talonario_anfitrion_id = fr.entrega_talonario_anfitrion_id 
+                   AND fr2.id < fr.id))
+            THEN 'CORRECTO'
+            ELSE 'ERROR'
+        END as estado_correlativo,
+        fr.fecha_recaudo
+    FROM formulario_recaudo fr
+    JOIN entrega_talonarios_anfitrion eta ON fr.entrega_talonario_anfitrion_id = eta.id
+    JOIN users u ON fr.anfitrion_id = u.id
+    WHERE fr.fecha_recaudo BETWEEN p_fecha_inicio AND p_fecha_fin
+    AND fr.cantidad_ventas_preferenciales > 0;
+    
+    -- Mostrar resultados
+    SELECT * FROM tmp_auditoria ORDER BY anfitrion_nombre, tipo_ticket, fecha_venta;
+    
+    -- Resumen de errores
+    SELECT 
+        'RESUMEN DE AUDITORIA' as seccion,
+        COUNT(*) as total_registros,
+        SUM(CASE WHEN estado_correlativo = 'ERROR' THEN 1 ELSE 0 END) as total_errores,
+        ROUND((SUM(CASE WHEN estado_correlativo = 'ERROR' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)), 2) as porcentaje_error
+    FROM tmp_auditoria;
+    
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+
+-- 10. PROCEDIMIENTO: CONCILIAR INVENTARIOS
+-- =====================================================
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS SP_ConciliarInventarios$$
+
+CREATE PROCEDURE SP_ConciliarInventarios(
+    IN p_inventario_id INT,
+    OUT p_resultado JSON
+)
+BEGIN
+    DECLARE v_resultado JSON;
+    
+    SELECT JSON_OBJECT(
+        'inventario_principal', JSON_OBJECT(
+            'id', i.id,
+            'preferenciales_creados', i.cantidad_preferenciales,
+            'regulares_creados', i.cantidad_regulares,
+            'preferenciales_restantes', i.cantidad_restante_preferencial,
+            'regulares_restantes', i.cantidad_restante_regular
+        ),
+        'entregas_cajeros', JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'entrega_id', et.id,
+                'cajero_id', et.cajero_id,
+                'preferenciales_entregados', et.cantidad_preferenciales,
+                'regulares_entregados', et.cantidad_regulares,
+                'preferenciales_restantes', et.cantidad_restante_preferencial,
+                'regulares_restantes', et.cantidad_restante_regular,
+                'estado', et.estado
+            )
+        ),
+        'entregas_anfitriones', (
+            SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'entrega_anfitrion_id', eta.id,
+                    'anfitrion_id', eta.anfitrion_id,
+                    'preferenciales_entregados', eta.cantidad_preferenciales,
+                    'regulares_entregados', eta.cantidad_regulares,
+                    'preferenciales_restantes', eta.cantidad_restante_preferencial,
+                    'regulares_restantes', eta.cantidad_restante_regular,
+                    'monto_recaudado', eta.monto_recaudado_real,
+                    'estado', eta.estado
+                )
+            )
+            FROM entrega_talonarios_anfitrion eta
+            WHERE eta.entrega_talonario_id IN (
+                SELECT id FROM entrega_talonarios WHERE inventario_id = p_inventario_id
+            )
+        ),
+        'ventas_realizadas', (
+            SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'recaudo_id', fr.id,
+                    'anfitrion_id', fr.anfitrion_id,
+                    'fecha_recaudo', fr.fecha_recaudo,
+                    'tickets_regulares_vendidos', fr.cantidad_ventas_regulares,
+                    'tickets_preferenciales_vendidos', fr.cantidad_ventas_preferenciales,
+                    'monto_recaudado', fr.total_recaudo_regular_preferencial,
+                    'estado', fr.estado
+                )
+            )
+            FROM formulario_recaudo fr
+            JOIN entrega_talonarios_anfitrion eta ON fr.entrega_talonario_anfitrion_id = eta.id
+            JOIN entrega_talonarios et ON eta.entrega_talonario_id = et.id
+            WHERE et.inventario_id = p_inventario_id
+        )
+    ) INTO v_resultado
+    FROM inventario_talonarios i
+    LEFT JOIN entrega_talonarios et ON i.id = et.inventario_id
+    WHERE i.id = p_inventario_id
+    GROUP BY i.id;
+    
+    SET p_resultado = v_resultado;
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+
+-- 11. FUNCIÓN: CONSULTAR INVENTARIO DISPONIBLE POR CAJERO
+-- =====================================================
+DELIMITER $$
+
+DROP FUNCTION IF EXISTS FN_ConsultarInventarioCajero$$
+
+CREATE FUNCTION FN_ConsultarInventarioCajero(p_cajero_id INT)
+RETURNS JSON
+READS SQL DATA
+DETERMINISTIC
+BEGIN
+    DECLARE v_resultado JSON;
+    
+    SELECT JSON_OBJECT(
+        'inventarios', JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'id', id,
+                'preferenciales_disponibles', cantidad_restante_preferencial,
+                'regulares_disponibles', cantidad_restante_regular,
+                'tickets_preferenciales', cantidad_restante_preferencial * 50,
+                'tickets_regulares', cantidad_restante_regular * 50,
+                'monto_potencial_preferencial', cantidad_restante_preferencial * 50 * 1.00,
+                'monto_potencial_regular', cantidad_restante_regular * 50 * 1.50,
+                'estado', estado,
+                'fecha_entrega', fecha_entrega
+            )
+        )
+    ) INTO v_resultado
+    FROM inventario_talonarios 
+    WHERE cajero_id = p_cajero_id AND estado != 'inactivo';
+    
+    RETURN v_resultado;
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+
+-- 12. FUNCIÓN: SIGUIENTE NÚMERO CORRELATIVO
+-- =====================================================
+DELIMITER $$
+
+DROP FUNCTION IF EXISTS FN_SiguienteNumeroCorrelativo$$
+
+CREATE FUNCTION FN_SiguienteNumeroCorrelativo(
+    p_entrega_anfitrion_id INT,
+    p_tipo_ticket VARCHAR(20)
+) 
+RETURNS INT
+READS SQL DATA
+DETERMINISTIC
+BEGIN
+    DECLARE v_siguiente_numero INT;
+    DECLARE v_rango_inicial INT;
+    DECLARE v_total_vendido INT;
+    
+    IF p_tipo_ticket = 'PREFERENCIAL' THEN
+        SELECT 
+            eta.rango_inicial_preferencial,
+            COALESCE(SUM(fr.cantidad_ventas_preferenciales), 0)
+        INTO v_rango_inicial, v_total_vendido
+        FROM entrega_talonarios_anfitrion eta
+        LEFT JOIN formulario_recaudo fr ON eta.id = fr.entrega_talonario_anfitrion_id
+        WHERE eta.id = p_entrega_anfitrion_id;
+    ELSE
+        SELECT 
+            eta.rango_inicial_regular,
+            COALESCE(SUM(fr.cantidad_ventas_regulares), 0)
+        INTO v_rango_inicial, v_total_vendido
+        FROM entrega_talonarios_anfitrion eta
+        LEFT JOIN formulario_recaudo fr ON eta.id = fr.entrega_talonario_anfitrion_id
+        WHERE eta.id = p_entrega_anfitrion_id;
+    END IF;
+    
+    SET v_siguiente_numero = v_rango_inicial + v_total_vendido;
+    
+    RETURN v_siguiente_numero;
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+
+-- 13. PROCEDIMIENTO: RECALCULAR TOTALES
+-- =====================================================
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS SP_RecalcularTotales$$
+
+CREATE PROCEDURE SP_RecalcularTotales(
+    IN p_inventario_id INT,
+    OUT p_resultado INT,
+    OUT p_mensaje VARCHAR(255)
+)
+BEGIN
+    DECLARE v_total_vendido_pref INT DEFAULT 0;
+    DECLARE v_total_vendido_reg INT DEFAULT 0;
+    DECLARE v_monto_recaudado DECIMAL(10,2) DEFAULT 0;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SET p_resultado = 0;
+        SET p_mensaje = 'Error al recalcular totales';
+    END;
+    
+    START TRANSACTION;
+    
+    -- Recalcular totales vendidos
+    SELECT 
+        COALESCE(SUM(fr.cantidad_ventas_preferenciales), 0),
+        COALESCE(SUM(fr.cantidad_ventas_regulares), 0),
+        COALESCE(SUM(fr.total_recaudo_regular_preferencial), 0)
+    INTO v_total_vendido_pref, v_total_vendido_reg, v_monto_recaudado
+    FROM formulario_recaudo fr
+    JOIN entrega_talonarios_anfitrion eta ON fr.entrega_talonario_anfitrion_id = eta.id
+    JOIN entrega_talonarios et ON eta.entrega_talonario_id = et.id
+    WHERE et.inventario_id = p_inventario_id;
+    
+    -- Actualizar inventario principal
+    UPDATE inventario_talonarios 
+    SET 
+        talonarios_vendidos = CEIL(v_total_vendido_pref / 50.0) + CEIL(v_total_vendido_reg / 50.0)
+    WHERE id = p_inventario_id;
+    
+    -- Actualizar entregas de anfitriones
+    UPDATE entrega_talonarios_anfitrion eta
+    JOIN entrega_talonarios et ON eta.entrega_talonario_id = et.id
+    SET eta.monto_recaudado_real = (
+        SELECT COALESCE(SUM(fr.total_recaudo_regular_preferencial), 0)
+        FROM formulario_recaudo fr
+        WHERE fr.entrega_talonario_anfitrion_id = eta.id
+    )
+    WHERE et.inventario_id = p_inventario_id;
+    
+    SET p_resultado = 1;
+    SET p_mensaje = CONCAT('Totales recalculados - Tickets vendidos: ', 
+                          v_total_vendido_pref + v_total_vendido_reg, 
+                          ' Monto: ', v_monto_recaudado, ' Bs');
+    
+    COMMIT;
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+
+-- 14. PROCEDIMIENTO: LIMPIAR REGISTROS ANTIGUOS  
+-- =====================================================
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS SP_LimpiarRegistrosAntiguos$$
+
+CREATE PROCEDURE SP_LimpiarRegistrosAntiguos(
+    IN p_dias_antiguedad INT,
+    OUT p_resultado INT,
+    OUT p_mensaje VARCHAR(255)
+)
+BEGIN
+    DECLARE v_fecha_limite DATE;
+    DECLARE v_registros_eliminados INT DEFAULT 0;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SET p_resultado = 0;
+        SET p_mensaje = 'Error al limpiar registros antiguos';
+    END;
+    
+    START TRANSACTION;
+    
+    SET v_fecha_limite = DATE_SUB(CURDATE(), INTERVAL p_dias_antiguedad DAY);
+    
+    -- Contar inventarios antiguos cerrados
+    SELECT COUNT(*) INTO v_registros_eliminados
+    FROM inventario_talonarios 
+    WHERE DATE(fecha_cierre) < v_fecha_limite 
+    AND estado = 'inactivo';
+    
+    SET p_resultado = v_registros_eliminados;
+    SET p_mensaje = CONCAT('Se encontraron ', v_registros_eliminados, ' inventarios antiguos cerrados');
+    
+    COMMIT;
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+-- EJEMPLOS DE USO DE TODOS LOS PROCEDIMIENTOS
+-- =====================================================
+
+/*
+-- 1. Cerrar inventario con arqueo
+CALL SP_CerrarInventarioConArqueo(1, 'Cierre mensual enero 2024', @resultado, @mensaje);
+SELECT @resultado, @mensaje;
+
+-- 2. Reporte general del mes
+CALL SP_ReporteEstadoGeneral('2024-01-01', '2024-01-31');
+
+-- 3. Validar correlatividad de una entrega
+CALL SP_ValidarCorrelatividad(1, @es_correcto, @mensaje_validacion);
+SELECT @es_correcto, @mensaje_validacion;
+
+-- 4. Auditoria completa de correlativos
+CALL SP_AuditoriaCorrelativos('2024-01-01', '2024-01-31');
+
+-- 5. Conciliar inventario específico
+CALL SP_ConciliarInventarios(1, @conciliacion);
+SELECT @conciliacion;
+
+-- 6. Consultar inventario por cajero
+SELECT FN_ConsultarInventarioCajero(1);
+
+-- 7. Obtener siguiente número correlativo
+SELECT 
+    FN_SiguienteNumeroCorrelativo(1, 'PREFERENCIAL') as proximo_pref,
+    FN_SiguienteNumeroCorrelativo(1, 'REGULAR') as proximo_reg;
+
+-- 8. Recalcular totales
+CALL SP_RecalcularTotales(1, @resultado, @mensaje);
+SELECT @resultado, @mensaje;
+
+-- 9. Limpiar registros antiguos
+CALL SP_LimpiarRegistrosAntiguos(90, @resultado, @mensaje);
+SELECT @resultado, @mensaje;
+*/

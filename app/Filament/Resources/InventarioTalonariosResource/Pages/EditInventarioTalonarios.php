@@ -5,30 +5,38 @@ namespace App\Filament\Resources\InventarioTalonariosResource\Pages;
 use App\Filament\Resources\InventarioTalonariosResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Support\Facades\DB;
 
 class EditInventarioTalonarios extends EditRecord
 {
     protected static string $resource = InventarioTalonariosResource::class;
 
-    protected function afterSave(): void
+    protected function mutateFormDataBeforeSave(array $data): array
     {
-        $record = $this->record;
-
-       DB::statement('CALL actualizar_inventario_talonarios(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-             $record->id,
-    $record->cajero_id,
-    $record->rango_inicial_preferencial,
-    $record->rango_inicial_regular,
-    $record->fecha_entrega,
-    $record->observaciones,
-
-            // ✅ Nuevos parámetros agregados:
-            $record->regular_del,
-            $record->regular_al,
-            $record->preferencial_del,
-            $record->preferencial_al,
-        ]);
+        // Solo calcular si los campos existen
+        if (isset($data['preferencial_al'], $data['preferencial_del'], 
+            $data['regular_al'], $data['regular_del'])) {
+            
+            $cantidadPreferenciales = $data['preferencial_al'] - $data['preferencial_del'] + 1;
+            $cantidadRegulares = $data['regular_al'] - $data['regular_del'] + 1;
+            
+            if (isset($data['rango_inicial_preferencial'])) {
+                $data['rango_final_preferencial'] = $data['rango_inicial_preferencial'] + ($cantidadPreferenciales * 50) - 1;
+            }
+            
+            if (isset($data['rango_inicial_regular'])) {
+                $data['rango_final_regular'] = $data['rango_inicial_regular'] + ($cantidadRegulares * 50) - 1;
+            }
+            
+            $data['total_boletos_preferenciales'] = $cantidadPreferenciales * 50;
+            $data['total_boletos_regulares'] = $cantidadRegulares * 50;
+            $data['total_aproximado_bolivianos_preferencial'] = $data['total_boletos_preferenciales'] * 1.00;
+            $data['total_aproximado_bolivianos_regular'] = $data['total_boletos_regulares'] * 1.50;
+            $data['total_recaudacion_bolivianos'] = $data['total_aproximado_bolivianos_preferencial'] + $data['total_aproximado_bolivianos_regular'];
+            $data['cantidad_restante_preferencial'] = $cantidadPreferenciales;
+            $data['cantidad_restante_regular'] = $cantidadRegulares;
+        }
+        
+        return $data;
     }
 
     protected function getHeaderActions(): array

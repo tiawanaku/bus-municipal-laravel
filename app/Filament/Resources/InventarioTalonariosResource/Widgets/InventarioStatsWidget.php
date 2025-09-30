@@ -8,40 +8,31 @@ use EightyNine\FilamentAdvancedWidget\AdvancedStatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-
 class InventarioStatsWidget extends BaseWidget
 {
     protected function getStats(): array
     {
-        // Obtener primer registro preferencial activo
-        $preferencialActivo = InventarioTalonarios::where('estado_preferencial', 1)
+        // Obtener primer registro disponible
+        $talonarioDisponible = InventarioTalonarios::where('estado', 'disponible')
             ->orderBy('id')
             ->first();
 
-        $totalPreferenciales = $preferencialActivo->cantidad_preferenciales ?? 0;
-        $restantePreferenciales = $preferencialActivo->cantidad_restante_preferencial ?? 0;
+        $totalPreferenciales = $talonarioDisponible->cantidad_preferenciales ?? 0;
+        $restantePreferenciales = $talonarioDisponible->cantidad_restante_preferencial ?? 0;
         $progresoPreferenciales = $totalPreferenciales > 0 ? ($restantePreferenciales / $totalPreferenciales) * 100 : 0;
 
-        // Obtener primer registro regular activo
-        $regularActivo = InventarioTalonarios::where('estado_regular', 1)
-            ->orderBy('id')
-            ->first();
-
-        $totalRegulares = $regularActivo->cantidad_regulares ?? 0;
-        $restanteRegulares = $regularActivo->cantidad_restante_regular ?? 0;
+        $totalRegulares = $talonarioDisponible->cantidad_regulares ?? 0;
+        $restanteRegulares = $talonarioDisponible->cantidad_restante_regular ?? 0;
         $progresoRegulares = $totalRegulares > 0 ? ($restanteRegulares / $totalRegulares) * 100 : 0;
 
-        // Recaudación solo de registros con estado 1
-        $recaudacion = InventarioTalonarios::where(function ($query) {
-            $query->where('estado_preferencial', 1)
-                ->orWhere('estado_regular', 1);
-        })->sum('total_recaudacion_bolivianos');
+        // Recaudación solo de registros disponibles
+        $recaudacion = InventarioTalonarios::where('estado', 'disponible')
+            ->sum('total_recaudacion_bolivianos');
 
-        // Obtener la primera dosificación de registros activos
-        $primeraDosificacion = InventarioTalonarios::where(function ($query) {
-            $query->where('estado_preferencial', 1)
-                ->orWhere('estado_regular', 1);
-        })->orderBy('id')->value('n_dosificacion') ?? 'No registrada';
+        // Obtener la primera dosificación de registros disponibles
+        $primeraDosificacion = InventarioTalonarios::where('estado', 'disponible')
+            ->orderBy('id')
+            ->value('n_dosificacion') ?? 'No registrada';
 
         return [
             Stat::make('Talonarios Preferenciales', $restantePreferenciales)

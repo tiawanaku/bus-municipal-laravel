@@ -16,6 +16,8 @@ class EntregaTalonario extends Model
         'inventario_id',
 
         // Preferenciales
+        'preferencial_del',
+        'preferencial_al',
         'cantidad_preferenciales',
         'rango_inicial_preferencial',
         'rango_final_preferencial',
@@ -24,6 +26,8 @@ class EntregaTalonario extends Model
         'total_aproximado_bolivianos_preferencial',
 
         // Regulares
+        'regular_del',
+        'regular_al',
         'cantidad_regulares',
         'rango_inicial_regular',
         'rango_final_regular',
@@ -38,9 +42,37 @@ class EntregaTalonario extends Model
         'fecha_entrega',
         'observaciones',
         'total_recaudacion_bolivianos',
-
-
     ];
+
+    /**
+     * Boot del modelo para auto-calcular valores
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            // Auto-calcular preferencial_del si está vacío
+            if (empty($model->preferencial_del) && !empty($model->preferencial_al)) {
+                $ultimo = self::whereNotNull('preferencial_al')
+                    ->where('preferencial_al', '>', 0)
+                    ->orderByDesc('id')
+                    ->first();
+                
+                $model->preferencial_del = $ultimo ? $ultimo->preferencial_al + 1 : 1;
+            }
+
+            // Auto-calcular regular_del si está vacío
+            if (empty($model->regular_del) && !empty($model->regular_al)) {
+                $ultimo = self::whereNotNull('regular_al')
+                    ->where('regular_al', '>', 0)
+                    ->orderByDesc('id')
+                    ->first();
+                
+                $model->regular_del = $ultimo ? $ultimo->regular_al + 1 : 1;
+            }
+        });
+    }
 
     /**
      * Relación: Cajero secundario que recibe los talonarios
@@ -57,32 +89,4 @@ class EntregaTalonario extends Model
     {
         return $this->belongsTo(Cajero::class, 'entregado_por');
     }
-
-    /**
-     * Definir los tipos de datos de las relaciones
-     */
-    protected $casts = [
-        'cajero_id' => 'integer',
-        'entregado_por' => 'integer',
-        'cantidad_preferenciales' => 'integer',
-        'rango_inicial_preferencial' => 'integer',
-        'rango_final_preferencial' => 'integer',
-        'cantidad_restante_preferencial' => 'integer',
-        'total_boletos_preferenciales' => 'integer',
-        'total_aproximado_bolivianos' => 'float',
-
-        'cantidad_regulares' => 'integer',
-        'rango_inicial_regular' => 'integer',
-        'rango_final_regular' => 'integer',
-        'cantidad_restante_regular' => 'integer',
-        'total_boletos_regulares' => 'integer',
-        'total_aproximado_bolivianos_regular' => 'float',
-
-        'estado_preferencial' => 'boolean',
-        'estado_regular' => 'boolean',
-    ];
-
-    /**
-     * Mutator para asegurar que el campo `fecha_entrega` siempre esté en el formato adecuado
-     */
 }

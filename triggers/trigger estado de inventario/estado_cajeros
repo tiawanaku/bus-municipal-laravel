@@ -1,87 +1,20 @@
 DELIMITER //
 
-CREATE TRIGGER verificar_estados_talonarios_fifo
+CREATE TRIGGER tr_before_insert_entrega_talonarios
 BEFORE INSERT ON entrega_talonarios
 FOR EACH ROW
 BEGIN
-    DECLARE existe_activo_pref INT DEFAULT 0;
-    DECLARE existe_activo_reg INT DEFAULT 0;
-    DECLARE id_mas_antiguo_pref INT DEFAULT NULL;
-    DECLARE id_mas_antiguo_reg INT DEFAULT NULL;
+    -- Este trigger ahora es más simple ya que la lógica compleja
+    -- se maneja en el procedimiento almacenado
     
-    -- Verificar registros activos preferenciales con disponibilidad
-    SELECT COUNT(*) INTO existe_activo_pref 
-    FROM entrega_talonarios 
-    WHERE estado_preferencial = 1 
-    AND cantidad_restante_preferencial > 0;
-    
-    -- Verificar registros activos regulares con disponibilidad
-    SELECT COUNT(*) INTO existe_activo_reg 
-    FROM entrega_talonarios 
-    WHERE estado_regular = 1 
-    AND cantidad_restante_regular > 0;
-    
-    -- Buscar el más antiguo con disponibilidad preferencial (FIFO por created_at)
-    SELECT id INTO id_mas_antiguo_pref
-    FROM entrega_talonarios
-    WHERE cantidad_restante_preferencial > 0 
-    AND estado_preferencial != 1
-    ORDER BY created_at ASC
-    LIMIT 1;
-    
-    -- Buscar el más antiguo con disponibilidad regular (FIFO por created_at)
-    SELECT id INTO id_mas_antiguo_reg
-    FROM entrega_talonarios
-    WHERE cantidad_restante_regular > 0 
-    AND estado_regular != 1
-    ORDER BY created_at ASC
-    LIMIT 1;
-    
-    -- Manejo de estados cuando no hay disponibilidad
-    IF NEW.cantidad_restante_preferencial = 0 AND NEW.cantidad_restante_regular = 0 THEN
+    -- Solo asegurar que los estados sean 0 si no hay talonarios
+    IF NEW.cantidad_restante_preferencial <= 0 THEN
         SET NEW.estado_preferencial = 0;
-        SET NEW.estado_regular = 0;
-    ELSE
-        -- Lógica FIFO para talonarios preferenciales
-        IF NEW.cantidad_restante_preferencial > 0 THEN
-            IF existe_activo_pref = 0 THEN
-                IF id_mas_antiguo_pref IS NOT NULL THEN
-                    -- Activar el más antiguo primero (FIFO)
-                    UPDATE entrega_talonarios 
-                    SET estado_preferencial = 1 
-                    WHERE id = id_mas_antiguo_pref;
-                    
-                    SET NEW.estado_preferencial = 2; -- Nuevo en espera
-                ELSE
-                    SET NEW.estado_preferencial = 1; -- Primer disponible
-                END IF;
-            ELSE
-                SET NEW.estado_preferencial = 2; -- Espera (ya hay activo)
-            END IF;
-        ELSE
-            SET NEW.estado_preferencial = 0; -- Sin disponibilidad
-        END IF;
-        
-        -- Lógica FIFO para talonarios regulares
-        IF NEW.cantidad_restante_regular > 0 THEN
-            IF existe_activo_reg = 0 THEN
-                IF id_mas_antiguo_reg IS NOT NULL THEN
-                    -- Activar el más antiguo primero (FIFO)
-                    UPDATE entrega_talonarios 
-                    SET estado_regular = 1 
-                    WHERE id = id_mas_antiguo_reg;
-                    
-                    SET NEW.estado_regular = 2; -- Nuevo en espera
-                ELSE
-                    SET NEW.estado_regular = 1; -- Primer disponible
-                END IF;
-            ELSE
-                SET NEW.estado_regular = 2; -- Espera (ya hay activo)
-            END IF;
-        ELSE
-            SET NEW.estado_regular = 0; -- Sin disponibilidad
-        END IF;
     END IF;
-END//
+    
+    IF NEW.cantidad_restante_regular <= 0 THEN
+        SET NEW.estado_regular = 0;
+    END IF;
+END //
 
 DELIMITER ;

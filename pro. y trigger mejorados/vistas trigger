@@ -1,0 +1,465 @@
+-- =====================================================
+-- VISTAS, TRIGGERS E ÍNDICES COMPLEMENTARIOS
+-- =====================================================
+
+-- =====================================================
+-- CREAR TABLA DE LOG (OPCIONAL)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS log_movimientos_talonarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tabla_origen VARCHAR(50),
+    registro_id INT,
+    accion VARCHAR(50),
+    datos_json JSON,
+    usuario_id INT NULL,
+    fecha_movimiento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_tabla_fecha (tabla_origen, fecha_movimiento),
+    INDEX idx_registro (registro_id),
+    INDEX idx_accion (accion),
+    INDEX idx_usuario (usuario_id)
+);
+
+-- =====================================================
+-- TRIGGERS PARA CONTROL AUTOMÁTICO
+-- =====================================================
+
+-- Trigger: Actualizar estado de inventario automáticamente
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS TR_ActualizarEstadoInventario$$
+
+CREATE TRIGGER TR_ActualizarEstadoInventario
+    BEFORE UPDATE ON inventario_talonarios
+    FOR EACH ROW
+BEGIN
+    SET NEW.estado = CASE 
+        WHEN NEW.cantidad_restante_preferencial <= 0 AND NEW.cantidad_restante_regular <= 0 
+        THEN 'agotado'
+        WHEN NEW.cantidad_restante_preferencial > 0 OR NEW.cantidad_restante_regular > 0 
+        THEN 'disponible'
+        ELSE NEW.estado
+    END;
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+
+-- Trigger: Log de cambios en ventas
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS TR_LogCambiosVentas$$
+
+CREATE TRIGGER TR_LogCambiosVentas
+    AFTER INSERT ON formulario_recaudo
+    FOR EACH ROW
+BEGIN
+    INSERT INTO log_movimientos_talonarios (
+        tabla_origen, registro_id, accion, datos_json, fecha_movimiento
+    ) VALUES (
+        'formulario_recaudo', 
+        NEW.id, 
+        'VENTA_REGISTRADA',
+        JSON_OBJECT(
+            'anfitrion_id', NEW.anfitrion_id,
+            'tickets_regulares', NEW.cantidad_ventas_regulares,
+            'tickets_preferenciales', NEW.cantidad_ventas_preferenciales,
+            'monto_total', NEW.total_recaudo_regular_preferencial,
+            'fecha_recaudo', NEW.fecha_recaudo
+        ),
+        NOW()
+    );
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+
+-- Trigger: Log de entregas a anfitriones
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS TR_LogEntregasAnfitrion$$
+
+CREATE TRIGGER TR_LogEntregasAnfitrion
+    AFTER INSERT ON entrega_talonarios_anfitrion
+    FOR EACH ROW
+BEGIN
+    INSERT INTO log_movimientos_talonarios (
+        tabla_origen, registro_id, accion, datos_json, fecha_movimiento
+    ) VALUES (
+        'entrega_talonarios_anfitrion', 
+        NEW.id, 
+        'ENTREGA_ANFITRION',
+        JSON_OBJECT(
+            'anfitrion_id', NEW.anfitrion_id,
+            'talonarios_preferenciales', NEW.cantidad_preferenciales,
+            'talonarios_regulares', NEW.cantidad_regulares,
+            'rango_pref', CONCAT(NEW.rango_inicial_preferencial, '-', NEW.rango_final_preferencial),
+            'rango_reg', CONCAT(NEW.rango_inicial_regular, '-', NEW.rango_final_regular)
+        ),
+        NOW()
+    );
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+
+-- Trigger: Log de creación de inventarios
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS TR_LogCreacionInventario$$
+
+CREATE TRIGGER TR_LogCreacionInventario
+    AFTER INSERT ON inventario_talonarios
+    FOR EACH ROW
+BEGIN
+    INSERT INTO log_movimientos_talonarios (
+        tabla_origen, registro_id, accion, datos_json, fecha_movimiento
+    ) VALUES (
+        'inventario_talonarios', 
+        NEW.id, 
+        'INVENTARIO_CREADO',
+        JSON_OBJECT(
+            'cajero_id', NEW.cajero_id,
+            'talonarios_preferenciales', NEW.cantidad_preferenciales,
+            'talonarios_regulares', NEW.cantidad_regulares,
+            'monto_total', NEW.total_recaudacion_bolivianos,
+            'fecha_entrega', NEW.fecha_entrega
+        ),
+        NOW()
+    );
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+-- ÍNDICES ADICIONALES PARA OPTIMIZACIÓN
+-- =====================================================
+
+-- Índices para mejorar performance en consultas frecuentes
+CREATE INDEX IF NOT EXISTS idx_inventario_estado_fecha ON inventario_talonarios(estado, fecha_entrega);
+CREATE INDEX IF NOT EXISTS idx_inventario_cajero_estado ON inventario_talonarios(cajero_id, estado);
+
+CREATE INDEX IF NOT EXISTS idx_entrega_estado_fecha ON entrega_talonarios(estado, fecha_entrega);
+CREATE INDEX IF NOT EXISTS idx_entrega_inventario_estado ON entrega_talonarios(inventario_id, estado);
+
+CREATE INDEX IF NOT EXISTS idx_entrega_anfitrion_estado ON entrega_talonarios_anfitrion(estado, fecha_entrega);
+CREATE INDEX IF NOT EXISTS idx_entrega_anfitrion_user ON entrega_talonarios_anfitrion(anfitrion_id, estado);
+
+CREATE INDEX IF NOT EXISTS idx_recaudo_fecha_estado ON formulario_recaudo(fecha_recaudo, estado);
+CREATE INDEX IF NOT EXISTS idx_recaudo_anfitrion_fecha ON formulario_recaudo(anfitrion_id, fecha_recaudo);
+CREATE INDEX IF NOT EXISTS idx_recaudo_entrega_anfitrion ON formulario_recaudo(entrega_talonario_anfitrion_id);
+
+-- =====================================================
+-- VISTAS PARA CONSULTAS RÁPIDAS
+-- =====================================================
+
+-- Vista: Estado actual de todos los inventarios
+CREATE OR REPLACE VIEW VW_EstadoInventarios AS
+SELECT 
+    i.id as inventario_id,
+    c.nombre as cajero,
+    i.cantidad_preferenciales as talonarios_pref_iniciales,
+    i.cantidad_regulares as talonarios_reg_iniciales,
+    i.cantidad_restante_preferencial as talonarios_pref_disponibles,
+    i.cantidad_restante_regular as talonarios_reg_disponibles,
+    (i.cantidad_restante_preferencial * 50) as tickets_pref_disponibles,
+    (i.cantidad_restante_regular * 50) as tickets_reg_disponibles,
+    (i.cantidad_restante_preferencial * 50 * 1.00 + 
+     i.cantidad_restante_regular * 50 * 1.50) as monto_potencial,
+    i.estado,
+    i.fecha_entrega,
+    i.fecha_cierre,
+    DATEDIFF(COALESCE(i.fecha_cierre, CURDATE()), i.fecha_entrega) as dias_activo
+FROM inventario_talonarios i
+JOIN cajeros c ON i.cajero_id = c.id
+WHERE i.estado != 'inactivo';
+
+-- =====================================================
+
+-- Vista: Resumen de ventas por anfitrión
+CREATE OR REPLACE VIEW VW_VentasAnfitrion AS
+SELECT 
+    u.id as anfitrion_id,
+    u.name as anfitrion_nombre,
+    COUNT(fr.id) as total_ventas,
+    SUM(fr.cantidad_ventas_preferenciales) as tickets_pref_vendidos,
+    SUM(fr.cantidad_ventas_regulares) as tickets_reg_vendidos,
+    SUM(fr.monto_recaudado_preferencial) as recaudo_preferencial,
+    SUM(fr.monto_recaudado_regular) as recaudo_regular,
+    SUM(fr.total_recaudo_regular_preferencial) as recaudo_total,
+    DATE(MIN(fr.fecha_recaudo)) as primera_venta,
+    DATE(MAX(fr.fecha_recaudo)) as ultima_venta,
+    ROUND(AVG(fr.total_recaudo_regular_preferencial), 2) as promedio_por_venta,
+    COUNT(DISTINCT DATE(fr.fecha_recaudo)) as dias_trabajados
+FROM users u
+LEFT JOIN formulario_recaudo fr ON u.id = fr.anfitrion_id
+GROUP BY u.id, u.name;
+
+-- =====================================================
+
+-- Vista: Control de correlativos por entrega
+CREATE OR REPLACE VIEW VW_ControlCorrelativos AS
+SELECT 
+    eta.id as entrega_anfitrion_id,
+    u.name as anfitrion,
+    eta.rango_inicial_preferencial,
+    eta.rango_final_preferencial,
+    eta.rango_inicial_regular,
+    eta.rango_final_regular,
+    
+    -- Próximos números correlativos
+    (eta.rango_inicial_preferencial + 
+     COALESCE((SELECT SUM(cantidad_ventas_preferenciales) 
+               FROM formulario_recaudo 
+               WHERE entrega_talonario_anfitrion_id = eta.id), 0)) as proximo_preferencial,
+               
+    (eta.rango_inicial_regular + 
+     COALESCE((SELECT SUM(cantidad_ventas_regulares) 
+               FROM formulario_recaudo 
+               WHERE entrega_talonario_anfitrion_id = eta.id), 0)) as proximo_regular,
+    
+    -- Tickets disponibles
+    (eta.cantidad_restante_preferencial * 50) as tickets_pref_disponibles,
+    (eta.cantidad_restante_regular * 50) as tickets_reg_disponibles,
+    
+    eta.estado,
+    eta.fecha_entrega
+FROM entrega_talonarios_anfitrion eta
+JOIN users u ON eta.anfitrion_id = u.id
+WHERE eta.estado = 'activo';
+
+-- =====================================================
+
+-- Vista: Resumen diario de recaudación
+CREATE OR REPLACE VIEW VW_RecaudacionDiaria AS
+SELECT 
+    DATE(fr.fecha_recaudo) as fecha,
+    COUNT(DISTINCT fr.anfitrion_id) as anfitriones_activos,
+    COUNT(fr.id) as total_ventas,
+    SUM(fr.cantidad_ventas_preferenciales) as tickets_pref_vendidos,
+    SUM(fr.cantidad_ventas_regulares) as tickets_reg_vendidos,
+    SUM(fr.cantidad_ventas_preferenciales + fr.cantidad_ventas_regulares) as total_tickets_vendidos,
+    SUM(fr.monto_recaudado_preferencial) as recaudo_preferencial,
+    SUM(fr.monto_recaudado_regular) as recaudo_regular,
+    SUM(fr.total_recaudo_regular_preferencial) as recaudo_total_dia,
+    ROUND(AVG(fr.total_recaudo_regular_preferencial), 2) as promedio_por_venta
+FROM formulario_recaudo fr
+GROUP BY DATE(fr.fecha_recaudo)
+ORDER BY fecha DESC;
+
+-- =====================================================
+
+-- Vista: Trazabilidad de inventarios
+CREATE OR REPLACE VIEW VW_TrazabilidadInventario AS
+SELECT 
+    i.id as inventario_id,
+    'INVENTARIO_PRINCIPAL' as nivel,
+    c.nombre as responsable,
+    i.cantidad_preferenciales as talonarios_pref,
+    i.cantidad_regulares as talonarios_reg,
+    i.fecha_entrega as fecha,
+    i.estado,
+    NULL as parent_id
+FROM inventario_talonarios i
+JOIN cajeros c ON i.cajero_id = c.id
+
+UNION ALL
+
+SELECT 
+    et.inventario_id,
+    'ENTREGA_CAJERO' as nivel,
+    c.nombre as responsable,
+    et.cantidad_preferenciales,
+    et.cantidad_regulares,
+    et.fecha_entrega,
+    et.estado,
+    et.inventario_id as parent_id
+FROM entrega_talonarios et
+JOIN cajeros c ON et.cajero_id = c.id
+
+UNION ALL
+
+SELECT 
+    et.inventario_id,
+    'ENTREGA_ANFITRION' as nivel,
+    u.name as responsable,
+    eta.cantidad_preferenciales,
+    eta.cantidad_regulares,
+    eta.fecha_entrega,
+    eta.estado,
+    eta.entrega_talonario_id as parent_id
+FROM entrega_talonarios_anfitrion eta
+JOIN entrega_talonarios et ON eta.entrega_talonario_id = et.id
+JOIN users u ON eta.anfitrion_id = u.id;
+
+-- =====================================================
+-- FUNCIONES DE UTILIDAD ADICIONALES
+-- =====================================================
+
+-- Función para calcular eficiencia de venta
+DELIMITER $$
+
+DROP FUNCTION IF EXISTS FN_CalcularEficienciaVenta$$
+
+CREATE FUNCTION FN_CalcularEficienciaVenta(
+    p_anfitrion_id INT,
+    p_fecha_inicio DATE,
+    p_fecha_fin DATE
+) 
+RETURNS DECIMAL(5,2)
+READS SQL DATA
+DETERMINISTIC
+BEGIN
+    DECLARE v_tickets_entregados INT DEFAULT 0;
+    DECLARE v_tickets_vendidos INT DEFAULT 0;
+    DECLARE v_eficiencia DECIMAL(5,2) DEFAULT 0;
+    
+    -- Calcular tickets entregados al anfitrión
+    SELECT COALESCE(SUM((eta.cantidad_preferenciales + eta.cantidad_regulares) * 50), 0)
+    INTO v_tickets_entregados
+    FROM entrega_talonarios_anfitrion eta
+    WHERE eta.anfitrion_id = p_anfitrion_id
+    AND eta.fecha_entrega BETWEEN p_fecha_inicio AND p_fecha_fin;
+    
+    -- Calcular tickets vendidos
+    SELECT COALESCE(SUM(fr.cantidad_ventas_preferenciales + fr.cantidad_ventas_regulares), 0)
+    INTO v_tickets_vendidos
+    FROM formulario_recaudo fr
+    WHERE fr.anfitrion_id = p_anfitrion_id
+    AND fr.fecha_recaudo BETWEEN p_fecha_inicio AND p_fecha_fin;
+    
+    IF v_tickets_entregados > 0 THEN
+        SET v_eficiencia = (v_tickets_vendidos * 100.0) / v_tickets_entregados;
+    END IF;
+    
+    RETURN v_eficiencia;
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+
+-- Función para validar disponibilidad antes de entrega
+DELIMITER $$
+
+DROP FUNCTION IF EXISTS FN_ValidarDisponibilidad$$
+
+CREATE FUNCTION FN_ValidarDisponibilidad(
+    p_inventario_id INT,
+    p_tipo_ticket VARCHAR(20),
+    p_cantidad_solicitada INT
+) 
+RETURNS BOOLEAN
+READS SQL DATA
+DETERMINISTIC
+BEGIN
+    DECLARE v_disponible INT DEFAULT 0;
+    
+    IF p_tipo_ticket = 'PREFERENCIAL' THEN
+        SELECT cantidad_restante_preferencial INTO v_disponible
+        FROM inventario_talonarios 
+        WHERE id = p_inventario_id AND estado = 'disponible';
+    ELSE
+        SELECT cantidad_restante_regular INTO v_disponible
+        FROM inventario_talonarios 
+        WHERE id = p_inventario_id AND estado = 'disponible';
+    END IF;
+    
+    RETURN v_disponible >= p_cantidad_solicitada;
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+
+-- Función para obtener estado de un ticket específico
+DELIMITER $$
+
+DROP FUNCTION IF EXISTS FN_EstadoTicketEspecifico$$
+
+CREATE FUNCTION FN_EstadoTicketEspecifico(p_numero_ticket INT)
+RETURNS VARCHAR(50)
+READS SQL DATA
+DETERMINISTIC
+BEGIN
+    DECLARE v_estado VARCHAR(50) DEFAULT 'NO_ENCONTRADO';
+    
+    -- Verificar si el ticket fue vendido
+    IF EXISTS (
+        SELECT 1 FROM formulario_recaudo 
+        WHERE (p_numero_ticket BETWEEN rango_inicial_preferencial AND rango_final_preferencial)
+           OR (p_numero_ticket BETWEEN rango_inicial_regulares AND rango_final_regulares)
+    ) THEN
+        SET v_estado = 'VENDIDO';
+    
+    -- Verificar si está en inventario de anfitrión
+    ELSEIF EXISTS (
+        SELECT 1 FROM entrega_talonarios_anfitrion
+        WHERE estado = 'activo' 
+        AND ((p_numero_ticket BETWEEN rango_inicial_preferencial AND rango_final_preferencial)
+             OR (p_numero_ticket BETWEEN rango_inicial_regular AND rango_final_regular))
+    ) THEN
+        SET v_estado = 'EN_ANFITRION';
+        
+    -- Verificar si está en inventario de cajero
+    ELSEIF EXISTS (
+        SELECT 1 FROM entrega_talonarios
+        WHERE estado = 'activo'
+        AND ((p_numero_ticket BETWEEN rango_inicial_preferencial AND rango_final_preferencial)
+             OR (p_numero_ticket BETWEEN rango_inicial_regular AND rango_final_regular))
+    ) THEN
+        SET v_estado = 'EN_CAJERO';
+        
+    -- Verificar si está en inventario principal
+    ELSEIF EXISTS (
+        SELECT 1 FROM inventario_talonarios
+        WHERE estado IN ('disponible', 'agotado')
+        AND ((p_numero_ticket BETWEEN rango_inicial_preferencial AND rango_final_preferencial)
+             OR (p_numero_ticket BETWEEN rango_inicial_regular AND rango_final_regular))
+    ) THEN
+        SET v_estado = 'EN_INVENTARIO_PRINCIPAL';
+    END IF;
+    
+    RETURN v_estado;
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+-- EJEMPLOS DE USO DE VISTAS Y FUNCIONES
+-- =====================================================
+
+/*
+-- Ver estado actual de inventarios
+SELECT * FROM VW_EstadoInventarios ORDER BY fecha_entrega DESC;
+
+-- Ver resumen de ventas por anfitrión
+SELECT * FROM VW_VentasAnfitrion ORDER BY recaudo_total DESC;
+
+-- Ver control de correlativos activos
+SELECT * FROM VW_ControlCorrelativos;
+
+-- Ver recaudación diaria del último mes
+SELECT * FROM VW_RecaudacionDiaria WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 30 DAY);
+
+-- Ver trazabilidad completa de un inventario
+SELECT * FROM VW_TrazabilidadInventario WHERE inventario_id = 1 ORDER BY nivel, fecha;
+
+-- Calcular eficiencia de un anfitrión
+SELECT FN_CalcularEficienciaVenta(1, '2024-01-01', '2024-01-31') as eficiencia_porcentaje;
+
+-- Validar disponibilidad antes de entrega
+SELECT 
+    FN_ValidarDisponibilidad(1, 'PREFERENCIAL', 5) as pref_disponible,
+    FN_ValidarDisponibilidad(1, 'REGULAR', 10) as reg_disponible;
+
+-- Verificar estado de un ticket específico
+SELECT FN_EstadoTicketEspecifico(1234) as estado_ticket;
+
+-- Ver log de movimientos recientes
+SELECT * FROM log_movimientos_talonarios 
+WHERE fecha_movimiento >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+ORDER BY fecha_movimiento DESC;
+*/

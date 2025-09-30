@@ -1,0 +1,218 @@
+DELIMITER $$
+
+CREATE PROCEDURE sp_actualizar_inventario_talonarios (
+    IN p_id BIGINT UNSIGNED,
+    IN p_cajero_id BIGINT UNSIGNED,
+    IN p_rango_inicial_preferencial INT,
+    IN p_rango_inicial_regular INT,
+    IN p_fecha_entrega DATE,
+    IN p_observaciones VARCHAR(255),
+    IN p_regular_del INT,
+    IN p_regular_al INT,
+    IN p_preferencial_del INT,
+    IN p_preferencial_al INT
+)
+BEGIN
+    -- Declaraciones para cálculo
+    DECLARE v_cantidad_preferenciales INT DEFAULT 0;
+    DECLARE v_cantidad_regulares INT DEFAULT 0;
+    DECLARE v_rango_final_preferencial INT DEFAULT 0;
+    DECLARE v_rango_final_regular INT DEFAULT 0;
+    DECLARE v_total_boletos_preferenciales INT DEFAULT 0;
+    DECLARE v_total_boletos_regulares INT DEFAULT 0;
+    DECLARE v_total_bs_preferenciales DECIMAL(10,2) DEFAULT 0.00;
+    DECLARE v_total_bs_regulares DECIMAL(10,2) DEFAULT 0.00;
+    DECLARE v_total_recaudar DECIMAL(10,2) DEFAULT 0.00;
+    
+    -- Variables para control de estados y validación
+    DECLARE v_estado_preferencial TINYINT DEFAULT 0;
+    DECLARE v_estado_regular TINYINT DEFAULT 0;
+    DECLARE v_cant_restante_pref_actual INT DEFAULT 0;
+    DECLARE v_cant_restante_reg_actual INT DEFAULT 0;
+    DECLARE v_entrega_existente INT DEFAULT 0;
+
+    -- Validación básica de ID
+    IF p_id IS NULL OR p_id = 0 THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'ID de inventario no válido';
+    END IF;
+
+    -- Obtener valores actuales
+    SELECT 
+        estado_preferencial, estado_regular,
+        cantidad_restante_preferencial, cantidad_restante_regular
+    INTO 
+        v_estado_preferencial, v_estado_regular,
+        v_cant_restante_pref_actual, v_cant_restante_reg_actual
+    FROM inventario_talonarios
+    WHERE id = p_id
+    FOR UPDATE; -- Bloquea el registro para evitar condiciones de carrera
+
+    -- Verificar si hay entregas asociadas que podrían afectar la actualización
+    SELECT COUNT(*) INTO v_entrega_existente
+    FROM entrega_talonarios
+    WHERE inventario_id = p_id;
+
+    -- Validación de rangos preferenciales
+    IF p_preferencial_del > 0 AND p_preferencial_al > 0 THEN
+        IF p_preferencial_al < p_preferencial_del THEN
+            SIGNAL SQLSTATE '45000' 
+            SET MESSAGE_TEXT = 'Rango preferencial inválido (del > al)';
+        END IF;
+        
+        SET v_cantidad_preferenciales = p_preferencial_al - p_preferencial_del + 1;
+        
+        -- Validar que no se reduzca la cantidad por debajo de lo ya entregado
+        IF v_entrega_existente > 0 AND v_cantidad_preferenciales < (v_cant_restante_pref_actual - v_cantidad_preferenciales) THEN
+            SIGNAL SQLSTATE '45000' 
+            SET MESSAGE_TEXT = 'No puede reducir la cantidad de talonarios preferenciales por debajo de lo ya entregado';
+        END IF;
+        
+        -- Cálculos para preferenciales
+        SET v_rango_final_preferencial = p_rango_inicial_preferencial + (v_cantidad_preferenciales * 50) - 1;
+        SET v_total_boletos_preferenciales = v_cantidad_preferenciales * 50;
+        SET v_total_bs_preferenciales = v_total_boletos_preferenciales * 1.00;
+    ELSE
+        -- Mantener valores existentes si no se proporcionan nuevos rangos
+        SELECT 
+            cantidad_preferenciales, rango_final_preferencial,
+            total_boletos_preferenciales, total_aproximado_bolivianos_preferencial,
+            preferencial_del, preferencial_al
+        INTO 
+            v_cantidad_preferenciales, v_rango_final_preferencial,
+            v_total_boletos_preferenciales, v_total_bs_preferenciales,
+            p_preferencial_del, p_preferencial_al
+        FROM inventario_talonarios
+        WHERE id = p_id;
+    END IF;
+
+    -- Validación de rangos regulares
+    IF p_regular_del > 0 AND p_regular_al > 0 THEN
+        IF p_regular_al < p_regular_del THEN
+            SIGNAL SQLSTATE '45000' 
+            SET MESSAGE_TEXT = 'Rango regular inválido (del > al)';
+        END IF;
+        
+        SET v_cantidad_regulares = p_regular_al - p_regular_del + 1;
+        
+        -- Validar que no se reduzca la cantidad por debajo de lo ya entregado
+        IF v_entrega_existente > 0 AND v_cantidad_regulares < (v_cant_restante_reg_actual - v_cantidad_regulares) THEN
+            SIGNAL SQLSTATE '45000' 
+            SET MESSAGE_TEXT = 'No puede reducir la cantidad de talonarios regulares por debajo de lo ya entregado';
+        END IF;
+        
+        -- Cálculos para regulares
+        SET v_rango_final_regular = p_rango_inicial_regular + (v_cantidad_regulares * 50) - 1;
+        SET v_total_boletos_regulares = v_cantidad_regulares * 50;
+        SET v_total_bs_regulares = v_total_boletos_regulares * 1.50;
+    ELSE
+        -- Mantener valores existentes si no se proporcionan nuevos rangos
+        SELECT 
+            cantidad_regulares, rango_final_regular,
+            total_boletos_regulares, total_aproximado_bolivianos_regular,
+            regular_del, regular_al
+        INTO 
+            v_cantidad_regulares, v_rango_final_regular,
+            v_total_boletos_regulares, v_total_bs_regulares,
+            p_regular_del, p_regular_al
+        FROM inventario_talonarios
+        WHERE id = p_id;
+    END IF;
+
+    -- Calcular total a recaudar
+    SET v_total_recaudar = v_total_bs_preferenciales + v_total_bs_regulares;
+
+    -- Actualizar el registro
+    UPDATE inventario_talonarios
+    SET
+        cajero_id = p_cajero_id,
+        
+        -- Campos preferenciales
+        preferencial_del = p_preferencial_del,
+        preferencial_al = p_preferencial_al,
+        cantidad_preferenciales = v_cantidad_preferenciales,
+        rango_inicial_preferencial = p_rango_inicial_preferencial,
+        rango_final_preferencial = v_rango_final_preferencial,
+        total_boletos_preferenciales = v_total_boletos_preferenciales,
+        total_aproximado_bolivianos_preferencial = v_total_bs_preferenciales,
+        
+        -- Ajustar cantidad restante sin sobrepasar la nueva cantidad total
+        cantidad_restante_preferencial = LEAST(
+            v_cant_restante_pref_actual,
+            v_cantidad_preferenciales
+        ),
+        
+        -- Campos regulares
+        regular_del = p_regular_del,
+        regular_al = p_regular_al,
+        cantidad_regulares = v_cantidad_regulares,
+        rango_inicial_regular = p_rango_inicial_regular,
+        rango_final_regular = v_rango_final_regular,
+        total_boletos_regulares = v_total_boletos_regulares,
+        total_aproximado_bolivianos_regular = v_total_bs_regulares,
+        
+        -- Ajustar cantidad restante sin sobrepasar la nueva cantidad total
+        cantidad_restante_regular = LEAST(
+            v_cant_restante_reg_actual,
+            v_cantidad_regulares
+        ),
+        
+        -- Mantener estados actuales (pueden cambiar si se agotan los talonarios)
+        estado_preferencial = CASE 
+            WHEN v_cantidad_preferenciales = 0 THEN 0
+            WHEN LEAST(v_cant_restante_pref_actual, v_cantidad_preferenciales) = 0 THEN 0
+            ELSE v_estado_preferencial
+        END,
+        estado_regular = CASE 
+            WHEN v_cantidad_regulares = 0 THEN 0
+            WHEN LEAST(v_cant_restante_reg_actual, v_cantidad_regulares) = 0 THEN 0
+            ELSE v_estado_regular
+        END,
+        
+        -- Campos generales
+        tipo_talonarios = 'mixto',
+        fecha_entrega = p_fecha_entrega,
+        observaciones = p_observaciones,
+        total_recaudacion_bolivianos = v_total_recaudar,
+        updated_at = NOW()
+    WHERE id = p_id;
+    
+    -- Si hay entregas existentes, verificar si debemos actualizar estados
+    IF v_entrega_existente > 0 THEN
+        -- Verificar si se agotaron los preferenciales
+        IF v_cantidad_preferenciales > 0 AND (
+            SELECT cantidad_restante_preferencial 
+            FROM inventario_talonarios 
+            WHERE id = p_id
+        ) = 0 THEN
+            -- Buscar siguiente talonario preferencial en espera
+            UPDATE inventario_talonarios 
+            SET estado_preferencial = 1 
+            WHERE estado_preferencial = 2 
+            AND cantidad_restante_preferencial > 0
+            AND id != p_id
+            ORDER BY created_at ASC 
+            LIMIT 1;
+        END IF;
+        
+        -- Verificar si se agotaron los regulares
+        IF v_cantidad_regulares > 0 AND (
+            SELECT cantidad_restante_regular 
+            FROM inventario_talonarios 
+            WHERE id = p_id
+        ) = 0 THEN
+            -- Buscar siguiente talonario regular en espera
+            UPDATE inventario_talonarios 
+            SET estado_regular = 1 
+            WHERE estado_regular = 2 
+            AND cantidad_restante_regular > 0
+            AND id != p_id
+            ORDER BY created_at ASC 
+            LIMIT 1;
+        END IF;
+    END IF;
+    
+    SELECT ROW_COUNT() AS filas_afectadas;
+END$$
+
+DELIMITER ;
