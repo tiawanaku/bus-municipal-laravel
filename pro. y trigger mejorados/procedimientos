@@ -416,9 +416,9 @@ END$$
 DELIMITER ;
 
 -- =====================================================
-
 -- 4. PROCEDIMIENTO: ENTREGAR TALONARIOS A ANFITRIÓN
 -- =====================================================
+
 DELIMITER $$
 
 DROP PROCEDURE IF EXISTS SP_EntregarTalonariosAnfitrion$$
@@ -426,13 +426,14 @@ DROP PROCEDURE IF EXISTS SP_EntregarTalonariosAnfitrion$$
 CREATE PROCEDURE SP_EntregarTalonariosAnfitrion(
     IN p_entrega_talonario_id INT,
     IN p_anfitrion_id INT,
-    IN p_preferencial_Del INT,
-    IN p_preferencial_Al INT,
-    IN p_regular_Del INT,
-    IN p_regular_Al INT,
+    IN p_preferencial_Del INT,      -- 🔹 Mantener Del
+    IN p_preferencial_Al INT,       -- 🔹 Mantener Al  
+    IN p_regular_Del INT,           -- 🔹 Mantener Del
+    IN p_regular_Al INT,            -- 🔹 Mantener Al
     IN p_rango_inicial_preferencial INT,
     IN p_rango_inicial_regular INT,
     IN p_observaciones TEXT,
+    IN p_tipo_talonarios VARCHAR(50),
     OUT p_resultado INT,
     OUT p_mensaje VARCHAR(255)
 )
@@ -442,8 +443,8 @@ BEGIN
     DECLARE v_disponibles_reg INT;
     DECLARE v_rango_final_pref INT;
     DECLARE v_rango_final_reg INT;
-    DECLARE v_cantidad_preferenciales INT;
-    DECLARE v_cantidad_regulares INT;
+    DECLARE v_cantidad_preferenciales INT DEFAULT 0;
+    DECLARE v_cantidad_regulares INT DEFAULT 0;
     
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
@@ -454,80 +455,163 @@ BEGIN
     
     START TRANSACTION;
     
-    -- 🟡 Calcular cantidades de talonarios a entregar
-    SET v_cantidad_preferenciales = p_preferencial_Al - p_preferencial_Del + 1;
-    SET v_cantidad_regulares = p_regular_Al - p_regular_Del + 1;
+    -- 🟡 Calcular cantidades basado en el tipo de talonario seleccionado
+    CASE p_tipo_talonarios
+        WHEN 'preferencial' THEN
+            IF p_preferencial_Del IS NOT NULL AND p_preferencial_Al IS NOT NULL 
+               AND p_preferencial_Del > 0 AND p_preferencial_Al > p_preferencial_Del THEN
+                SET v_cantidad_preferenciales = p_preferencial_Al - p_preferencial_Del + 1;
+            ELSE
+                SET p_preferencial_Del = NULL;
+                SET p_preferencial_Al = NULL;
+                SET p_rango_inicial_preferencial = NULL;
+            END IF;
+            
+        WHEN 'regular' THEN
+            IF p_regular_Del IS NOT NULL AND p_regular_Al IS NOT NULL 
+               AND p_regular_Del > 0 AND p_regular_Al > p_regular_Del THEN
+                SET v_cantidad_regulares = p_regular_Al - p_regular_Del + 1;
+            ELSE
+                SET p_regular_Del = NULL;
+                SET p_regular_Al = NULL;
+                SET p_rango_inicial_regular = NULL;
+            END IF;
+            
+        WHEN 'Preferenciales y Regulares' THEN
+            -- Preferenciales
+            IF p_preferencial_Del IS NOT NULL AND p_preferencial_Al IS NOT NULL 
+               AND p_preferencial_Del > 0 AND p_preferencial_Al > p_preferencial_Del THEN
+                SET v_cantidad_preferenciales = p_preferencial_Al - p_preferencial_Del + 1;
+            ELSE
+                SET p_preferencial_Del = NULL;
+                SET p_preferencial_Al = NULL;
+                SET p_rango_inicial_preferencial = NULL;
+            END IF;
+            
+            -- Regulares
+            IF p_regular_Del IS NOT NULL AND p_regular_Al IS NOT NULL 
+               AND p_regular_Del > 0 AND p_regular_Al > p_regular_Del THEN
+                SET v_cantidad_regulares = p_regular_Al - p_regular_Del + 1;
+            ELSE
+                SET p_regular_Del = NULL;
+                SET p_regular_Al = NULL;
+                SET p_rango_inicial_regular = NULL;
+            END IF;
+            
+        ELSE
+            SET p_resultado = 0;
+            SET p_mensaje = 'Tipo de talonario no válido';
+            ROLLBACK;
+    END CASE;
     
-    -- Verificar disponibilidad en la entrega del cajero
-    SELECT cantidad_restante_preferencial, cantidad_restante_regular
-    INTO v_disponibles_pref, v_disponibles_reg
-    FROM entrega_talonarios 
-    WHERE id = p_entrega_talonario_id AND estado = 'activo';
-    
-    IF v_disponibles_pref < v_cantidad_preferenciales 
-       OR v_disponibles_reg < v_cantidad_regulares THEN
+    -- Verificar que al menos un tipo tenga cantidad > 0
+    IF v_cantidad_preferenciales = 0 AND v_cantidad_regulares = 0 THEN
         SET p_resultado = 0;
-        SET p_mensaje = 'Stock insuficiente en entrega de cajero';
+        SET p_mensaje = 'Debe especificar al menos un tipo de talonario válido';
         ROLLBACK;
     ELSE
-        -- 🟡 Calcular rangos finales
-        SET v_rango_final_pref = p_rango_inicial_preferencial + (v_cantidad_preferenciales * 50) - 1;
-        SET v_rango_final_reg = p_rango_inicial_regular + (v_cantidad_regulares * 50) - 1;
+        -- Verificar disponibilidad en la entrega del cajero
+        SELECT cantidad_restante_preferencial, cantidad_restante_regular
+        INTO v_disponibles_pref, v_disponibles_reg
+        FROM entrega_talonarios 
+        WHERE id = p_entrega_talonario_id AND estado = 'activo';
         
-        -- Insertar entrega a anfitrión
-        INSERT INTO entrega_talonarios_anfitrion (
-            entrega_talonario_id, 
-            anfitrion_id,
-            preferencial_del, preferencial_al,   -- 🔹 ahora sí declarados
-            regular_del, regular_al,             -- 🔹 ahora sí declarados
-            cantidad_preferenciales, 
-            rango_inicial_preferencial, rango_final_preferencial,
-            total_boletos_preferenciales, total_aproximado_bolivianos_preferencial,
-            cantidad_restante_preferencial,
-            cantidad_regulares, 
-            rango_inicial_regular, rango_final_regular,
-            total_boletos_regulares, total_aproximado_bolivianos_regular,
-            cantidad_restante_regular,
-            estado_preferencial, estado_regular, 
-            fecha_entrega, observaciones,
-            total_recaudacion_bolivianos, estado
-        ) VALUES (
-            p_entrega_talonario_id, 
-            p_anfitrion_id,
-            p_preferencial_Del, p_preferencial_Al,
-            p_regular_Del, p_regular_Al,
-            v_cantidad_preferenciales, 
-            p_rango_inicial_preferencial, v_rango_final_pref,
-            v_cantidad_preferenciales * 50, v_cantidad_preferenciales * 50 * 1.00,
-            v_cantidad_preferenciales,
-            v_cantidad_regulares, 
-            p_rango_inicial_regular, v_rango_final_reg,
-            v_cantidad_regulares * 50, v_cantidad_regulares * 50 * 1.50,
-            v_cantidad_regulares,
-            1, 1, CURDATE(), p_observaciones,
-            (v_cantidad_preferenciales * 50 * 1.00) + (v_cantidad_regulares * 50 * 1.50), 
-            'activo'
-        );
-        
-        -- Actualizar stock del cajero
-        UPDATE entrega_talonarios 
-        SET 
-            cantidad_restante_preferencial = cantidad_restante_preferencial - v_cantidad_preferenciales,
-            cantidad_restante_regular = cantidad_restante_regular - v_cantidad_regulares,
-            estado = CASE 
-                WHEN cantidad_restante_preferencial - v_cantidad_preferenciales <= 0 
-                 AND cantidad_restante_regular - v_cantidad_regulares <= 0 
-                THEN 'agotado' 
-                ELSE estado 
-            END
-        WHERE id = p_entrega_talonario_id;
-        
-        -- Resultado
-        SET v_entrega_anfitrion_id = LAST_INSERT_ID();
-        SET p_resultado = v_entrega_anfitrion_id;
-        SET p_mensaje = 'Talonarios entregados a anfitrión exitosamente';
-        
-        COMMIT;
+        -- Validar stock solo para los tipos que se están usando
+        IF (v_cantidad_preferenciales > 0 AND v_disponibles_pref < v_cantidad_preferenciales) 
+           OR (v_cantidad_regulares > 0 AND v_disponibles_reg < v_cantidad_regulares) THEN
+            SET p_resultado = 0;
+            SET p_mensaje = 'Stock insuficiente en entrega de cajero';
+            ROLLBACK;
+        ELSE
+            -- 🟡 Calcular rangos finales solo para tipos con cantidad > 0
+            IF v_cantidad_preferenciales > 0 THEN
+                SET v_rango_final_pref = p_rango_inicial_preferencial + (v_cantidad_preferenciales * 50) - 1;
+            ELSE
+                SET v_rango_final_pref = NULL;
+            END IF;
+            
+            IF v_cantidad_regulares > 0 THEN
+                SET v_rango_final_reg = p_rango_inicial_regular + (v_cantidad_regulares * 50) - 1;
+            ELSE
+                SET v_rango_final_reg = NULL;
+            END IF;
+            
+            -- Insertar entrega a anfitrión (usando los mismos nombres que en el formulario)
+            INSERT INTO entrega_talonarios_anfitrion (
+                entrega_talonario_id, 
+                anfitrion_id,
+                preferencial_Del, preferencial_Al,     -- 🔹 Mantener Del y Al
+                regular_Del, regular_Al,               -- 🔹 Mantener Del y Al
+                cantidad_preferenciales, 
+                rango_inicial_preferencial, rango_final_preferencial,
+                total_boletos_preferenciales, total_aproximado_bolivianos_preferencial,
+                cantidad_restante_preferencial,
+                cantidad_regulares, 
+                rango_inicial_regular, rango_final_regular,
+                total_boletos_regulares, total_aproximado_bolivianos_regular,
+                cantidad_restante_regular,
+                estado_preferencial, estado_regular, 
+                fecha_entrega, observaciones,
+                total_recaudacion_bolivianos, estado,
+                tipo_talonarios,
+                created_at,
+                updated_at
+            ) VALUES (
+                p_entrega_talonario_id, 
+                p_anfitrion_id,
+                p_preferencial_Del, p_preferencial_Al,
+                p_regular_Del, p_regular_Al,
+                v_cantidad_preferenciales, 
+                p_rango_inicial_preferencial, v_rango_final_pref,
+                IF(v_cantidad_preferenciales > 0, v_cantidad_preferenciales * 50, NULL), 
+                IF(v_cantidad_preferenciales > 0, v_cantidad_preferenciales * 50 * 1.00, NULL),
+                IF(v_cantidad_preferenciales > 0, v_cantidad_preferenciales, NULL),
+                v_cantidad_regulares, 
+                p_rango_inicial_regular, v_rango_final_reg,
+                IF(v_cantidad_regulares > 0, v_cantidad_regulares * 50, NULL), 
+                IF(v_cantidad_regulares > 0, v_cantidad_regulares * 50 * 1.50, NULL),
+                IF(v_cantidad_regulares > 0, v_cantidad_regulares, NULL),
+                IF(v_cantidad_preferenciales > 0, 1, NULL), 
+                IF(v_cantidad_regulares > 0, 1, NULL), 
+                CURDATE(), 
+                p_observaciones,
+                COALESCE(v_cantidad_preferenciales * 50 * 1.00, 0) + COALESCE(v_cantidad_regulares * 50 * 1.50, 0), 
+                'activo',
+                p_tipo_talonarios,
+                NOW(),
+                NOW()
+            );
+            
+            -- Actualizar stock del cajero solo para los tipos usados
+            UPDATE entrega_talonarios 
+            SET 
+                cantidad_restante_preferencial = IF(v_cantidad_preferenciales > 0, 
+                    cantidad_restante_preferencial - v_cantidad_preferenciales, 
+                    cantidad_restante_preferencial),
+                cantidad_restante_regular = IF(v_cantidad_regulares > 0, 
+                    cantidad_restante_regular - v_cantidad_regulares, 
+                    cantidad_restante_regular),
+                estado = CASE 
+                    WHEN (v_cantidad_preferenciales > 0 AND cantidad_restante_preferencial - v_cantidad_preferenciales <= 0)
+                     AND (v_cantidad_regulares > 0 AND cantidad_restante_regular - v_cantidad_regulares <= 0) 
+                    THEN 'agotado' 
+                    WHEN (v_cantidad_preferenciales > 0 AND cantidad_restante_preferencial - v_cantidad_preferenciales <= 0)
+                     AND (cantidad_restante_regular <= 0 OR v_cantidad_regulares = 0)
+                    THEN 'agotado'
+                    WHEN (v_cantidad_regulares > 0 AND cantidad_restante_regular - v_cantidad_regulares <= 0)
+                     AND (cantidad_restante_preferencial <= 0 OR v_cantidad_preferenciales = 0)
+                    THEN 'agotado'
+                    ELSE estado 
+                END
+            WHERE id = p_entrega_talonario_id;
+            
+            -- Resultado
+            SET v_entrega_anfitrion_id = LAST_INSERT_ID();
+            SET p_resultado = v_entrega_anfitrion_id;
+            SET p_mensaje = 'Talonarios entregados a anfitrión exitosamente';
+            
+            COMMIT;
+        END IF;
     END IF;
 END$$
 

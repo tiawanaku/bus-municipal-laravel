@@ -26,7 +26,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter as TablesSelectFilter;
 use Filament\Forms\Components\DatePicker;
 use App\Models\User;
-
+use Illuminate\Support\Facades\DB;
 
 class FormularioRecaudoResource extends Resource
 {
@@ -41,50 +41,78 @@ class FormularioRecaudoResource extends Resource
     {
         return $form
             ->schema([
-                // Sección Datos Generales
                 Forms\Components\Section::make('Datos Generales')
                     ->schema([
 
                         Forms\Components\TextInput::make('buscar_carnet')
-    ->label('Buscar Carnet de Anfitrión')
-    ->placeholder('Ej: 12345678')
-    ->reactive()
-    ->debounce(500)
-    ->afterStateUpdated(function ($state, callable $set) {
-        $asignacion = \App\Models\AsignacionDeBus::whereHas('anfitrion', function ($query) use ($state) {
-            $query->where('ci', $state); // Campo CI del anfitrión
-        })->latest()->first();
+                            ->label('Buscar Carnet de Anfitrión')
+                            ->placeholder('Ej: 12345678')
+                            ->reactive()
+                            ->debounce(500)
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                $asignacion = \App\Models\AsignacionDeBus::whereHas('anfitrion', function ($query) use ($state) {
+                                    $query->where('ci', $state);
+                                })->latest()->first();
 
-        // Verificar si hay asignación y si está activa
-        if ($asignacion) {
-            $fechaFin = $asignacion->fin_asignacion ? \Carbon\Carbon::parse($asignacion->fin_asignacion) : null;
-            $hoy = \Carbon\Carbon::today();
+                                if ($asignacion) {
+                                    $fechaFin = $asignacion->fin_asignacion ? \Carbon\Carbon::parse($asignacion->fin_asignacion) : null;
+                                    $hoy = \Carbon\Carbon::today();
 
-            $asignacionActiva = is_null($fechaFin) || $fechaFin->greaterThanOrEqualTo($hoy);
+                                    $asignacionActiva = is_null($fechaFin) || $fechaFin->greaterThanOrEqualTo($hoy);
 
-            if ($asignacionActiva) {
-                $set('anfitrion_id', $asignacion->id_anfitrion);
-                $set('conductor_id', $asignacion->id_conductor);
-                $set('bus_id', $asignacion->id_buses);
-                $set('N_ficha', $asignacion->n_ficha);
-            } else {
-                \Filament\Notifications\Notification::make()
-                    ->title('Asignación caducada')
-                    ->body('La asignación encontrada está caducada.')
-                    ->danger()
-                    ->duration(5000)
-                    ->send();
-            }
-        } else {
-            \Filament\Notifications\Notification::make()
-                ->title('Carnet no encontrado')
-                ->body('No se encontró una asignación para el carnet ingresado.')
-                ->danger()
-                ->duration(5000)
-                ->send();
-        }
-    }),
+                                    if ($asignacionActiva) {
+                                        $set('anfitrion_id', $asignacion->id_anfitrion);
+                                        $set('conductor_id', $asignacion->id_conductor);
+                                        $set('bus_id', $asignacion->id_buses);
+                                        $set('N_ficha', $asignacion->n_ficha);
+                                        
+                                        // Obtener automáticamente el talonario activo
+                                        $talonario = DB::table('entrega_talonarios_anfitrion')
+                                            ->where('anfitrion_id', $asignacion->id_anfitrion)
+                                            ->where('estado', 'activo')
+                                            ->first();
 
+                                        if ($talonario) {
+                                            $set('entrega_talonario_anfitrion_id', $talonario->id);
+                                            
+                                            // Buscar el último formulario_recaudo para este talonario
+                                            $ultimoRecaudo = DB::table('formulario_recaudo')
+                                                ->where('entrega_talonario_anfitrion_id', $talonario->id)
+                                                ->orderBy('id', 'desc')
+                                                ->first();
+
+                                            if ($ultimoRecaudo && isset($ultimoRecaudo->rango_final_preferencial) && isset($ultimoRecaudo->rango_final_regular)) {
+                                                // Si hay recaudos previos y tienen los rangos finales definidos
+                                                $siguienteRangoPreferencial = $ultimoRecaudo->rango_final_preferencial + 1;
+                                                $siguienteRangoRegular = $ultimoRecaudo->rango_final_regular + 1;
+                                            } else {
+                                                // Si no hay recaudos previos o no tienen los rangos definidos
+                                                $siguienteRangoPreferencial = $talonario->rango_inicial_preferencial;
+                                                $siguienteRangoRegular = $talonario->rango_inicial_regular;
+                                            }
+
+                                            $set('rango_inicial_preferencial', $siguienteRangoPreferencial);
+                                            $set('rango_inicial_regulares', $siguienteRangoRegular);
+                                        } else {
+                                            $set('entrega_talonario_anfitrion_id', 1);
+                                        }
+                                    } else {
+                                        \Filament\Notifications\Notification::make()
+                                            ->title('Asignación caducada')
+                                            ->body('La asignación encontrada está caducada.')
+                                            ->danger()
+                                            ->duration(5000)
+                                            ->send();
+                                    }
+                                } else {
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('Carnet no encontrado')
+                                        ->body('No se encontró una asignación para el carnet ingresado.')
+                                        ->danger()
+                                        ->duration(5000)
+                                        ->send();
+                                }
+                            }),
 
                         Forms\Components\Grid::make(6)
                             ->schema([
@@ -107,7 +135,6 @@ class FormularioRecaudoResource extends Resource
                                         })->toArray()
                                     )
                                     ->required(),
-
 
                                 Forms\Components\TextInput::make('N_ficha')
                                     ->label('Nº de Ficha')
@@ -138,9 +165,16 @@ class FormularioRecaudoResource extends Resource
                                         'tarde' => 'Tarde',
                                     ])
                                     ->required(),
-
-
                             ]),
+
+                        Forms\Components\Hidden::make('entrega_talonario_anfitrion_id')
+                            ->default(1),
+
+                        Forms\Components\Textarea::make('observaciones')
+                            ->label('Observaciones')
+                            ->rows(2)
+                            ->placeholder('Observaciones adicionales...')
+                            ->columnSpanFull(),
                     ]),
 
                 // Sección Preferencial
@@ -151,12 +185,33 @@ class FormularioRecaudoResource extends Resource
                                 Forms\Components\TextInput::make('cantidad_ventas_preferenciales')
                                     ->label('Tickets Vendidos Preferenciales')
                                     ->prefixIcon('heroicon-o-hashtag')
-                                    ->numeric(),
+                                    ->numeric()
+                                    ->default(0)
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, callable $get, callable $set) {
+                                        // Calcular automáticamente el rango final
+                                        $rangoInicial = $get('rango_inicial_preferencial') ?? 0;
+                                        $cantidad = $state ?? 0;
+                                        $rangoFinal = $rangoInicial + $cantidad - 1;
+                                        $set('rango_final_preferencial', max($rangoFinal, $rangoInicial - 1));
+                                    }),
 
                                 Forms\Components\TextInput::make('rango_inicial_preferencial')
-                                    ->label('Rango Inicial')
+                                    ->label('Rango Inicial Preferencial')
                                     ->prefixIcon('heroicon-o-arrow-down')
-                                    ->numeric(),
+                                    ->numeric()
+                                    ->default(0)
+                                    ->readonly()
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, callable $get, callable $set) {
+                                        // Recalcular el rango final cuando cambia el rango inicial
+                                        $cantidad = $get('cantidad_ventas_preferenciales') ?? 0;
+                                        $rangoFinal = $state + $cantidad - 1;
+                                        $set('rango_final_preferencial', max($rangoFinal, $state - 1));
+                                    }),
+
+                                Forms\Components\Hidden::make('rango_final_preferencial')
+                                    ->default(0),
                             ]),
                     ]),
 
@@ -167,14 +222,34 @@ class FormularioRecaudoResource extends Resource
                             ->schema([
                                 Forms\Components\TextInput::make('cantidad_ventas_regulares')
                                     ->prefixIcon('heroicon-o-hashtag')
-                                    ->label('Tickets vendidos')
-                                    ->numeric(),
+                                    ->label('Tickets Vendidos Regulares')
+                                    ->numeric()
+                                    ->default(0)
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, callable $get, callable $set) {
+                                        // Calcular automáticamente el rango final
+                                        $rangoInicial = $get('rango_inicial_regulares') ?? 0;
+                                        $cantidad = $state ?? 0;
+                                        $rangoFinal = $rangoInicial + $cantidad - 1;
+                                        $set('rango_final_regular', max($rangoFinal, $rangoInicial - 1));
+                                    }),
 
                                 Forms\Components\TextInput::make('rango_inicial_regulares')
-                                    ->label('Rango Inicial')
+                                    ->label('Rango Inicial Regular')
                                     ->prefixIcon('heroicon-o-arrow-down')
-                                    ->numeric(),
+                                    ->numeric()
+                                    ->default(0)
+                                    ->readonly()
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, callable $get, callable $set) {
+                                        // Recalcular el rango final cuando cambia el rango inicial
+                                        $cantidad = $get('cantidad_ventas_regulares') ?? 0;
+                                        $rangoFinal = $state + $cantidad - 1;
+                                        $set('rango_final_regular', max($rangoFinal, $state - 1));
+                                    }),
 
+                                Forms\Components\Hidden::make('rango_final_regular')
+                                    ->default(0),
                             ]),
                     ]),
 
@@ -189,14 +264,10 @@ class FormularioRecaudoResource extends Resource
                             ->validationMessages([
                                 'accepted' => '¿Está segura/o que estos datos son correctos? Debe marcar la casilla para continuar.',
                             ]),
-
                     ])
                     ->collapsible(),
-
             ]);
     }
-
-
 
     public static function table(Table $table): Table
     {

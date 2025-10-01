@@ -323,8 +323,8 @@ class EntregaTalonarioResource extends Resource
                         <strong>Cantidad:</strong> {$cantidad} talonarios<br>
                         <strong>Restantes:</strong> <span style='color: {$colorRestantes}; font-weight: bold;'>{$cantidadRestante}</span><br>
                         <strong>Del a Al:</strong> <span style='color: #0084ffff; font-weight: bold;'>{$rangoTickets}</span><br>
-                        <strong>Rango Facturas:</strong> <span style='color: #0084ffff; font-weight: bold;'>{$rangoFacturas}</span><br>
-                        <strong>Total Boletos:</strong> <span style='color: #0084ffff; font-weight: bold;'>" . (int)$totalBoletos . "</span><br>
+                        <strong>Rango Tickets:</strong> <span style='color: #0084ffff; font-weight: bold;'>{$rangoFacturas}</span><br>
+                        <strong>Total Tickets:</strong> <span style='color: #0084ffff; font-weight: bold;'>" . (int)$totalBoletos . "</span><br>
                         <strong>Valor Bs:</strong> <span style='color: #32CD32; font-weight: bold;'>Bs. " . number_format($totalAproximado, 2) . "</span>";
                     }),
 
@@ -383,8 +383,8 @@ class EntregaTalonarioResource extends Resource
                         <strong>Cantidad:</strong> {$cantidad} talonarios<br>
                         <strong>Restantes:</strong> <span style='color: {$colorRestantes}; font-weight: bold;'>{$cantidadRestante}</span><br>
                         <strong>Del a Al:</strong> <span style='color: #0084ffff; font-weight: bold;'>{$rangoTickets}</span><br>
-                        <strong>Rango Facturas:</strong> <span style='color: #0084ffff; font-weight: bold;'>{$rangoFacturas}</span><br>
-                        <strong>Total Boletos:</strong> <span style='color: #0084ffff; font-weight: bold;'>" . (int)$totalBoletos . "</span><br>
+                        <strong>Rango Tickets:</strong> <span style='color: #0084ffff; font-weight: bold;'>{$rangoFacturas}</span><br>
+                        <strong>Total Tickets:</strong> <span style='color: #0084ffff; font-weight: bold;'>" . (int)$totalBoletos . "</span><br>
                         <strong>Valor Bs:</strong> <span style='color: #32CD32; font-weight: bold;'>Bs. " . number_format($totalAproximado, 2) . "</span>";
                     }),
 
@@ -478,8 +478,7 @@ class EntregaTalonarioResource extends Resource
             ])
             ->actions([
     Tables\Actions\ActionGroup::make([
-        Tables\Actions\ViewAction::make(),
-
+        
     Action::make('generar_pdf')
     ->label('Generar PDF')
     ->icon('heroicon-o-document')
@@ -737,9 +736,14 @@ class EntregaTalonarioResource extends Resource
     ->modalDescription('Se generara el acta de entrega de talonarios.')
     ->modalSubmitActionLabel('Generar'),
 
-Tables\Actions\EditAction::make(),
+Tables\Actions\EditAction::make()
+->color('warning'),
  Tables\Actions\DeleteAction::make(),
-]),
+])
+->label('Acciones')
+    ->icon('heroicon-o-cog')  // Icono de configuración
+    ->button()  // Esto hace que se vea como botón en lugar de 3 puntos
+    ->color('success'),
             ])
 
             ->headerActions([

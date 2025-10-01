@@ -12,41 +12,48 @@ class EntregaTalonariosAnfitrion extends Model
     protected $table = 'entrega_talonarios_anfitrion';
 
     protected $fillable = [
-        'anfitrion_id',
-        'numero_autorizacion',
         'entrega_talonario_id',
-
-        // Preferenciales
-        'cantidad_talonarios_preferenciales',
-        'rango_inicial_preferenciales',
-        'rango_final_preferenciales',
-
-        // Regulares
-        'cantidad_talonarios_regulares',
-        'rango_inicial_regulares',
-        'rango_final_regulares',
-
-        // Totales
-        'total_tickets_regulares',
-        'total_tickets_preferenciales',
-        'total_recaudar_regulares',
-        'total_recaudar_preferenciales',
-        'total_recaudar',
+        'anfitrion_id',
+        'preferencial_Del',
+        'preferencial_Al',
+        'regular_Del',
+        'regular_Al',
+        'cantidad_preferenciales',
+        'rango_inicial_preferencial',
+        'rango_final_preferencial',
+        'total_boletos_preferenciales',
+        'total_aproximado_bolivianos_preferencial',
+        'cantidad_restante_preferencial',
+        'cantidad_regulares',
+        'rango_inicial_regular',
+        'rango_final_regular',
+        'total_boletos_regulares',
+        'total_aproximado_bolivianos_regular',
+        'cantidad_restante_regular',
+        'estado_preferencial',
+        'estado_regular',
+        'fecha_entrega',
+        'observaciones',
+        'total_recaudacion_bolivianos',
+        'estado',
+        'tipo_talonarios'
     ];
 
-    /**
-     * Relación con el anfitrión
-     */
-    public function anfitrion()
+    // ✅ Relación con EntregaTalonario
+    public function entregaTalonario()
     {
-        return $this->belongsTo(Anfitrion::class);
+        return $this->belongsTo(EntregaTalonario::class, 'entrega_talonario_id');
     }
 
-    /**
-     * Relación con el cajero que entrega
-     */
-    public function cajero()
+    // ✅ Relación con Anfitrion
+    public function anfitrion()
     {
-        return $this->belongsTo(Cajero::class);
+        return $this->belongsTo(Anfitrion::class, 'anfitrion_id');
+    }
+
+    // ✅ Acceso al cajero a través de entregaTalonario
+    public function getCajeroAttribute()
+    {
+        return $this->entregaTalonario?->cajero;
     }
 }

@@ -5,10 +5,9 @@ namespace App\Filament\Resources\EntregaTalonariosAnfitrionResource\Pages;
 use App\Filament\Resources\EntregaTalonariosAnfitrionResource;
 use App\Models\EntregaTalonariosAnfitrion;
 use Filament\Resources\Pages\CreateRecord;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Database\Eloquent\Model;
 use Filament\Notifications\Notification;
-use Illuminate\Database\QueryException;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class CreateEntregaTalonariosAnfitrion extends CreateRecord
 {
@@ -17,32 +16,108 @@ class CreateEntregaTalonariosAnfitrion extends CreateRecord
    protected function handleRecordCreation(array $data): Model
 {
     try {
-        $data['anfitrion_id'] = $data['anfitrion_id'] ?? null;
-        $data['entrega_talonario_id'] = $data['recibido_por'] ?? null;
-        $data['cantidad_talonarios_preferenciales'] = $data['cantidad_talonarios_preferenciales'] ?? 0;
-        $data['rango_inicial_preferenciales'] = $data['rango_inicial_preferenciales'] ?? 0;
-        $data['cantidad_talonarios_regulares'] = $data['cantidad_talonarios_regulares'] ?? 0;
-        $data['rango_inicial_regulares'] = $data['rango_inicial_regulares'] ?? 0;
-        $data['fecha_entrega'] = $data['fecha_entrega'] ?? now()->format('Y-m-d');
-        $data['observaciones'] = $data['observaciones'] ?? '';
+        \Log::info('=== INICIO CREACIÓN ENTREGA ANFITRIÓN ===');
+        \Log::info('Datos recibidos:', $data);
 
-        DB::statement('CALL entregar_talonarios_anfitrion(?, ?, ?, ?, ?, ?, ?, ?)', [
-            $data['entrega_talonario_id'],
-            $data['anfitrion_id'],
-            $data['cantidad_talonarios_preferenciales'],
-            $data['rango_inicial_preferenciales'],
-            $data['cantidad_talonarios_regulares'],
-            $data['rango_inicial_regulares'],
-            $data['fecha_entrega'],
-            $data['observaciones'],
+        // ✅ Usar NULL en lugar de 0 cuando no existen
+        $preferencialDel = isset($data['preferencial_Del']) && $data['preferencial_Del'] !== '' 
+            ? (int)$data['preferencial_Del'] 
+            : null;
+            
+        $preferencialAl = isset($data['preferencial_Al']) && $data['preferencial_Al'] !== '' 
+            ? (int)$data['preferencial_Al'] 
+            : null;
+            
+        $regularDel = isset($data['regular_Del']) && $data['regular_Del'] !== '' 
+            ? (int)$data['regular_Del'] 
+            : null;
+            
+        $regularAl = isset($data['regular_Al']) && $data['regular_Al'] !== '' 
+            ? (int)$data['regular_Al'] 
+            : null;
+            
+        $rangoInicialPreferencial = isset($data['rango_inicial_preferencial']) && $data['rango_inicial_preferencial'] !== '' 
+            ? (int)$data['rango_inicial_preferencial'] 
+            : null;
+            
+        $rangoInicialRegular = isset($data['rango_inicial_regular']) && $data['rango_inicial_regular'] !== '' 
+            ? (int)$data['rango_inicial_regular'] 
+            : null;
+            
+        $observaciones = $data['observaciones'] ?? '';
+        $tipoTalonarios = $data['tipo_talonarios'] ?? '';
+
+        \Log::info('Parámetros preparados:', [
+            'entrega_talonario_id' => $data['entrega_talonario_id'],
+            'anfitrion_id' => $data['anfitrion_id'],
+            'preferencial_Del' => $preferencialDel,
+            'preferencial_Al' => $preferencialAl,
+            'regular_Del' => $regularDel,
+            'regular_Al' => $regularAl,
+            'rango_inicial_preferencial' => $rangoInicialPreferencial,
+            'rango_inicial_regular' => $rangoInicialRegular,
+            'tipo_talonarios' => $tipoTalonarios
         ]);
 
-        // Si quieres devolver el modelo creado, deberías crear una consulta correcta aquí:
-        return EntregaTalonariosAnfitrion::latest('id')->first();
+        // Llamar al procedimiento almacenado
+        DB::statement('CALL SP_EntregarTalonariosAnfitrion(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @resultado, @mensaje)', [
+            $data['entrega_talonario_id'],
+            $data['anfitrion_id'],
+            $preferencialDel,
+            $preferencialAl,
+            $regularDel,
+            $regularAl,
+            $rangoInicialPreferencial,
+            $rangoInicialRegular,
+            $observaciones,
+            $tipoTalonarios
+        ]);
 
-    } catch (QueryException $e) {
+        // Obtener resultado
+        $output = DB::select('SELECT @resultado as resultado, @mensaje as mensaje');
+        $resultado = $output[0]->resultado;
+        $mensaje = $output[0]->mensaje;
+
+        \Log::info('Resultado SP:', [
+            'resultado' => $resultado,
+            'mensaje' => $mensaje
+        ]);
+
+        if ($resultado > 0) {
+            $entregaAnfitrion = EntregaTalonariosAnfitrion::find($resultado);
+            
+            if (!$entregaAnfitrion) {
+                throw new \Exception('No se pudo recuperar el registro creado');
+            }
+            
+            if (!$entregaAnfitrion->created_at || !$entregaAnfitrion->updated_at) {
+                $now = now();
+                $entregaAnfitrion->update([
+                    'created_at' => $now,
+                    'updated_at' => $now
+                ]);
+                $entregaAnfitrion->refresh();
+            }
+            
+            Notification::make()
+                ->title('Entrega creada exitosamente')
+                ->body($mensaje)
+                ->success()
+                ->send();
+
+            return $entregaAnfitrion;
+        } else {
+            throw new \Exception($mensaje);
+        }
+
+    } catch (\Exception $e) {
+        \Log::error('ERROR:', [
+            'mensaje' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
         Notification::make()
-            ->title('Error al realizar la entrega')
+            ->title('Error al crear la entrega')
             ->body($e->getMessage())
             ->danger()
             ->send();
@@ -51,4 +126,8 @@ class CreateEntregaTalonariosAnfitrion extends CreateRecord
     }
 }
 
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }
