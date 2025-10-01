@@ -20,17 +20,15 @@ class EditEntregaTalonario extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Aquí puedes llamar al procedimiento almacenado para actualizar la entrega
+        // USAR VALORES POR DEFECTO PARA EVITAR EL ERROR
         DB::statement('CALL actualizar_entrega_talonarios_completa(?, ?, ?, ?, ?)', [
             $this->record->id,            // p_entrega_id
-            $data['cantidad_preferenciales'],  // p_cantidad_pref
-            $data['rango_inicial_preferencial'], // p_rango_inicial_pref
-            $data['cantidad_regulares'],        // p_cantidad_reg
-            $data['rango_inicial_regular'],    // p_rango_inicial_reg
+            $data['cantidad_preferenciales'] ?? 0,  // p_cantidad_pref
+            $data['rango_inicial_preferencial'] ?? 0, // p_rango_inicial_pref
+            $data['cantidad_regulares'] ?? 0,        // p_cantidad_reg
+            $data['rango_inicial_regular'] ?? 0,     // p_rango_inicial_reg
         ]);
 
-        // Puedes retornar $data si quieres que Filament continúe con el guardado normal
-        // O retornar un arreglo vacío o modificado si quieres controlar el guardado manualmente
         return $data;
     }
 }

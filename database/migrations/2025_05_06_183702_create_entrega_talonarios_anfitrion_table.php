@@ -15,6 +15,12 @@ return new class extends Migration
             $table->foreignId('entrega_talonario_id')->constrained('entrega_talonarios')->onDelete('restrict');
             $table->foreignId('anfitrion_id')->constrained('users')->onDelete('restrict');
             
+            // 🆕 CAMPOS PARA CALCULAR CANTIDADES
+            $table->integer('preferencial_Del')->nullable();
+            $table->integer('preferencial_Al')->nullable();
+            $table->integer('regular_Del')->nullable();
+            $table->integer('regular_Al')->nullable();
+            
             // Campos existentes
             $table->integer('cantidad_preferenciales')->nullable();
             $table->integer('rango_inicial_preferencial')->nullable();
@@ -49,6 +55,8 @@ return new class extends Migration
             $table->index('entrega_talonario_id');
             $table->index('anfitrion_id');
             $table->index('estado');
+            $table->index(['preferencial_Del', 'preferencial_Al']);
+            $table->index(['regular_Del', 'regular_Al']);
         });
     }
 

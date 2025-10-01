@@ -89,4 +89,9 @@ class EntregaTalonario extends Model
     {
         return $this->belongsTo(Cajero::class, 'entregado_por');
     }
+    public function inventario()
+{
+    return $this->belongsTo(InventarioTalonarios::class, 'inventario_id');
+}
+
 }

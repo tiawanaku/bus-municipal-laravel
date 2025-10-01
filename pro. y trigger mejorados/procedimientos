@@ -4,18 +4,21 @@
 
 -- 1.-- PROCEDIMIENTO: CREAR INVENTARIO PRINCIPAL
 -- =====================================================
+-- =====================================================
+-- PROCEDIMIENTO: CREAR INVENTARIO PRINCIPAL (CORREGIDO)
+-- =====================================================
 DELIMITER $$
 
 DROP PROCEDURE IF EXISTS SP_CrearInventarioPrincipal$$
 
 CREATE PROCEDURE SP_CrearInventarioPrincipal(
     IN p_cajero_id INT,
-    IN p_preferencial_del INT,           -- Del (para calcular cantidad de talonarios)
-    IN p_preferencial_al INT,            -- Al (para calcular cantidad de talonarios)
-    IN p_regular_del INT,                -- Del (para calcular cantidad de talonarios)
-    IN p_regular_al INT,                 -- Al (para calcular cantidad de talonarios)
-    IN p_rango_inicial_preferencial INT, -- Rango inicial de tickets (manual)
-    IN p_rango_inicial_regular INT,      -- Rango inicial de tickets (manual)
+    IN p_preferencial_del INT,
+    IN p_preferencial_al INT,
+    IN p_regular_del INT,
+    IN p_regular_al INT,
+    IN p_rango_inicial_preferencial INT,
+    IN p_rango_inicial_regular INT,
     IN p_fecha_entrega DATE,
     IN p_observaciones TEXT,
     IN p_n_cite VARCHAR(255),
@@ -26,21 +29,23 @@ CREATE PROCEDURE SP_CrearInventarioPrincipal(
     IN p_fecha_autorizacion DATE,
     IN p_fecha_activacion DATE,
     IN p_cite_nota_solicitud VARCHAR(255),
-    IN p_tipo_talonarios VARCHAR(50),    -- NUEVO PARÁMETRO AÑADIDO
+    IN p_tipo_talonarios VARCHAR(50),
     OUT p_resultado INT,
     OUT p_mensaje VARCHAR(255)
 )
 BEGIN
     DECLARE v_inventario_id INT;
-    DECLARE v_cantidad_preferenciales INT;
-    DECLARE v_cantidad_regulares INT;
-    DECLARE v_rango_final_preferencial INT;
-    DECLARE v_rango_final_regular INT;
-    DECLARE v_total_boletos_preferenciales INT;
-    DECLARE v_total_boletos_regulares INT;
-    DECLARE v_total_aproximado_pref DECIMAL(10,2);
-    DECLARE v_total_aproximado_reg DECIMAL(10,2);
-    DECLARE v_total_recaudacion DECIMAL(10,2);
+    DECLARE v_cantidad_preferenciales INT DEFAULT 0;
+    DECLARE v_cantidad_regulares INT DEFAULT 0;
+    DECLARE v_rango_final_preferencial INT DEFAULT NULL;
+    DECLARE v_rango_final_regular INT DEFAULT NULL;
+    DECLARE v_total_boletos_preferenciales INT DEFAULT 0;
+    DECLARE v_total_boletos_regulares INT DEFAULT 0;
+    DECLARE v_total_aproximado_pref DECIMAL(10,2) DEFAULT 0.00;
+    DECLARE v_total_aproximado_reg DECIMAL(10,2) DEFAULT 0.00;
+    DECLARE v_total_recaudacion DECIMAL(10,2) DEFAULT 0.00;
+    DECLARE v_hay_preferenciales BOOLEAN DEFAULT FALSE;
+    DECLARE v_hay_regulares BOOLEAN DEFAULT FALSE;
     
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
@@ -57,109 +62,125 @@ BEGIN
         SET p_mensaje = 'Cajero no existe';
         ROLLBACK;
     ELSE
-        -- CALCULAR CANTIDAD DE TALONARIOS a partir de del/al
-        SET v_cantidad_preferenciales = p_preferencial_al - p_preferencial_del + 1;
-        SET v_cantidad_regulares = p_regular_al - p_regular_del + 1;
+        -- VALIDAR Y CALCULAR PREFERENCIALES (solo si se envían datos válidos)
+        IF p_preferencial_del IS NOT NULL AND p_preferencial_al IS NOT NULL 
+           AND p_preferencial_del > 0 AND p_preferencial_al > 0
+           AND p_rango_inicial_preferencial IS NOT NULL AND p_rango_inicial_preferencial > 0 THEN
+            
+            SET v_hay_preferenciales = TRUE;
+            SET v_cantidad_preferenciales = p_preferencial_al - p_preferencial_del + 1;
+            SET v_rango_final_preferencial = p_rango_inicial_preferencial + (v_cantidad_preferenciales * 50) - 1;
+            SET v_total_boletos_preferenciales = v_cantidad_preferenciales * 50;
+            SET v_total_aproximado_pref = v_total_boletos_preferenciales * 1.00;
+        END IF;
         
-        -- CALCULAR RANGOS DE TICKETS basados en la cantidad de talonarios
-        -- Cada talonario tiene 50 tickets
-        SET v_rango_final_preferencial = p_rango_inicial_preferencial + (v_cantidad_preferenciales * 50) - 1;
-        SET v_rango_final_regular = p_rango_inicial_regular + (v_cantidad_regulares * 50) - 1;
+        -- VALIDAR Y CALCULAR REGULARES (solo si se envían datos válidos)
+        IF p_regular_del IS NOT NULL AND p_regular_al IS NOT NULL 
+           AND p_regular_del > 0 AND p_regular_al > 0
+           AND p_rango_inicial_regular IS NOT NULL AND p_rango_inicial_regular > 0 THEN
+            
+            SET v_hay_regulares = TRUE;
+            SET v_cantidad_regulares = p_regular_al - p_regular_del + 1;
+            SET v_rango_final_regular = p_rango_inicial_regular + (v_cantidad_regulares * 50) - 1;
+            SET v_total_boletos_regulares = v_cantidad_regulares * 50;
+            SET v_total_aproximado_reg = v_total_boletos_regulares * 1.50;
+        END IF;
         
-        -- CALCULAR TOTALES DE BOLETOS
-        SET v_total_boletos_preferenciales = v_cantidad_preferenciales * 50;
-        SET v_total_boletos_regulares = v_cantidad_regulares * 50;
-        
-        -- CALCULAR VALORES MONETARIOS
-        SET v_total_aproximado_pref = v_total_boletos_preferenciales * 1.00;
-        SET v_total_aproximado_reg = v_total_boletos_regulares * 1.50;
-        SET v_total_recaudacion = v_total_aproximado_pref + v_total_aproximado_reg;
-        
-        -- Insertar con TODOS los campos
-        INSERT INTO inventario_talonarios (
-            cajero_id,
-            preferencial_del,           -- MANUAL (para calcular cantidad)
-            preferencial_al,            -- MANUAL (para calcular cantidad)
-            cantidad_preferenciales,    -- CALCULADO: al - del + 1
-            rango_inicial_preferencial, -- MANUAL (rango de tickets)
-            rango_final_preferencial,   -- CALCULADO: rango_inicial + (cantidad * 50) - 1
-            total_boletos_preferenciales, -- CALCULADO: cantidad * 50
-            total_aproximado_bolivianos_preferencial, -- CALCULADO: total_boletos * 1.00
-            cantidad_restante_preferencial, -- CALCULADO: igual a cantidad_preferenciales
-            regular_del,                -- MANUAL (para calcular cantidad)
-            regular_al,                 -- MANUAL (para calcular cantidad)
-            cantidad_regulares,         -- CALCULADO: al - del + 1
-            rango_inicial_regular,      -- MANUAL (rango de tickets)
-            rango_final_regular,        -- CALCULADO: rango_inicial + (cantidad * 50) - 1
-            total_boletos_regulares,    -- CALCULADO: cantidad * 50
-            total_aproximado_bolivianos_regular, -- CALCULADO: total_boletos * 1.50
-            cantidad_restante_regular,  -- CALCULADO: igual a cantidad_regulares
-            estado_preferencial, 
-            estado_regular, 
-            fecha_entrega, 
-            observaciones,
-            total_recaudacion_bolivianos, -- CALCULADO: suma de ambos
-            estado,
-            n_cite, 
-            gestion, 
-            n_dosificacion, 
-            numero_autorizacion,
-            fecha_solicitud_dosificacion, 
-            fecha_autorizacion, 
-            fecha_activacion,
-            cite_nota_solicitud,
-            tipo_talonarios, -- MOVIDO ANTES DE created_at
-            created_at,
-            updated_at
-        ) VALUES (
-            p_cajero_id,
-            p_preferencial_del,         -- MANUAL
-            p_preferencial_al,          -- MANUAL
-            v_cantidad_preferenciales,  -- CALCULADO
-            p_rango_inicial_preferencial, -- MANUAL
-            v_rango_final_preferencial, -- CALCULADO
-            v_total_boletos_preferenciales, -- CALCULADO
-            v_total_aproximado_pref,    -- CALCULADO
-            v_cantidad_preferenciales,  -- CALCULADO
-            p_regular_del,              -- MANUAL
-            p_regular_al,               -- MANUAL
-            v_cantidad_regulares,       -- CALCULADO
-            p_rango_inicial_regular,    -- MANUAL
-            v_rango_final_regular,      -- CALCULADO
-            v_total_boletos_regulares,  -- CALCULADO
-            v_total_aproximado_reg,     -- CALCULADO
-            v_cantidad_regulares,       -- CALCULADO
-            1,  -- estado_preferencial (activo)
-            1,  -- estado_regular (activo)
-            p_fecha_entrega, 
-            COALESCE(p_observaciones, ''),
-            v_total_recaudacion,        -- CALCULADO
-            'disponible',
-            p_n_cite, 
-            p_gestion, 
-            p_n_dosificacion, 
-            p_numero_autorizacion,
-            p_fecha_solicitud_dosificacion, 
-            p_fecha_autorizacion, 
-            p_fecha_activacion,
-            p_cite_nota_solicitud,
-            p_tipo_talonarios,
-            NOW(),
-            NOW()
-        );
-        
-        SET v_inventario_id = LAST_INSERT_ID();
-        SET p_resultado = v_inventario_id;
-        SET p_mensaje = CONCAT('Inventario creado exitosamente. ID: ', v_inventario_id);
-        
-        COMMIT;
+        -- VALIDAR que al menos un tipo de talonario sea válido
+        IF NOT v_hay_preferenciales AND NOT v_hay_regulares THEN
+            SET p_resultado = 0;
+            SET p_mensaje = 'Error: Debe registrar al menos un tipo de talonario';
+            ROLLBACK;
+        ELSE
+            -- CALCULAR TOTAL DE RECAUDACIÓN
+            SET v_total_recaudacion = v_total_aproximado_pref + v_total_aproximado_reg;
+            
+            -- Insertar con TODOS los campos
+            INSERT INTO inventario_talonarios (
+                cajero_id,
+                preferencial_del,
+                preferencial_al,
+                cantidad_preferenciales,
+                rango_inicial_preferencial,
+                rango_final_preferencial,
+                total_boletos_preferenciales,
+                total_aproximado_bolivianos_preferencial,
+                cantidad_restante_preferencial,
+                regular_del,
+                regular_al,
+                cantidad_regulares,
+                rango_inicial_regular,
+                rango_final_regular,
+                total_boletos_regulares,
+                total_aproximado_bolivianos_regular,
+                cantidad_restante_regular,
+                estado_preferencial, 
+                estado_regular, 
+                fecha_entrega, 
+                observaciones,
+                total_recaudacion_bolivianos,
+                estado,
+                n_cite, 
+                gestion, 
+                n_dosificacion, 
+                numero_autorizacion,
+                fecha_solicitud_dosificacion, 
+                fecha_autorizacion, 
+                fecha_activacion,
+                cite_nota_solicitud,
+                tipo_talonarios,
+                created_at,
+                updated_at
+            ) VALUES (
+                p_cajero_id,
+                IF(v_hay_preferenciales, p_preferencial_del, NULL),
+                IF(v_hay_preferenciales, p_preferencial_al, NULL),
+                v_cantidad_preferenciales,
+                IF(v_hay_preferenciales, p_rango_inicial_preferencial, NULL),
+                v_rango_final_preferencial,
+                v_total_boletos_preferenciales,
+                v_total_aproximado_pref,
+                v_cantidad_preferenciales,
+                IF(v_hay_regulares, p_regular_del, NULL),
+                IF(v_hay_regulares, p_regular_al, NULL),
+                v_cantidad_regulares,
+                IF(v_hay_regulares, p_rango_inicial_regular, NULL),
+                v_rango_final_regular,
+                v_total_boletos_regulares,
+                v_total_aproximado_reg,
+                v_cantidad_regulares,
+                IF(v_hay_preferenciales, 1, 0),
+                IF(v_hay_regulares, 1, 0),
+                p_fecha_entrega, 
+                COALESCE(p_observaciones, ''),
+                v_total_recaudacion,
+                'disponible',
+                p_n_cite, 
+                p_gestion, 
+                p_n_dosificacion, 
+                p_numero_autorizacion,
+                p_fecha_solicitud_dosificacion, 
+                p_fecha_autorizacion, 
+                p_fecha_activacion,
+                p_cite_nota_solicitud,
+                p_tipo_talonarios,
+                NOW(),
+                NOW()
+            );
+            
+            SET v_inventario_id = LAST_INSERT_ID();
+            SET p_resultado = v_inventario_id;
+            SET p_mensaje = CONCAT('Inventario creado exitosamente. ID: ', v_inventario_id);
+            
+            COMMIT;
+        END IF;
     END IF;
 END$$
 
-DELIMITER ; 
+DELIMITER ;
 
 -- =====================================================
---2 PROCEDIMIENTO MEJORADO: DISTRIBUCIÓN MULTI-INVENTARIO
+-- 2 PROCEDIMIENTO MEJORADO: DISTRIBUCIÓN MULTI-INVENTARIO
 -- Permite combinar stock de múltiples inventarios
 -- =====================================================
 
@@ -230,21 +251,37 @@ BEGIN
     ELSE
         -- Hay suficiente stock, proceder con la entrega
         
-        -- Crear el registro de entrega
+        -- Crear el registro de entrega con created_at
         INSERT INTO entrega_talonarios (
-            inventario_id, cajero_id,
-            preferencial_del, preferencial_al,
-            cantidad_preferenciales, rango_inicial_preferencial, rango_final_preferencial,
-            total_boletos_preferenciales, total_aproximado_bolivianos_preferencial,
+            inventario_id, 
+            cajero_id,
+            preferencial_del, 
+            preferencial_al,
+            cantidad_preferenciales, 
+            rango_inicial_preferencial, 
+            rango_final_preferencial,
+            total_boletos_preferenciales, 
+            total_aproximado_bolivianos_preferencial,
             cantidad_restante_preferencial,
-            regular_del, regular_al,
-            cantidad_regulares, rango_inicial_regular, rango_final_regular,
-            total_boletos_regulares, total_aproximado_bolivianos_regular,
+            regular_del, 
+            regular_al,
+            cantidad_regulares, 
+            rango_inicial_regular, 
+            rango_final_regular,
+            total_boletos_regulares, 
+            total_aproximado_bolivianos_regular,
             cantidad_restante_regular,
-            estado_preferencial, estado_regular, fecha_entrega, observaciones,
-            total_recaudacion_bolivianos, estado, tipo_talonario
+            estado_preferencial, 
+            estado_regular, 
+            fecha_entrega, 
+            observaciones,
+            total_recaudacion_bolivianos, 
+            estado, 
+            tipo_talonario,
+            created_at
         ) VALUES (
-            p_inventario_id, p_cajero_id,
+            p_inventario_id, 
+            p_cajero_id,
             CASE WHEN v_cantidad_preferenciales > 0 THEN p_pref_del ELSE NULL END,
             CASE WHEN v_cantidad_preferenciales > 0 THEN p_pref_al ELSE NULL END,
             v_cantidad_preferenciales, 
@@ -261,7 +298,9 @@ BEGIN
             v_cantidad_regulares * 50,
             v_cantidad_regulares * 50 * 1.50,
             v_cantidad_regulares,
-            1, 1, CURDATE(), 
+            1, 
+            1, 
+            CURDATE(), 
             COALESCE(p_observaciones, ''),
             (v_cantidad_preferenciales * 50 * 1.00) + (v_cantidad_regulares * 50 * 1.50), 
             'activo',
@@ -270,7 +309,8 @@ BEGIN
                 WHEN v_cantidad_preferenciales > 0 THEN 'preferencial'
                 WHEN v_cantidad_regulares > 0 THEN 'regular'
                 ELSE ''
-            END
+            END,
+            NOW()  -- Campo created_at con fecha/hora actual
         );
         
         SET v_entrega_id = LAST_INSERT_ID();
@@ -386,8 +426,12 @@ DROP PROCEDURE IF EXISTS SP_EntregarTalonariosAnfitrion$$
 CREATE PROCEDURE SP_EntregarTalonariosAnfitrion(
     IN p_entrega_talonario_id INT,
     IN p_anfitrion_id INT,
-    IN p_cantidad_preferenciales INT,
-    IN p_cantidad_regulares INT,
+    IN p_preferencial_Del INT,
+    IN p_preferencial_Al INT,
+    IN p_regular_Del INT,
+    IN p_regular_Al INT,
+    IN p_rango_inicial_preferencial INT,
+    IN p_rango_inicial_regular INT,
     IN p_observaciones TEXT,
     OUT p_resultado INT,
     OUT p_mensaje VARCHAR(255)
@@ -396,10 +440,10 @@ BEGIN
     DECLARE v_entrega_anfitrion_id INT;
     DECLARE v_disponibles_pref INT;
     DECLARE v_disponibles_reg INT;
-    DECLARE v_rango_inicial_pref INT;
-    DECLARE v_rango_inicial_reg INT;
     DECLARE v_rango_final_pref INT;
     DECLARE v_rango_final_reg INT;
+    DECLARE v_cantidad_preferenciales INT;
+    DECLARE v_cantidad_regulares INT;
     
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
@@ -410,64 +454,75 @@ BEGIN
     
     START TRANSACTION;
     
-    -- Verificar disponibilidad
+    -- 🟡 Calcular cantidades de talonarios a entregar
+    SET v_cantidad_preferenciales = p_preferencial_Al - p_preferencial_Del + 1;
+    SET v_cantidad_regulares = p_regular_Al - p_regular_Del + 1;
+    
+    -- Verificar disponibilidad en la entrega del cajero
     SELECT cantidad_restante_preferencial, cantidad_restante_regular
     INTO v_disponibles_pref, v_disponibles_reg
     FROM entrega_talonarios 
     WHERE id = p_entrega_talonario_id AND estado = 'activo';
     
-    IF v_disponibles_pref < p_cantidad_preferenciales OR v_disponibles_reg < p_cantidad_regulares THEN
+    IF v_disponibles_pref < v_cantidad_preferenciales 
+       OR v_disponibles_reg < v_cantidad_regulares THEN
         SET p_resultado = 0;
         SET p_mensaje = 'Stock insuficiente en entrega de cajero';
         ROLLBACK;
     ELSE
-        -- Calcular rangos
-        SELECT 
-            rango_inicial_preferencial + ((cantidad_preferenciales - cantidad_restante_preferencial) * 50),
-            rango_inicial_regular + ((cantidad_regulares - cantidad_restante_regular) * 50)
-        INTO v_rango_inicial_pref, v_rango_inicial_reg
-        FROM entrega_talonarios
-        WHERE id = p_entrega_talonario_id;
+        -- 🟡 Calcular rangos finales
+        SET v_rango_final_pref = p_rango_inicial_preferencial + (v_cantidad_preferenciales * 50) - 1;
+        SET v_rango_final_reg = p_rango_inicial_regular + (v_cantidad_regulares * 50) - 1;
         
-        SET v_rango_final_pref = v_rango_inicial_pref + (p_cantidad_preferenciales * 50) - 1;
-        SET v_rango_final_reg = v_rango_inicial_reg + (p_cantidad_regulares * 50) - 1;
-        
-        -- Crear entrega a anfitrión
+        -- Insertar entrega a anfitrión
         INSERT INTO entrega_talonarios_anfitrion (
-            entrega_talonario_id, anfitrion_id,
-            cantidad_preferenciales, rango_inicial_preferencial, rango_final_preferencial,
+            entrega_talonario_id, 
+            anfitrion_id,
+            preferencial_del, preferencial_al,   -- 🔹 ahora sí declarados
+            regular_del, regular_al,             -- 🔹 ahora sí declarados
+            cantidad_preferenciales, 
+            rango_inicial_preferencial, rango_final_preferencial,
             total_boletos_preferenciales, total_aproximado_bolivianos_preferencial,
             cantidad_restante_preferencial,
-            cantidad_regulares, rango_inicial_regular, rango_final_regular,
+            cantidad_regulares, 
+            rango_inicial_regular, rango_final_regular,
             total_boletos_regulares, total_aproximado_bolivianos_regular,
             cantidad_restante_regular,
-            estado_preferencial, estado_regular, fecha_entrega, observaciones,
+            estado_preferencial, estado_regular, 
+            fecha_entrega, observaciones,
             total_recaudacion_bolivianos, estado
         ) VALUES (
-            p_entrega_talonario_id, p_anfitrion_id,
-            p_cantidad_preferenciales, v_rango_inicial_pref, v_rango_final_pref,
-            p_cantidad_preferenciales * 50, p_cantidad_preferenciales * 50 * 1.00,
-            p_cantidad_preferenciales,
-            p_cantidad_regulares, v_rango_inicial_reg, v_rango_final_reg,
-            p_cantidad_regulares * 50, p_cantidad_regulares * 50 * 1.50,
-            p_cantidad_regulares,
+            p_entrega_talonario_id, 
+            p_anfitrion_id,
+            p_preferencial_Del, p_preferencial_Al,
+            p_regular_Del, p_regular_Al,
+            v_cantidad_preferenciales, 
+            p_rango_inicial_preferencial, v_rango_final_pref,
+            v_cantidad_preferenciales * 50, v_cantidad_preferenciales * 50 * 1.00,
+            v_cantidad_preferenciales,
+            v_cantidad_regulares, 
+            p_rango_inicial_regular, v_rango_final_reg,
+            v_cantidad_regulares * 50, v_cantidad_regulares * 50 * 1.50,
+            v_cantidad_regulares,
             1, 1, CURDATE(), p_observaciones,
-            (p_cantidad_preferenciales * 50 * 1.00) + (p_cantidad_regulares * 50 * 1.50), 'activo'
+            (v_cantidad_preferenciales * 50 * 1.00) + (v_cantidad_regulares * 50 * 1.50), 
+            'activo'
         );
         
-        -- Actualizar entrega de cajero
+        -- Actualizar stock del cajero
         UPDATE entrega_talonarios 
         SET 
-            cantidad_restante_preferencial = cantidad_restante_preferencial - p_cantidad_preferenciales,
-            cantidad_restante_regular = cantidad_restante_regular - p_cantidad_regulares,
+            cantidad_restante_preferencial = cantidad_restante_preferencial - v_cantidad_preferenciales,
+            cantidad_restante_regular = cantidad_restante_regular - v_cantidad_regulares,
             estado = CASE 
-                WHEN cantidad_restante_preferencial - p_cantidad_preferenciales <= 0 
-                 AND cantidad_restante_regular - p_cantidad_regulares <= 0 
+                WHEN cantidad_restante_preferencial - v_cantidad_preferenciales <= 0 
+                 AND cantidad_restante_regular - v_cantidad_regulares <= 0 
                 THEN 'agotado' 
                 ELSE estado 
             END
         WHERE id = p_entrega_talonario_id;
         
+        -- Resultado
         SET v_entrega_anfitrion_id = LAST_INSERT_ID();
         SET p_resultado = v_entrega_anfitrion_id;
         SET p_mensaje = 'Talonarios entregados a anfitrión exitosamente';
@@ -477,6 +532,7 @@ BEGIN
 END$$
 
 DELIMITER ;
+
 
 -- =====================================================
 

@@ -17,12 +17,12 @@ class CreateInventarioTalonarios extends CreateRecord
         // Preparar parámetros con valores por defecto
         $params = [
             'cajero_id' => (int) ($data['cajero_id'] ?? 1),
-            'preferencial_del' => (int) ($data['preferencial_del'] ?? 1),
-            'preferencial_al' => (int) ($data['preferencial_al'] ?? 1),
-            'regular_del' => (int) ($data['regular_del'] ?? 1),
-            'regular_al' => (int) ($data['regular_al'] ?? 1),
-            'rango_inicial_preferencial' => (int) ($data['rango_inicial_preferencial'] ?? 1),
-            'rango_inicial_regular' => (int) ($data['rango_inicial_regular'] ?? 1),
+            'preferencial_del' => (int) ($data['preferencial_del'] ?? 0),
+            'preferencial_al' => (int) ($data['preferencial_al'] ?? 0),
+            'regular_del' => (int) ($data['regular_del'] ?? 0),
+            'regular_al' => (int) ($data['regular_al'] ?? 0),
+            'rango_inicial_preferencial' => (int) ($data['rango_inicial_preferencial'] ?? 0),
+            'rango_inicial_regular' => (int) ($data['rango_inicial_regular'] ?? 0),
             'fecha_entrega' => $data['fecha_entrega'] ?? now()->format('Y-m-d'),
             'observaciones' => $data['observaciones'] ?? '',
             'n_cite' => $data['n_cite'] ?? '001',
